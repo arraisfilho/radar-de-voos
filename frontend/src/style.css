@@ -3168,8 +3168,10 @@ input[type="checkbox"] {
 
 /* Accounts and contacts: compact, readable forms on every screen. */
 .auth-page {
+  position: relative;
+  min-height: 100vh;
   min-height: 100dvh;
-  padding: 38px 20px 50px;
+  padding: 72px 20px 40px;
   background: #f3f6f9;
   display: flex;
   flex-direction: column;
@@ -3398,7 +3400,7 @@ input[type="checkbox"] {
 }
 @media (max-width: 760px) {
   .auth-page {
-    padding: 25px 15px 35px;
+    padding: 72px 15px 28px;
   }
   .auth-card {
     padding: 23px 18px;
@@ -3624,3 +3626,54 @@ input[type="checkbox"] {
 .sidebar-searches>button .sidebar-trip-dates>span{max-width:none;white-space:nowrap;overflow:visible;text-overflow:clip}
 .sidebar-searches>button .sidebar-secondary-route{font-size:12px;margin-top:1px}
 .home-dates{display:flex;flex-wrap:wrap;gap:5px 18px;line-height:1.6}.home-dates>span{min-width:0;overflow-wrap:anywhere}.home-dates strong{font-weight:600;color:#344d67;margin-right:3px}
+
+/* Native Safari selects ignore part of the control sizing. Keep native selection
+   and keyboard behavior, but draw a consistent, touch-friendly control. */
+.phone-country select,
+.language-picker select {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%23315a82' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding: 10px 36px 10px 12px;
+  border: 1px solid #7c8999;
+  border-radius: 7px;
+  color: #243044;
+  font-size: 16px;
+  line-height: 1.4;
+  height: 46px;
+  min-height: 46px;
+}
+.phone-controls {
+  align-items: start;
+}
+.phone-country {
+  min-width: 0;
+}
+.phone-country select {
+  width: 100%;
+}
+.phone-number {
+  min-height: 46px;
+}
+.language-picker select {
+  width: auto;
+  max-width: 100%;
+  height: 44px;
+  min-height: 44px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+@media (forced-colors: active) {
+  .phone-country select,
+  .language-picker select {
+    -webkit-appearance: auto;
+    appearance: auto;
+    background-image: none;
+    padding-right: 12px;
+  }
+}

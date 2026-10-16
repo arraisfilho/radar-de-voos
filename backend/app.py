@@ -37,7 +37,7 @@ async def lifespan(app):
     monitor.stop()
 
 
-app = FastAPI(title="Radar de Voos local", version="0.20.0", lifespan=lifespan,
+app = FastAPI(title="Radar de Voos local", version="0.20.1", lifespan=lifespan,
               docs_url=None, redoc_url=None)
 
 
@@ -120,7 +120,7 @@ def airline_logo(request:Request,code:str):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "version": "0.20.0", "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
+    return {"ok": True, "version": "0.20.1", "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
 
 
 @app.get("/api/airports")

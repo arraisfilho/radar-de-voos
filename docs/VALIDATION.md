@@ -320,3 +320,10 @@ Build Linux AMD64 também concluído por emulação no host ARM64. O guia consid
 Container AMD64 público iniciado por emulação com rede desativada, raiz somente leitura e dados efêmeros. Health, ambos os trabalhadores e UID sem privilégios confirmados; nenhum volume real foi usado.
 
 Instalação local reiniciada após backup privado: health 0.20.0 e ambos os trabalhadores ativos, SQLite íntegro. Containers/volumes descartáveis de teste removidos; instâncias de outros projetos preservadas. Sem envio ao GitHub ou implantação em servidor externo.
+
+
+## 0.20.1 — controles de acesso no Safari
+
+O relato e a captura de tela do Safari mostram o seletor de país com altura nativa diferente do telefone. Os seletores de país e idioma agora usam `appearance: none`, seta SVG e dimensões explícitas (46 px e 44 px). Mantêm semântica e interação nativas; em cores forçadas, a aparência do sistema é restaurada. O formulário preserva o empilhamento dos campos em telas estreitas, e o cabeçalho reserva espaço para o idioma. Não há migração nem alteração nas credenciais ou contatos.
+
+Validação executada: compilação TypeScript/Vite, todas as fixtures `tests/frontend_*.cjs` e `git diff --check`, aprovadas. A validação visual em Safari/iOS permanece pendente: esta sessão não dispõe de acesso permitido ao navegador para inspecionar a aplicação. O ajuste se baseia na captura fornecida e na revisão do CSS; as fixtures não comprovam renderização entre navegadores.
