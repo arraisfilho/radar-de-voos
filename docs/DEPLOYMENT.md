@@ -1,173 +1,122 @@
-# Instalação com Docker e implantação na nuvem
+# Implantação e operação
 
-O projeto fornece apenas a aplicação. Seu proxy reverso já existente cuida do domínio e de HTTPS; nenhum Nginx, Caddy ou certificado é instalado por estes arquivos. A implantação pública é um piloto com uma instância, SQLite persistente, cadastro de clientes pelo administrador e coleta em segundo plano.
+## Requisitos
 
-## O que precisa
+- Servidor Linux com Docker Engine, Docker Compose e Git.
+- Domínio com HTTPS e proxy reverso existente.
+- Disco persistente e conectividade com a fonte de tarifas e os provedores de alertas.
 
-- Servidor Linux com Docker Engine e plugin Docker Compose. Como ponto de partida para o piloto, reserve 2 vCPU, 4 GB RAM e disco persistente; o consumo depende de usuários, rotas e retenção.
-- Git, acesso SSH ao servidor e acesso de leitura ao repositório privado, quando for enviado ao GitHub. Também é possível transferir uma cópia dos fontes.
-- Domínio HTTPS e proxy já configurados por você. Libere na infraestrutura somente as entradas necessárias ao proxy e ao SSH.
-- Saída de rede para buscar tarifas e acessar o provedor de alertas. Algumas nuvens restringem SMTP; confirme a porta com seu provedor.
+Como referência inicial para o piloto: 2 vCPU e 4 GB de RAM. Dimensione disco e capacidade conforme a carga. Instalação do Docker: [guia oficial para Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
 
-No Ubuntu, siga a [instalação oficial do Docker Engine](https://docs.docker.com/engine/install/ubuntu/), que inclui o plugin Compose. Confira:
-
-```sh
-docker version
-docker compose version
-```
-
-Use `sudo docker` se o usuário do servidor ainda não tiver acesso ao daemon. Acesso ao Docker equivale a administração do servidor. Não há instalação de Docker, proxy ou modificação de firewall escondida nos scripts do radar.
-
-## 1. Obter os fontes
-
-Depois de criar o repositório privado e enviar o código, no servidor:
+## Instalação
 
 ```sh
-git clone URL_DO_SEU_REPOSITORIO_PRIVADO radar-app
-cd radar-app
-```
-
-Troque o marcador pela URL do seu repositório. Nenhum remoto é criado nem recebe código por esses documentos. Configure a autenticação Git/SSH fora dos arquivos do projeto.
-
-## 2. Preparar o ambiente público
-
-```sh
+git clone https://github.com/arraisfilho/radar-de-voos.git
+cd radar-de-voos
 cp deploy/cloud.env.example deploy/cloud.env
 chmod 600 deploy/cloud.env
 ```
 
 Edite `deploy/cloud.env`:
 
-```dotenv
-RADAR_DOMAIN=radar.seudominio.com
-RADAR_UPSTREAM_PORT=8765
-RADAR_PUBLISHED_HOST=127.0.0.1
-RADAR_TRUSTED_PROXY=172.30.88.1
-```
+| Variável | Finalidade |
+|---|---|
+| `RADAR_DOMAIN` | Domínio público, sem protocolo ou caminho |
+| `RADAR_UPSTREAM_PORT` | Porta da aplicação acessada pelo proxy |
+| `RADAR_PUBLISHED_HOST` | Interface de publicação; padrão restrito ao próprio servidor |
+| `RADAR_TRUSTED_PROXY` | IP exato do proxy visto pela aplicação |
 
-O exemplo usa proxy no mesmo servidor e publica somente `127.0.0.1:8765`. Se seu proxy estiver em outra máquina ou container, escolha uma interface privada alcançável por ele e configure `RADAR_TRUSTED_PROXY` com o IP exato do par TCP visto pela aplicação. O IP final do usuário não é o proxy confiável. Não use `*` ou uma rede inteira. Restrinja a porta ao proxy por rede/firewall; publicá-la em `0.0.0.0` não cria essa restrição automaticamente.
-
-A rede Docker deste arquivo é `172.30.88.0/24`, gateway `172.30.88.1`. Se ela conflitar com sua infraestrutura, ajuste subnet, IP da aplicação e gateway confiável juntos. O Compose local usa outra rede, `172.30.87.0/24`.
+Para proxy instalado no mesmo servidor, mantenha os valores de rede do exemplo. Se a rede Docker conflitar com outra rede existente, ajuste subnet, endereço da aplicação e proxy confiável em conjunto. Proxies remotos exigem uma interface privada acessível e restrição da porta na infraestrutura.
 
 Valide e construa:
 
 ```sh
-docker compose --env-file deploy/cloud.env -f compose.cloud.yaml config --quiet
+docker compose --env-file deploy/cloud.env -f compose.cloud.yaml config --quiet &&
 docker compose --env-file deploy/cloud.env -f compose.cloud.yaml build
 ```
 
-A imagem compila o frontend, instala as dependências Python travadas e executa como usuário sem privilégios. Senhas, tokens, banco local e identidade OAuth desta instalação ficam fora do contexto da imagem.
-
-## 3. Criar o primeiro administrador
-
-Antes de iniciar a aplicação pela primeira vez:
+Crie o primeiro administrador **antes de iniciar o serviço**:
 
 ```sh
 docker compose --env-file deploy/cloud.env -f compose.cloud.yaml run --rm app python scripts/create_admin.py
 ```
 
-Informe nome, país ISO (`BR`, `US`, `PT`...), telefone e senha no terminal. A senha é solicitada sem eco, não vai em argumentos ou variáveis do shell. O comando não substitui um administrador existente. Não execute esse assistente contra uma instância em uso; ele é um comando de instalação inicial.
-
-Na nuvem, o cadastro público e o bootstrap via navegador ficam fechados. Entre como administrador e cadastre os clientes em **Administração → Cadastros**. O limite inicial é de cinco buscas por conta; o administrador pode ajustá-lo.
-
-## 4. Iniciar a aplicação
+O assistente solicita nome, país, telefone, e-mail e senha. Não há senha padrão. Se já houver administrador, nenhuma conta será alterada. Se a aplicação estiver em execução, pare o serviço `app` antes deste comando: o container temporário utiliza o mesmo IP fixo.
 
 ```sh
 docker compose --env-file deploy/cloud.env -f compose.cloud.yaml up -d --wait
-docker compose --env-file deploy/cloud.env -f compose.cloud.yaml ps
 ```
 
-A porta publicada será a escolhida em `RADAR_UPSTREAM_PORT`, encaminhada à porta `8765` do container. O volume `radar-cloud_radar_data` contém o SQLite e as credenciais privadas. O container reinicia com o Docker, mas um estado `unhealthy` sozinho não provoca reinício automático: acompanhe a saúde do serviço.
+## Proxy reverso
 
-O endpoint `/api/health` é verificado dentro do container. Pode ser consultado também pelo domínio HTTPS. Uma chamada HTTP direta à porta de produção, sem o proxy, pode retornar 403: a aplicação exige HTTPS e o domínio configurado.
+O projeto não instala proxy nem certificados. Configure no proxy existente:
 
-## 5. Encaminhar no seu proxy existente
+- Encaminhamento para a interface publicada e a porta `RADAR_UPSTREAM_PORT`.
+- `Host` preservado com o domínio público.
+- `X-Forwarded-Proto` definido como `https` após terminar TLS.
+- `X-Forwarded-For` definido com o IP do cliente, sobrescrevendo valores externos não confiáveis.
+- Sem cache de `/api/` e limite de corpo de aproximadamente 50 KB.
 
-Configure no proxy, a seu critério:
+Confie somente no IP exato do par TCP definido em `RADAR_TRUSTED_PROXY`. Em produção, a aplicação exige HTTPS e o domínio configurado; acesso HTTP direto pode retornar 403.
 
-- Origem externa: `https://radar.seudominio.com`.
-- Destino interno: interface/porta publicadas no passo 2, por exemplo `http://127.0.0.1:8765`.
-- Preserve o `Host` do domínio público.
-- Sobrescreva `X-Forwarded-Proto` com `https` depois de terminar TLS.
-- Sobrescreva `X-Forwarded-For` com o IP real do cliente; não copie cegamente valores recebidos da Internet.
-- Limite o corpo das requisições a aproximadamente 50 KB e não faça cache das rotas `/api/`.
+## Verificação inicial
 
-A aplicação só aceita cabeçalhos de proxy enviados pelo IP exato configurado. Com isso, cookies usam `Secure` e a auditoria pode registrar o cliente real. O fornecimento de certificado, renovação e configuração do proxy permanecem na sua infraestrutura. Se mudar o domínio ou a porta externa HTTPS, ajuste também a origem canônica; este Compose espera HTTPS na porta externa 443.
+```sh
+curl -fsS https://radar.example.com/api/health
+```
 
-Abra o domínio e teste login, logout, criação de uma busca, reconexão e recebimento de um alerta para um destinatário seu. O deploy deve ser validado no servidor antes de convidar usuários. Não basta a imagem compilar para comprovar que a fonte de tarifas aceita o IP da nuvem.
+Substitua o domínio pelo configurado. Confira versão e trabalhadores ativos. Depois valide login, criação de monitoramento, coleta e recebimento de um alerta. O endpoint de saúde não comprova acesso à fonte de tarifas nem entrega de mensagens.
 
-## 6. Configurar alertas
+Configure os remetentes em **Administração → Canais**: [Google OAuth](GOOGLE_MAIL.md), SMTP ou [WhatsApp](WHATSAPP.md). Clientes cadastram os destinatários no próprio perfil. Telegram está indisponível.
 
-**SMTP:** configure no painel administrativo. Os clientes informam somente os próprios destinatários. Para Gmail/Workspace, a senha normal da conta pode não ser aceita; use uma forma de autenticação suportada pela conta ou um serviço SMTP apropriado.
+## Atualização
 
-**WhatsApp:** configure provedor, URL, sessão e token em **Administração → Canais → WhatsApp**. Confirme a conectividade do servidor com seu integrador e faça um teste explícito para um número seu. Nada é enviado durante o build.
+Execute na pasta clonada do repositório. O procedimento interrompe brevemente o serviço para gerar um backup consistente:
 
-**Google OAuth:** em produção, configure em **Administração → Canais → E-mail → Integração Google do servidor** um cliente OAuth **Aplicativo da Web**. O painel mostra o callback HTTPS derivado de `RADAR_PUBLIC_URL`. Ative Gmail API e configure consentimento/público no mesmo projeto Google. Cadastre a URL de retorno exatamente, salve Client ID/Secret no painel e então informe o e-mail e autorize no Google. O segredo e os tokens permanecem em `/data/google-oauth-private.json`, fora da imagem e do Git. O cliente Desktop do Mac não serve para este fluxo. Consulte `GOOGLE_MAIL.md`.
+```sh
+docker compose --env-file deploy/cloud.env -f compose.cloud.yaml stop app &&
+docker compose --env-file deploy/cloud.env -f compose.cloud.yaml run --rm app python scripts/backup.py
+```
 
-**Telegram:** ainda não é um transporte funcional. Não é habilitado pelo container.
+Após confirmar o backup e copiá-lo para armazenamento externo:
 
-## 7. Logs, backup e restauração
+```sh
+git pull --ff-only &&
+docker compose --env-file deploy/cloud.env -f compose.cloud.yaml up -d --build --wait
+```
 
-Logs de containers são rotacionados em três arquivos de 10 MB. Histórico de envios e dados de coleta têm suas próprias políticas no painel/documentação; rotação de stdout não apaga o histórico do banco.
+Confira `/api/health`, login e logs. Se o backup ou o Git falhar, corrija o erro antes de prosseguir. Para recolocar a versão existente em execução, use `up -d --wait`.
+
+Se `git pull` informar que a pasta não é um repositório, use uma cópia obtida com `git clone`; diretórios extraídos de ZIP não possuem metadados Git. Preserve `deploy/cloud.env` e o volume da instalação ao substituir os fontes.
+
+## Backup e restauração
+
+O volume `radar-cloud_radar_data` guarda banco e credenciais. O backup acima gera um arquivo em `/data/backups/` e imprime o nome. Copie-o para o host, substituindo `NOME_DO_BACKUP.tar.gz`:
+
+```sh
+mkdir -p backups && chmod 700 backups
+docker compose --env-file deploy/cloud.env -f compose.cloud.yaml cp app:/data/backups/NOME_DO_BACKUP.tar.gz backups/
+chmod 600 backups/NOME_DO_BACKUP.tar.gz
+```
+
+Mantenha uma cópia externa protegida: o arquivo contém dados pessoais e segredos. Backups não são removidos automaticamente. `deploy/cloud.env` deve ser preservado separadamente.
+
+Para restaurar, guarde antes uma cópia do estado atual:
+
+```sh
+docker compose --env-file deploy/cloud.env -f compose.cloud.yaml stop app &&
+docker compose --env-file deploy/cloud.env -f compose.cloud.yaml run --rm -T app python scripts/restore.py --from-stdin < backups/NOME_DO_BACKUP.tar.gz &&
+docker compose --env-file deploy/cloud.env -f compose.cloud.yaml up -d --wait
+```
+
+A restauração valida o arquivo e substitui banco e credenciais privadas. Não há downgrade automático de migrações. **Não execute `docker compose down -v`: isso apaga o volume.**
+
+## Logs e retenção
 
 ```sh
 docker compose --env-file deploy/cloud.env -f compose.cloud.yaml logs --tail=100 app
 ```
 
-Antes de atualizar, pare somente o radar para manter banco e arquivos de credenciais sincronizados e gere o backup:
+O Compose limita logs do container a três arquivos de 10 MB. Registros de envio e auditoria têm retenção própria, ajustável em **Administração → Retenção**, com limpeza manual e prévia. Um estado `unhealthy` não reinicia automaticamente o container.
 
-```sh
-docker compose --env-file deploy/cloud.env -f compose.cloud.yaml stop app
-docker compose --env-file deploy/cloud.env -f compose.cloud.yaml run --rm app python scripts/backup.py
-```
-
-O comando imprime `/data/backups/radar-DATA.tar.gz`. Contém um snapshot SQLite validado e os JSON privados, sem duplicar cache de logos. Copie o arquivo para fora do servidor por um canal seguro; ele contém dados pessoais e credenciais. Exemplo, substituindo `NOME_DO_BACKUP.tar.gz` pelo nome impresso:
-
-```sh
-mkdir -p backups
-chmod 700 backups
-docker compose --env-file deploy/cloud.env -f compose.cloud.yaml cp app:/data/backups/NOME_DO_BACKUP.tar.gz backups/
-chmod 600 backups/NOME_DO_BACKUP.tar.gz
-```
-
-`compose cp` funciona com o container parado. Faça backup periódico, monitore o espaço e retenha apenas as cópias necessárias; a pasta de backups não é limpa automaticamente.
-
-Para restaurar uma cópia confiável, pare o radar, guarde uma cópia do estado atual e execute:
-
-```sh
-docker compose --env-file deploy/cloud.env -f compose.cloud.yaml stop app
-docker compose --env-file deploy/cloud.env -f compose.cloud.yaml run --rm -T app python scripts/restore.py --from-stdin < backups/NOME_DO_BACKUP.tar.gz
-docker compose --env-file deploy/cloud.env -f compose.cloud.yaml up -d --wait
-```
-
-O comando verifica o arquivo e a integridade do banco antes de substituir dados; recusa caminhos inesperados e links. As credenciais JSON são substituídas pelo conjunto completo do backup, incluindo a remoção de credenciais posteriores ausentes daquela cópia. Restauração substitui o estado atual: mantenha backup anterior e teste a recuperação antes de depender dela.
-
-Não use `docker compose down -v`: `-v` apaga o volume. `docker compose down`, sem `-v`, preserva os dados.
-
-## 8. Atualizar
-
-Com backup externo concluído:
-
-```sh
-git pull --ff-only
-docker compose --env-file deploy/cloud.env -f compose.cloud.yaml up -d --build --wait
-docker compose --env-file deploy/cloud.env -f compose.cloud.yaml ps
-```
-
-Confira saúde, login e logs. Se falhar, preserve o backup e volte à revisão anterior junto do banco compatível. Migrações SQLite não têm downgrade automático. Não mantenha duas versões coletando/enviando sobre o mesmo volume.
-
-## Docker local, sem publicar na Internet
-
-```sh
-docker compose build
-docker compose run --rm app python scripts/create_admin.py
-docker compose up -d --wait
-```
-
-Acesse `http://127.0.0.1:8765`. Se o servidor Python já estiver usando a porta, prefixe **todos** os comandos com `RADAR_LOCAL_PORT=18765` e acesse a porta 18765. O volume local `radar_radar_data` é separado do modo nuvem e dos dados atuais fora do repositório. Nada é migrado automaticamente desta máquina para um servidor novo.
-
-## Limites desta entrega
-
-Uma aplicação/worker e um volume SQLite, sem múltiplas réplicas. Ainda não há HA, banco gerenciado, e-mail/telefone verificado por código nem integração de pagamento. Google Flights via `fast-flights` não oferece SLA; cobertura, limites e disponibilidade da fonte continuam externos ao radar. Para escalar, separar coleta/fila, banco e workers vem antes de multiplicar containers.
-
-Referências: [Docker Engine](https://docs.docker.com/engine/install/ubuntu/), [Docker Compose](https://docs.docker.com/compose/install/linux/). Os arquivos não dependem de marca específica de nuvem ou de proxy.
+Mantenha uma única instância por volume SQLite. O Compose local usa um volume distinto; dados locais não migram automaticamente para a nuvem.

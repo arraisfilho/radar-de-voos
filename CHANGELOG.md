@@ -1,0 +1,19 @@
+# Alterações
+
+## 0.20.2
+
+- Conexão Google OAuth Web no domínio de produção, com configuração administrativa e callback HTTPS.
+- Versão exibida no login e na área da conta.
+- Catálogo de traduções incluído no runtime Docker e verificado no CI.
+
+## 0.20.1
+
+- Altura e aparência dos seletores de país e idioma padronizadas para Safari.
+- Espaçamento do cabeçalho de acesso ajustado.
+
+## 0.20.0
+
+- Implantação Docker com volume persistente, modo público HTTPS e proxy externo.
+- Assistentes de administrador, backup e restauração.
+
+O histórico completo do código está nos commits do repositório.
