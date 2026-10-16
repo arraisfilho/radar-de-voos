@@ -23,3 +23,8 @@ with store.db() as c:
     assert 'body_html' in {r[1] for r in c.execute('PRAGMA table_info(outbox)')}
     assert c.execute("SELECT name FROM sqlite_master WHERE name='offer_links'").fetchone()
 print('Runtime alert schema: HTML transport column and expiring offer links passed.')
+
+with store.db() as c:
+    for name in ('client_refs','monitor_refs','number_accounts_insert','number_searches_insert'):
+        assert c.execute('SELECT name FROM sqlite_master WHERE name=?',(name,)).fetchone()
+print('Runtime stable identifiers: customer and monitoring registries/triggers passed.')

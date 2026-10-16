@@ -37,7 +37,7 @@ async def lifespan(app):
     monitor.stop()
 
 
-app = FastAPI(title="Radar de Voos local", version="0.21.1", lifespan=lifespan,
+app = FastAPI(title="Radar de Voos local", version="0.22.0", lifespan=lifespan,
               docs_url=None, redoc_url=None)
 
 
@@ -137,7 +137,7 @@ def open_offer(request: Request, token: str):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "version": "0.21.1", "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
+    return {"ok": True, "version": "0.22.0", "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
 
 
 @app.get("/api/airports")
@@ -423,6 +423,27 @@ def own_audit(request:Request):
 def admin_users(request:Request,q:str=Query('',max_length=120),page:int=Query(0,ge=0,le=10000)):
     accounts.require_admin(request)
     return admin_accounts.listing(q,page)
+
+
+@app.get('/api/admin/users/{uid}/monitorings')
+def admin_monitorings(request:Request,uid:str,status:Literal['all','active','paused','ended']='all',page:int=Query(0,ge=0,le=10000)):
+    accounts.require_admin(request)
+    return admin_accounts.monitorings(uid,status,page)
+
+
+@app.get('/api/admin/users/{uid}/monitorings/{sid}')
+def admin_monitoring_detail(request:Request,uid:str,sid:str,page:int=Query(0,ge=0,le=10000)):
+    actor=accounts.require_admin(request)
+    with db() as c:
+        c.execute('BEGIN')
+        admin_accounts.get(uid,c)
+        row=c.execute('SELECT s.*,r.number AS monitoring_number FROM searches s JOIN monitor_refs r ON r.entity_id=s.id WHERE s.id=? AND s.owner_id=?',(sid,uid)).fetchone()
+        if not row:raise HTTPException(404,'Monitoramento não encontrado para este usuário.')
+        flights,_=recent_results(c,row)
+        result={'search':decode_search(row),'flights':flights[page*40:(page+1)*40],
+                'total':len(flights),'page':page,'page_size':40,'readonly':True}
+    audit.record(request,'admin_monitoring_viewed',uid,actor['id'])
+    return result
 
 
 @app.post('/api/admin/users')

@@ -8,6 +8,12 @@ Em produção, o primeiro administrador é criado pelo [assistente de instalaç�
 
 Cada conta acessa somente seus monitoramentos, resultados, histórico e alertas. Configuração dos remetentes, credenciais, auditoria e retenção são exclusivas do administrador.
 
+## Consulta administrativa de monitoramentos
+
+Em **Administração → Usuários**, cada cadastro exibe o número do cliente e as contagens de buscas ativas, pausadas e encerradas. **Monitoramentos** abre a lista daquele usuário; selecione uma busca para consultar filtros e resultados já coletados, sem editar ou disparar consultas à fonte. A visualização de detalhes fica na auditoria e mantém a sessão administrativa.
+
+Clientes e monitoramentos possuem sequências numéricas independentes. O número do monitoramento é global entre usuários, permanece após pausa/restauração e não é reutilizado após exclusão. Cadastros existentes recebem os números automaticamente; os IDs internos e vínculos permanecem preservados. Para localizar um cliente, pesquise `#N` na lista de usuários. A consulta administrativa é restrita ao papel administrador.
+
 ## Perfil e destinatários
 
 - Até quatro e-mails para alertas.

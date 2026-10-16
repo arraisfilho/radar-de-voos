@@ -185,6 +185,8 @@ export type Airport = {
 };
 
 export type User = {
+  client_number?: number;
+  monitoring_counts?: {active:number;paused:number;ended:number;total:number};
   search_limit?: number;
   additional_phones: {country:string;phone:string}[];
   timezone: string;

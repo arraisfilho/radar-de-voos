@@ -3622,5 +3622,181 @@
   "Envio parcial · registros incompletos": {
     "en": "Partial send · incomplete records",
     "es": "Envío parcial · registros incompletos"
+  },
+  "Não foi possível carregar os monitoramentos.": {
+    "en": "Could not load monitorings.",
+    "es": "No se pudieron cargar los monitoreos."
+  },
+  "Sem limite": {
+    "en": "No limit",
+    "es": "Sin límite"
+  },
+  "Todas as companhias": {
+    "en": "All airlines",
+    "es": "Todas las aerolíneas"
+  },
+  "Chegar até": {
+    "en": "Arrive by",
+    "es": "Llegar antes de"
+  },
+  "Espera máxima por conexão": {
+    "en": "Maximum layover",
+    "es": "Espera máxima por conexión"
+  },
+  "Monitoramentos de {0}": {
+    "en": "Monitorings for {0}",
+    "es": "Monitoreos de {0}"
+  },
+  "Cliente #{0} · somente leitura": {
+    "en": "Customer #{0} · read only",
+    "es": "Cliente #{0} · solo lectura"
+  },
+  "Somente leitura. Sua sessão de administrador será mantida.": {
+    "en": "Read only. Your administrator session stays active.",
+    "es": "Solo lectura. Tu sesión de administrador se mantiene activa."
+  },
+  "Voltar aos monitoramentos": {
+    "en": "Back to monitorings",
+    "es": "Volver a los monitoreos"
+  },
+  "Monitoramento #{0}": {
+    "en": "Monitoring #{0}",
+    "es": "Monitoreo #{0}"
+  },
+  "Passageiros": {
+    "en": "Passengers",
+    "es": "Pasajeros"
+  },
+  "Moeda": {
+    "en": "Currency",
+    "es": "Moneda"
+  },
+  "Malas solicitadas: {0}": {
+    "en": "Requested bags: {0}",
+    "es": "Maletas solicitadas: {0}"
+  },
+  "Meta por trecho": {
+    "en": "Target per leg",
+    "es": "Objetivo por trayecto"
+  },
+  "Sem meta": {
+    "en": "No target",
+    "es": "Sin objetivo"
+  },
+  "Horários locais dos aeroportos. Valores referentes ao grupo por trecho.": {
+    "en": "Local airport times. Prices are for the group per leg.",
+    "es": "Horarios locales de los aeropuertos. Precios por grupo y trayecto."
+  },
+  "Resultados já coletados": {
+    "en": "Previously collected results",
+    "es": "Resultados ya recopilados"
+  },
+  "Nenhuma opção disponível nos dados atuais.": {
+    "en": "No options available in the current data.",
+    "es": "No hay opciones disponibles en los datos actuales."
+  },
+  "Voo": {
+    "en": "Flight",
+    "es": "Vuelo"
+  },
+  "Partida e chegada": {
+    "en": "Departure and arrival",
+    "es": "Salida y llegada"
+  },
+  "Duração": {
+    "en": "Duration",
+    "es": "Duración"
+  },
+  "Preço": {
+    "en": "Price",
+    "es": "Precio"
+  },
+  "{0} escalas": {
+    "en": "{0} stops",
+    "es": "{0} escalas"
+  },
+  "{0} opções · página {1}": {
+    "en": "{0} options · page {1}",
+    "es": "{0} opciones · página {1}"
+  },
+  "Todos": {
+    "en": "All",
+    "es": "Todos"
+  },
+  "Ativos": {
+    "en": "Active",
+    "es": "Activos"
+  },
+  "Pausados": {
+    "en": "Paused",
+    "es": "Pausados"
+  },
+  "Encerrados": {
+    "en": "Ended",
+    "es": "Finalizados"
+  },
+  "Nenhum monitoramento encontrado.": {
+    "en": "No monitorings found.",
+    "es": "No se encontraron monitoreos."
+  },
+  "{0} monitoramentos · página {1}": {
+    "en": "{0} monitorings · page {1}",
+    "es": "{0} monitoreos · página {1}"
+  },
+  "Nome, telefone, e-mail ou #ID": {
+    "en": "Name, phone, email or #ID",
+    "es": "Nombre, teléfono, correo o #ID"
+  },
+  "Cliente #{0}": {
+    "en": "Customer #{0}",
+    "es": "Cliente #{0}"
+  },
+  "{0} ativos · {1} pausados · {2} encerrados": {
+    "en": "{0} active · {1} paused · {2} ended",
+    "es": "{0} activos · {1} pausados · {2} finalizados"
+  },
+  "Ver monitoramentos de {0}": {
+    "en": "View monitorings for {0}",
+    "es": "Ver monitoreos de {0}"
+  },
+  "Monitoramentos": {
+    "en": "Monitorings",
+    "es": "Monitoreos"
+  },
+  "Monitoramento consultado pelo administrador": {
+    "en": "Monitoring viewed by administrator",
+    "es": "Monitoreo consultado por el administrador"
+  },
+  "Monitoramento não encontrado para este usuário.": {
+    "en": "Monitoring not found for this user.",
+    "es": "Monitoreo no encontrado para este usuario."
+  },
+  "Ativos: {0} · Pausados: {1} · Encerrados: {2}": {
+    "en": "Active: {0} · Paused: {1} · Ended: {2}",
+    "es": "Activos: {0} · Pausados: {1} · Finalizados: {2}"
+  },
+  "Monitoramentos: {0} · Página {1}": {
+    "en": "Monitorings: {0} · Page {1}",
+    "es": "Monitoreos: {0} · Página {1}"
+  },
+  "Opções: {0} · Página {1}": {
+    "en": "Options: {0} · Page {1}",
+    "es": "Opciones: {0} · Página {1}"
+  },
+  "Sem taxas de bagagem na pesquisa": {
+    "en": "No baggage fees in the search",
+    "es": "Sin tasas de equipaje en la búsqueda"
+  },
+  "Taxas estimadas para 1 mala": {
+    "en": "Estimated fees for 1 bag",
+    "es": "Tasas estimadas para 1 maleta"
+  },
+  "Taxas estimadas para {0} malas": {
+    "en": "Estimated fees for {0} bags",
+    "es": "Tasas estimadas para {0} maletas"
+  },
+  "Queda mínima": {
+    "en": "Minimum drop",
+    "es": "Bajada mínima"
   }
 }

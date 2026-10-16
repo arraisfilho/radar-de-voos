@@ -132,6 +132,8 @@ def setup(seed=True):
         notifications.setup(c)
         from . import revisions
         revisions.setup(c)
+        from . import identifiers
+        identifiers.setup(c)
         c.execute("CREATE INDEX IF NOT EXISTS alerts_search_created ON alerts(search_id,created)")
         c.execute("CREATE INDEX IF NOT EXISTS results_cycle ON results(cycle_id)")
         c.execute("CREATE INDEX IF NOT EXISTS results_route_revision ON results(search_id,version,route_key,id)")

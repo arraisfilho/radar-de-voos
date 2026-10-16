@@ -1,5 +1,11 @@
 # Alterações
 
+## 0.22.0
+
+- Identificadores numéricos permanentes para clientes e monitoramentos, com migração dos registros existentes.
+- Contagem de monitoramentos por usuário e consulta administrativa somente leitura, com filtros e paginação.
+- Consulta de detalhes registrada na auditoria, mantendo a sessão do administrador e sem novas coletas.
+
 ## 0.21.1
 
 - Histórico e painel da busca exibem ícones, estados e contagens de envio por canal, sem expor contatos ou diagnósticos técnicos.

@@ -1,9 +1,11 @@
+import { AdminMonitorings } from "./AdminMonitorings";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
   Pencil,
   KeyRound,
+  Eye,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -59,8 +61,11 @@ export function AdminUsers({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
+  const [inspecting, setInspecting] = useState<User | null>(null);
   const query = useQuery<{ items: User[]; total: number; page_size: number }>({
     queryKey: ["admin-users", filter, page],
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
     queryFn: async ({ signal }) => {
       const r = await fetch(
         "/api/admin/users?" +
@@ -167,7 +172,7 @@ export function AdminUsers({
           <input
             type="search"
             maxLength={120}
-            placeholder={t("Nome, telefone ou e-mail")}
+            placeholder={t("Nome, telefone, e-mail ou #ID")}
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -194,15 +199,33 @@ export function AdminUsers({
               <article key={user.id}>
                 <div>
                   <strong>{user.name}</strong>
+                  <span className="subtle-tag">
+                    {t("Cliente #{0}", [user.client_number || "—"])}
+                  </span>
                   {user.role === "admin" && (
                     <span className="subtle-tag">{t("Administrador")}</span>
                   )}
                   <small>{user.phone}</small>
+                  <small className="admin-user-monitor-counts">
+                    {t("Ativos: {0} · Pausados: {1} · Encerrados: {2}", [
+                      user.monitoring_counts?.active || 0,
+                      user.monitoring_counts?.paused || 0,
+                      user.monitoring_counts?.ended || 0,
+                    ])}
+                  </small>
                   <small>
                     {user.emails.join(" · ") || t("Sem e-mail cadastrado")}
                   </small>
                 </div>
                 <div className="admin-user-actions">
+                  <Button
+                    variant="outline"
+                    onClick={() => setInspecting(user)}
+                    aria-label={t("Ver monitoramentos de {0}", [user.name])}
+                  >
+                    <Eye size={15} />
+                    {t("Monitoramentos")} ({user.monitoring_counts?.total || 0})
+                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => open(user)}
@@ -257,6 +280,12 @@ export function AdminUsers({
           </div>
         </>
       )}
+      {inspecting && (
+        <AdminMonitorings
+          user={inspecting}
+          onClose={() => setInspecting(null)}
+        />
+      )}
       <Modal
         open={!!draft}
         onOpenChange={(open) => {
@@ -301,10 +330,22 @@ export function AdminUsers({
               </div>
               <label>
                 {t("Limite de monitoramentos")}
-                <input type="number" min={1} max={100} step={1} required
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  step={1}
+                  required
                   value={draft.search_limit ?? 5}
-                  onChange={e=>setDraft({...draft,search_limit:e.target.valueAsNumber})}/>
-                <small className="help">{t("Padrão: 5. Buscas pausadas também contam. Reduzir o limite não remove buscas existentes.")}</small>
+                  onChange={(e) =>
+                    setDraft({ ...draft, search_limit: e.target.valueAsNumber })
+                  }
+                />
+                <small className="help">
+                  {t(
+                    "Padrão: 5. Buscas pausadas também contam. Reduzir o limite não remove buscas existentes.",
+                  )}
+                </small>
               </label>
               <PhoneField
                 label={t("Telefone de acesso")}

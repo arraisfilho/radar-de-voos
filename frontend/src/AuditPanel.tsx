@@ -26,6 +26,7 @@ export function AuditPanel({ admin = false, expanded = false }: { admin?: boolea
     refetchInterval: 30000,
   });
   const labels: Record<string, string> = {
+    admin_monitoring_viewed:t("Monitoramento consultado pelo administrador"),
     admin_account_created:t("Cadastro criado pelo administrador"),
     admin_account_updated:t("Cadastro alterado pelo administrador"),
     admin_password_reset:t("Senha redefinida pelo administrador"),
