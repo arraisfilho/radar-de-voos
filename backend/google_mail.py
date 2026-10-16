@@ -260,6 +260,7 @@ def transmit(config, message_id, subject, body):
         message['To']=', '.join(config['recipient']) if isinstance(config['recipient'],list) else config['recipient']
         message['Subject']=subject;message['Message-ID']=f'<radar-{message_id}@radar.local>'
         message.set_content(body)
+        if config.get("body_html"):message.add_alternative(config["body_html"],subtype="html")
         raw=base64.urlsafe_b64encode(message.as_bytes()).decode()
         try:
             try:response=remote(SEND_URL,{'raw':raw},access_token=token)

@@ -3566,5 +3566,13 @@
   "O endereço público da conexão Google é inválido.": {
     "en": "The public Google connection address is invalid.",
     "es": "La dirección pública de la conexión de Google no es válida."
+  },
+  "Link indisponível": {
+    "en": "Link unavailable",
+    "es": "Enlace no disponible"
+  },
+  "Este link expirou ou não está mais disponível.": {
+    "en": "This link has expired or is no longer available.",
+    "es": "Este enlace ha caducado o ya no está disponible."
   }
 }

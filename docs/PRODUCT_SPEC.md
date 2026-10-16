@@ -31,7 +31,8 @@ Oportunidades são avaliadas com os filtros salvos. A referência é o menor pre
 - Meta atingida pode gerar evento na primeira coleta, sem economia anterior inventada.
 - Comparações exigem coleta completa da direção.
 - Eventos iguais são deduplicados, com silêncio mínimo e supressão de oportunidades repetidas.
-- O aviso apresenta trecho/data, preço anterior e atual quando comparáveis, economia e link para conferir a pesquisa.
+- O aviso apresenta trecho/data, preço anterior e atual quando comparáveis, economia e link para conferir a pesquisa. WhatsApp usa texto com negrito; e-mail usa cartões e botões, com alternativa em texto simples.
+- Links curtos de pesquisa são públicos, não contêm credenciais e expiram em 30 dias. Excluir o alerta remove o link; o destino é restrito ao Google Voos. Links e formatação nova se aplicam aos alertas gerados após a atualização.
 - E-mail e WhatsApp dependem da configuração administrativa e dos contatos do perfil.
 
 ## Limites e evolução

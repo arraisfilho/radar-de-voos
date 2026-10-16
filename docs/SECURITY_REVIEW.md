@@ -6,6 +6,7 @@
 - Autorização por proprietário e papel administrativo, proteção de origem/token para alterações e limitação de tentativas de login.
 - Produção com domínio HTTPS explícito e confiança em um único IP de proxy.
 - Cadastro público e configuração inicial pelo navegador desativados em produção.
+- Links de oferta com identificador aleatório, validade limitada e destino restrito ao Google Voos; sem sessão ou dados de contato na URL.
 - OAuth com PKCE e estado de uso único vinculado à sessão administrativa.
 - Credenciais em arquivos privados com modo 0600, sem devolução dos segredos pela API.
 - Container sem privilégios, raiz somente leitura, temporários separados e volume persistente.

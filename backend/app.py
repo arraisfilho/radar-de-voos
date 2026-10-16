@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 from typing import Literal
 from fastapi import FastAPI, HTTPException, Request, Response, Query
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 from .airports import airport_record, search_airports
@@ -37,7 +37,7 @@ async def lifespan(app):
     monitor.stop()
 
 
-app = FastAPI(title="Radar de Voos local", version="0.20.2", lifespan=lifespan,
+app = FastAPI(title="Radar de Voos local", version="0.21.0", lifespan=lifespan,
               docs_url=None, redoc_url=None)
 
 
@@ -118,9 +118,26 @@ def airline_logo(request:Request,code:str):
     return FileResponse(path,media_type='image/png',headers={'Cache-Control':'private,max-age=86400'})
 
 
+@app.get('/go/{token}')
+def open_offer(request: Request, token: str):
+    from . import offer_links
+    with db() as c:target=offer_links.resolve(c,token)
+    if not target:
+        import html
+        from .i18n import translate
+        language=request.headers.get('accept-language','pt').split(',')[0].split('-')[0]
+        if language not in ('pt','en','es'):language='en'
+        title=html.escape(translate('Link indisponível',language))
+        message=html.escape(translate('Este link expirou ou não está mais disponível.',language))
+        back=html.escape(translate('Voltar ao radar',language))
+        document=f'<!doctype html><html lang="{language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title></head><body style="background:#f3f6f9;color:#243044;font:18px/1.6 system-ui;padding:24px"><main style="max-width:520px;margin:40px auto"><h1>{title}</h1><p>{message}</p><a style="color:#315a82" href="/">{back}</a></main></body></html>'
+        return HTMLResponse(document,status_code=404,headers={'Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"})
+    return RedirectResponse(target,status_code=302,headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer'})
+
+
 @app.get("/api/health")
 def health():
-    return {"ok": True, "version": "0.20.2", "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
+    return {"ok": True, "version": "0.21.0", "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
 
 
 @app.get("/api/airports")

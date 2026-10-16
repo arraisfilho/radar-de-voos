@@ -17,6 +17,7 @@ def cleanup(now=None,limit=2000):
         c.execute('BEGIN IMMEDIATE')
         last=c.execute("SELECT value FROM metadata WHERE key='raw_retention_last_run'").fetchone()
         if last and now-float(last[0])<3600:return {'results':0,'cycles':0}
+        c.execute('DELETE FROM offer_links WHERE token IN (SELECT token FROM offer_links WHERE expires<? LIMIT ?)',(now,limit))
         # Keep the latest attempt AND latest valid response of every route/version.
         removed=c.execute('''DELETE FROM results WHERE id IN (
           SELECT id FROM results WHERE collected<?

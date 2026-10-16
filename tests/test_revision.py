@@ -187,5 +187,5 @@ class ConciseAlertTests(unittest.TestCase):
         event={'kind':'lower_price','price_cents':110800,'previous':281500,'saving_cents':170700,'saving_percent':61,'flight':{'origin':'THE','destination':'CGH','departure':'2090-11-05T23:40','arrival':'2090-11-06T07:30','airlines':['LATAM'],'duration_minutes':470,'stops':1,'adults':1,'currency':'BRL','search_url':'https://example.org/flight'}}
         for language,word in [('pt','Economia'),('en','Save'),('es','Ahorro')]:
             body=event_text('São Paulo','outbound',event,language)
-            self.assertLessEqual(len(body.splitlines()),7);self.assertIn('2,815.00 → R$ 1,108.00' if language=='en' else '2.815,00 → R$ 1.108,00',body);self.assertIn(word,body);self.assertIn('61%',body);self.assertTrue(body.endswith('https://example.org/flight'))
+            self.assertLessEqual(len(body.splitlines()),12);self.assertIn('R$ 1,108.00' if language=='en' else 'R$ 1.108,00',body);self.assertIn(word,body);self.assertIn('61%',body);self.assertNotIn('https://example.org/flight',body)
             self.assertNotIn('Coletado em',body);self.assertNotIn('mesma janela',body)

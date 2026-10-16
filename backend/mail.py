@@ -96,6 +96,7 @@ def transmit(config, message_id, subject, body):
     message["From"], message["To"], message["Subject"] = config["sender"], (", ".join(config["recipient"]) if isinstance(config["recipient"], list) else config["recipient"]), subject
     message["Message-ID"] = f"<radar-{message_id}@radar.local>"
     message.set_content(body)
+    if config.get("body_html"):message.add_alternative(config["body_html"],subtype="html")
     context = ssl.create_default_context()
     if config["security"] == "ssl":
         client = smtplib.SMTP_SSL(config["host"], config["port"], timeout=15, context=context)

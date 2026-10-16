@@ -18,3 +18,8 @@ assert 'https://radar.example.com' in body
 assert 'http://127.0.0.1:8765' not in body
 assert response.headers['cache-control']=='no-store'
 print('Runtime OAuth callback: packaged translations, HTTPS origin and safe invalid-state page passed.')
+
+with store.db() as c:
+    assert 'body_html' in {r[1] for r in c.execute('PRAGMA table_info(outbox)')}
+    assert c.execute("SELECT name FROM sqlite_master WHERE name='offer_links'").fetchone()
+print('Runtime alert schema: HTML transport column and expiring offer links passed.')

@@ -27,7 +27,7 @@ def configure_days(scope,value):
 
 def setup(c):
     columns = {r[1] for r in c.execute('PRAGMA table_info(outbox)')}
-    for name, definition in [('owner_id','TEXT REFERENCES accounts(id)'),('channel',"TEXT NOT NULL DEFAULT 'email'"),('kind',"TEXT NOT NULL DEFAULT 'legacy'"),('provider','TEXT'),('completed','REAL'),('transport_ref','TEXT'),('provider_message_id','TEXT')]:
+    for name, definition in [('body_html','TEXT'),('owner_id','TEXT REFERENCES accounts(id)'),('channel',"TEXT NOT NULL DEFAULT 'email'"),('kind',"TEXT NOT NULL DEFAULT 'legacy'"),('provider','TEXT'),('completed','REAL'),('transport_ref','TEXT'),('provider_message_id','TEXT')]:
         if name not in columns:
             c.execute('ALTER TABLE outbox ADD COLUMN '+name+' '+definition)
     if not c.execute("SELECT 1 FROM metadata WHERE key='delivery_log_v1'").fetchone():

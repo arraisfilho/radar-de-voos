@@ -14,14 +14,9 @@ from .store import db
 from . import mail,whatsapp
 from .notifications import sync_alerts,link
 from .query_gate import QueryGate
+from .alert_messages import money
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
-def money(cents, currency="BRL", language="pt"):
-    amount=f"{cents/100:,.2f}"
-    if language in ('pt','es'):amount=amount.replace(',', '_').replace('.', ',').replace('_', '.')
-    return ('R$ ' if currency=='BRL' else currency+' ')+amount
 
 
 def make_event(search, flight, previous, last_floor=None, last_alerted=None, now=None):
@@ -46,27 +41,8 @@ def make_event(search, flight, previous, last_floor=None, last_alerted=None, now
 
 
 def event_text(name, direction, event, language='pt'):
-    labels={
-        'pt':{'target':'META ATINGIDA','lower_price':'PREÇO CAIU','outbound':'IDA','inbound':'VOLTA','arrival':'Chegada','saving':'Economia','direct':'direto','stops':'escala(s)','adults':'adulto(s) · por trecho','bags':'bagagem a confirmar','link':'Ver oferta'},
-        'en':{'target':'TARGET REACHED','lower_price':'PRICE DROP','outbound':'OUTBOUND','inbound':'RETURN','arrival':'Arrives','saving':'Save','direct':'nonstop','stops':'stop(s)','adults':'adult(s) · per leg','bags':'check baggage','link':'View offer'},
-        'es':{'target':'OBJETIVO ALCANZADO','lower_price':'BAJÓ EL PRECIO','outbound':'IDA','inbound':'VUELTA','arrival':'Llegada','saving':'Ahorro','direct':'directo','stops':'escala(s)','adults':'adulto(s) · por trayecto','bags':'confirmar equipaje','link':'Ver oferta'},
-    }[language if language in ('pt','en','es') else 'en']
-    flight=event['flight'];currency=flight.get('currency','BRL')
-    departure=datetime.fromisoformat(flight['departure']);arrival=datetime.fromisoformat(flight['arrival'])
-    current=money(event['price_cents'],currency,language)
-    before=money(event['previous'],currency,language)+' → ' if event.get('previous') else ''
-    stops=labels['direct'] if not flight['stops'] else str(flight['stops'])+' '+labels['stops']
-    lines=[f"{name} · {labels[event['kind']]}",
-           f"{labels[direction]} · {departure:%d/%m %H:%M} · {flight['origin']} → {flight['destination']}",
-           f"{' / '.join(flight['airlines'])} · {stops} · {flight['duration_minutes']//60}h{flight['duration_minutes']%60:02d}",
-           before+current]
-    if event.get('saving_cents'):
-        lines.append(f"{labels['saving']}: {money(event['saving_cents'],currency,language)} ({event['saving_percent']}%)")
-    extra=sum(flight.get(key,0) for key in ('children','infants_in_seat','infants_on_lap'))
-    party=f"{flight['adults']} {labels['adults']}" if not extra else str(flight['adults']+extra)+' '+{'pt':'passageiros · por trecho','en':'passengers · per leg','es':'pasajeros · por trayecto'}.get(language,'passengers · per leg')
-    lines.extend([f"{labels['arrival']}: {arrival:%d/%m %H:%M} · {party} · {labels['bags']}",
-                  labels['link']+': '+flight['search_url']])
-    return '\n'.join(lines)
+    from .alert_messages import render
+    return render([(direction,event)],language)[0]
 
 
 def fetch(search, job):
@@ -129,7 +105,10 @@ def persist_snapshots(c, sid, version, cid, search, results):
     if queue:
         language_row=c.execute("SELECT a.language FROM accounts a JOIN searches s ON s.owner_id=a.id WHERE s.id=?",(sid,)).fetchone()
         language=language_row[0] if language_row else "pt"
-        body="\n\n".join(event_text(search.name,d,e,language) for a,d,e in queue)
+        from . import offer_links, alert_messages
+        events=[(d,e) for a,d,e in queue]
+        links={i:offer_links.create(c,a,e['flight'].get('search_url','')) for i,(a,d,e) in enumerate(queue)}
+        body,body_html=alert_messages.render(events,language,links=links)
         ids=[a for a,d,e in queue];subject=f"Radar de Voos · {search.name}"
         if search.notify_email:
             ready=bool(recipients and mail.available())
@@ -138,7 +117,10 @@ def persist_snapshots(c, sid, version, cid, search, results):
                 c.execute("INSERT INTO outbox(id,search_id,version,created,alert_ids,subject,body,status,next_due,recipients,error) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                     (oid,sid,version,time.time(),json.dumps(ids),subject,body,'pending' if ready else 'failed',time.time(),json.dumps(recipients),None if ready else 'E-mail sem destinatários ou serviço indisponível'))
                 link(c,oid,ids)
-        if search.notify_whatsapp:whatsapp.enqueue(c,sid,version,ids,subject,body)
+                c.execute('UPDATE outbox SET body_html=? WHERE id=?',(body_html,oid))
+        if search.notify_whatsapp:
+            whatsapp_body,_=alert_messages.render(events,language,channel='whatsapp',links=links)
+            whatsapp.enqueue(c,sid,version,ids,subject,whatsapp_body)
         sync_alerts(c,ids)
 
 
@@ -307,7 +289,7 @@ class Monitor:
                 config = {**config, "recipient": recipients}
             elif row.get("recipients"):
                 config = {**config,"recipient":json.loads(row["recipients"])}
-            mail.transmit(config,row["id"],row["subject"],row["body"])
+            mail.transmit({**config,"body_html":row.get("body_html")},row["id"],row["subject"],row["body"])
             status,error = "sent",None
         except Exception as exc:
             status,error = "failed",mail.safe_error(exc)

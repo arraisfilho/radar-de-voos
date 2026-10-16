@@ -40,4 +40,4 @@ class PassengerTests(unittest.TestCase):
         flight=result['flights'][0];self.assertEqual(flight['price_cents'],150000);self.assertEqual(flight['price_scope'],'party_per_leg');self.assertEqual(flight['children'],1);self.assertEqual(flight['infants_on_lap'],1)
         event={'kind':'target','price_cents':150000,'flight':flight}
         for language,phrase in [('pt','4 passageiros'),('en','4 passengers'),('es','4 pasajeros')]:
-            text=event_text('Family','outbound',event,language);self.assertIn(phrase,text);self.assertNotIn('2 adulto(s)',text);self.assertLessEqual(len(text.splitlines()),7)
+            text=event_text('Family','outbound',event,language);self.assertIn(phrase,text);self.assertNotIn('2 adulto(s)',text);self.assertLessEqual(len(text.splitlines()),11)

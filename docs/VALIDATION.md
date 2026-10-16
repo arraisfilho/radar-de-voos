@@ -8,6 +8,7 @@ O [workflow de CI](../.github/workflows/checks.yml) executa:
 |---|---|
 | Backend | Testes Python de regras, persistência, contas, autorização, filas e integrações |
 | Frontend | TypeScript, build Vite e fixtures de formulários, navegação, máscaras e idiomas |
+| Alertas | Formatos por canal, economia comparável, HTML escapado, MIME multipart e links com destino/expiração controlados |
 | Container | Validação Compose, build da imagem e callback OAuth em runtime isolado |
 
 Os testes usam dados temporários e provedores simulados. Não comprovam disponibilidade da fonte nem envio real. Comandos locais estão no [guia de desenvolvimento](DEVELOPMENT.md); resultados por revisão estão no [GitHub Actions](https://github.com/arraisfilho/radar-de-voos/actions).
@@ -26,4 +27,4 @@ Após instalação ou alteração relevante:
 6. Verifique layouts em Safari, Chrome, Firefox e dispositivo móvel.
 7. Teste backup e restauração em ambiente separado.
 
-Build e fixtures não substituem inspeção visual entre navegadores. Saúde do processo não comprova entrega de mensagens nem conectividade com a fonte.
+Build e fixtures não substituem inspeção visual entre navegadores. A revisão de layout 0.21.0 foi feita por análise da captura e do CSS; a conferência interativa nos navegadores permanece pendente. Saúde do processo não comprova entrega de mensagens nem conectividade com a fonte.

@@ -126,6 +126,8 @@ def setup(seed=True):
             c.execute("ALTER TABLE oauth_requests ADD COLUMN language TEXT NOT NULL DEFAULT 'pt'")
         from . import deliveries
         deliveries.setup(c)
+        from . import offer_links
+        offer_links.setup(c)
         from . import notifications
         notifications.setup(c)
         from . import revisions
