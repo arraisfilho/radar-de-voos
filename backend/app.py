@@ -37,7 +37,7 @@ async def lifespan(app):
     monitor.stop()
 
 
-app = FastAPI(title="Radar de Voos local", version="0.21.0", lifespan=lifespan,
+app = FastAPI(title="Radar de Voos local", version="0.21.1", lifespan=lifespan,
               docs_url=None, redoc_url=None)
 
 
@@ -137,7 +137,7 @@ def open_offer(request: Request, token: str):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "version": "0.21.0", "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
+    return {"ok": True, "version": "0.21.1", "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
 
 
 @app.get("/api/airports")
@@ -189,7 +189,10 @@ def state(request: Request, search_id: str | None = None, preview_pool: bool = F
             if detail:
                 history = [dict(r) for r in c.execute("WITH valid AS (SELECT id,version,cycle_id,direction,collected,complete,price,count,COALESCE(json_extract(flight,'$.currency'),'BRL') AS currency,LAG(price) OVER(PARTITION BY version,direction ORDER BY collected,id) AS previous_price FROM snapshots WHERE search_id=? AND complete=1 AND price IS NOT NULL) SELECT * FROM valid WHERE previous_price IS NULL OR previous_price<>price ORDER BY collected DESC,id DESC LIMIT 160", (chosen["id"],))]
             alerts = [dict(r) for r in c.execute("SELECT * FROM alerts WHERE search_id=? ORDER BY created DESC LIMIT 100", (chosen["id"],))]
+            from .notifications import channel_summaries
+            channels=channel_summaries(c,user['id'],[event['id'] for event in alerts])
             for event in alerts:
+                event['channels']=channels.get(event['id'],[])
                 event["payload"] = json.loads(event["payload"])
             if detail:cycles = [dict(r) for r in c.execute("SELECT * FROM cycles WHERE search_id=? ORDER BY id DESC LIMIT 30", (chosen["id"],))]
         deliveries = [dict(r) for r in c.execute("SELECT id,created,status,attempts,error,sent,subject,recipients FROM outbox WHERE search_id IN (SELECT id FROM searches WHERE owner_id=?) OR (search_id IS NULL AND ?='admin') ORDER BY created DESC LIMIT 30",(user["id"],user["role"]))] if scope=="legacy" else []

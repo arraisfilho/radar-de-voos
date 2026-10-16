@@ -35,3 +35,21 @@ def sync_alerts(c,ids):
         elif 'failed' in statuses:status='failed'
         else:status=statuses[0]
         c.execute('UPDATE alerts SET status=? WHERE id=?',(status,aid))
+
+
+def channel_summaries(c, user_id, alert_ids):
+    """One grouped query for the visible alerts; no contact or provider diagnostics."""
+    if not alert_ids:return {}
+    values=list(dict.fromkeys(alert_ids));marks=','.join('?' for _ in values)
+    rows=c.execute('''SELECT n.alert_id,o.channel,o.status,COUNT(*) count
+      FROM notification_deliveries n
+      JOIN alerts a ON a.id=n.alert_id
+      JOIN searches s ON s.id=a.search_id
+      JOIN outbox o ON o.id=n.outbox_id AND o.search_id=a.search_id
+      WHERE s.owner_id=? AND n.alert_id IN ('''+marks+''')
+      GROUP BY n.alert_id,o.channel,o.status ORDER BY o.channel,o.status''',[user_id,*values])
+    grouped={}
+    for row in rows:
+        channels=grouped.setdefault(row['alert_id'],{})
+        channels.setdefault(row['channel'],{})[row['status']]=row['count']
+    return {aid:[{'channel':channel,'counts':counts} for channel,counts in channels.items()] for aid,channels in grouped.items()}

@@ -1,5 +1,10 @@
 # Alterações
 
+## 0.21.1
+
+- Histórico e painel da busca exibem ícones, estados e contagens de envio por canal, sem expor contatos ou diagnósticos técnicos.
+- Indicação explícita de envio parcial e de registros incompletos após retenção.
+
 ## 0.21.0
 
 - Alertas WhatsApp com negrito, singular/plural correto e ida/volta agrupadas sem título repetido.

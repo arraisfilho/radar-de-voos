@@ -3697,3 +3697,21 @@ input[type="checkbox"] {
  .activity-filters label{min-width:0;flex:1 1 140px;max-width:none}
  .settings-actions .button{max-width:100%;white-space:normal}
 }
+
+/* Per-channel transport status, with native accessible expandable details. */
+.channel-deliveries{display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap;min-width:0}
+.channel-delivery{border:1px solid #d4dce6;border-radius:6px;background:#f4f6f9;color:#42556d;font-size:12px;max-width:100%;min-width:0}
+.channel-delivery>summary{display:flex;align-items:center;gap:5px;list-style:none;cursor:pointer;padding:6px 8px;min-height:34px;flex-wrap:wrap}
+.channel-delivery>summary::-webkit-details-marker{display:none}
+.channel-delivery>summary>svg{flex-shrink:0}
+.channel-delivery>summary>svg:last-child{margin-left:2px}
+.channel-delivery[open]>summary>svg:last-child{transform:rotate(180deg)}
+.channel-delivery strong{font-weight:600}.channel-delivery small{font-variant-numeric:tabular-nums;font-size:11px}
+.channel-sent{background:#eff6f1;border-color:#c6dbcd;color:#28573b}
+.channel-failed{background:#fff2ef;border-color:#e4bcb4;color:#873e31}
+.channel-partial,.channel-uncertain{background:#fff7e8;border-color:#dec99f;color:#725018}
+.channel-queued,.channel-sending{background:#edf3fa;border-color:#c5d7e9;color:#315a82}
+.channel-delivery-details{border-top:1px solid currentColor;padding:8px 10px;max-width:320px;line-height:1.5}
+.channel-delivery-details p{margin:0 0 5px}.channel-delivery-details p:last-child{margin-bottom:0}
+.channel-delivery-details ul{margin:0 0 6px;padding-left:18px}
+@media(max-width:600px){.channel-delivery>summary{min-height:44px}.channel-deliveries{width:100%}}

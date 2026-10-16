@@ -33,6 +33,7 @@ Oportunidades são avaliadas com os filtros salvos. A referência é o menor pre
 - Eventos iguais são deduplicados, com silêncio mínimo e supressão de oportunidades repetidas.
 - O aviso apresenta trecho/data, preço anterior e atual quando comparáveis, economia e link para conferir a pesquisa. WhatsApp usa texto com negrito; e-mail usa cartões e botões, com alternativa em texto simples.
 - Links curtos de pesquisa são públicos, não contêm credenciais e expiram em 30 dias. Excluir o alerta remove o link; o destino é restrito ao Google Voos. Links e formatação nova se aplicam aos alertas gerados após a atualização.
+- O histórico mostra a situação de cada canal com ícone e detalhes expansíveis. Contagens representam registros de envio, sem confirmar entrega ou leitura. Registros removidos pela retenção podem limitar o detalhamento.
 - E-mail e WhatsApp dependem da configuração administrativa e dos contatos do perfil.
 
 ## Limites e evolução

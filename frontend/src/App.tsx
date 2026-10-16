@@ -1,3 +1,4 @@
+import { DeliveryChannels } from "./DeliveryChannels";
 import { SystemVersion } from "./SystemVersion";
 import {SidebarSearches} from "./SidebarSearches";
 import {partyLabel} from "./passengers";
@@ -102,21 +103,7 @@ const stateLabels = (): Record<string, string> => ({
   expired: t("Prazo encerrado"),
   ended: t("Encerrada"),
 });
-const sendLabels = (): Record<string, string> => ({
-  waiting_smtp: t("Serviço de envio indisponível"),
-  quiet: t("Silenciado neste horário"),
-  waiting_contact: t("Adicione um e-mail no perfil"),
-  queued: t("Na fila de e-mail"),
-  pending: t("Na fila"),
-  sending: t("Enviando"),
-  sent: t("Enviado ao provedor"),
-  failed: t("Envio não confirmado"),
-  partial:t("Aceito por parte dos destinos"),
-  in_app: t("Somente no painel"),
-  cancelled: t("Cancelado"),
-  expired: t("Não enviado: alerta antigo"),
-  uncertain: t("Envio requer verificação"),
-});
+
 const blankLeg = (day: string): Leg => ({
   start: day + "T00:00",
   end: day + "T23:59",
@@ -421,11 +408,7 @@ function AlertItem({ event }: { event: Alert }) {
         )}
       </p>
       <div className="alert-bottom">
-        <span
-          className={`delivery-badge ${event.status === "sent" ? "success" : ""}`}
-        >
-          {sendLabels()[event.status] || event.status}
-        </span>
+        <DeliveryChannels event={event} />
         <a href={f.search_url} target="_blank" rel="noreferrer">
           {t("Conferir pesquisa")}
           <ExternalLink size={12} />

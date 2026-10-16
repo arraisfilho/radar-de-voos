@@ -3574,5 +3574,53 @@
   "Este link expirou ou não está mais disponível.": {
     "en": "This link has expired or is no longer available.",
     "es": "Este enlace ha caducado o ya no está disponible."
+  },
+  "Aceito": {
+    "en": "Accepted",
+    "es": "Aceptado"
+  },
+  "Não confirmado": {
+    "en": "Unconfirmed",
+    "es": "Sin confirmar"
+  },
+  "Envio parcial": {
+    "en": "Partial send",
+    "es": "Envío parcial"
+  },
+  "Estado indisponível": {
+    "en": "Status unavailable",
+    "es": "Estado no disponible"
+  },
+  "Outro canal": {
+    "en": "Other channel",
+    "es": "Otro canal"
+  },
+  "{0} de {1} envios aceitos": {
+    "en": "{0} of {1} sends accepted",
+    "es": "{0} de {1} envíos aceptados"
+  },
+  "Aceito pelo provedor não confirma entrega ou leitura.": {
+    "en": "Provider acceptance does not confirm delivery or reading.",
+    "es": "La aceptación del proveedor no confirma entrega ni lectura."
+  },
+  "Os detalhes por canal dependem dos registros de envio disponíveis.": {
+    "en": "Channel details depend on the available send records.",
+    "es": "Los detalles por canal dependen de los registros de envío disponibles."
+  },
+  "Situação por canal": {
+    "en": "Status by channel",
+    "es": "Estado por canal"
+  },
+  "Os avisos permanecem no histórico. Consulte os ícones para ver a situação de cada canal. Aceito não confirma entrega ou leitura.": {
+    "en": "Alerts remain in your history. Check the icons for each channel status. Accepted does not confirm delivery or reading.",
+    "es": "Los avisos permanecen en el historial. Consulta los iconos para ver el estado de cada canal. Aceptado no confirma entrega ni lectura."
+  },
+  "Envios completos": {
+    "en": "Fully accepted alerts",
+    "es": "Avisos totalmente aceptados"
+  },
+  "Envio parcial · registros incompletos": {
+    "en": "Partial send · incomplete records",
+    "es": "Envío parcial · registros incompletos"
   }
 }

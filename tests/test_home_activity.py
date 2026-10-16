@@ -85,6 +85,31 @@ class EvolutionTests(unittest.TestCase):
         filtered=self.client.get('/api/activity',params={'status':'pending','search_id':b}).json();self.assertEqual([item['id'] for item in filtered['items']],['pending']);self.assertTrue(filtered['items'][0]['archived'])
         failed=self.client.get('/api/activity',params={'status':'failed','search_id':b}).json();self.assertEqual([item['id'] for item in failed['items']],['missing'])
         self.assertEqual(self.client.get('/api/activity',params={'search_id':other}).json()['items'],[])
+    def test_channel_summaries_are_grouped_private_and_shared_with_monitor(self):
+        from backend.notifications import link
+        sid=self.search();private=self.search(self.other)
+        with store.db() as c:
+            self.alert(c,sid,self.cycle(c,sid),'own-channel','partial')
+            self.alert(c,private,self.cycle(c,private),'private-channel','sent')
+            for oid,search,aid,channel,status in [
+                ('mail',sid,'own-channel','email','failed'),
+                ('whatsapp-ok',sid,'own-channel','whatsapp','sent'),
+                ('whatsapp-error',sid,'own-channel','whatsapp','uncertain'),
+                ('private',private,'private-channel','email','sent')]:
+                c.execute("INSERT INTO outbox(id,search_id,created,alert_ids,subject,body,status,next_due,recipients,channel,error) VALUES(?,?,?,?,'fixture','PRIVATE BODY',?,0,'[\"PRIVATE CONTACT\"]',?,'PRIVATE ERROR')",(oid,search,time.time(),json.dumps([aid]),status,channel))
+                link(c,oid,[aid])
+        response=self.client.get('/api/activity').json()
+        item=response['items'][0];self.assertEqual(item['id'],'own-channel')
+        self.assertEqual(item['channels'],[{'channel':'email','counts':{'failed':1}},{'channel':'whatsapp','counts':{'sent':1,'uncertain':1}}])
+        raw=json.dumps(response)
+        for text in ('PRIVATE BODY','PRIVATE CONTACT','PRIVATE ERROR','private-channel'):self.assertNotIn(text,raw)
+        state=self.client.get('/api/state',params={'scope':'searches','search_id':sid}).json()
+        self.assertEqual(state['alerts'][0]['channels'],item['channels'])
+        other=self.other.get('/api/activity').json()['items'][0]
+        self.assertEqual(other['channels'],[{'channel':'email','counts':{'sent':1}}])
+        with store.db() as c:c.execute('DELETE FROM outbox WHERE search_id=?',(sid,))
+        self.assertEqual(self.client.get('/api/activity').json()['items'][0]['channels'],[])
+
     def test_price_changes_are_separate_from_sent_notifications(self):
         sid=self.search()
         with store.db() as c:

@@ -1,6 +1,7 @@
 """Owner-scoped notification history and observed price changes, kept distinct."""
 import json
 from .store import db
+from .notifications import channel_summaries
 
 
 def feed(user_id,mode,search_id,page,status):
@@ -14,7 +15,9 @@ def feed(user_id,mode,search_id,page,status):
                 statuses={'sent':['sent'],'pending':['queued'],'failed':['failed','partial','uncertain','waiting_smtp','waiting_contact']}[status]
                 clause+=' AND a.status IN ('+','.join('?' for _ in statuses)+')';values+=statuses
             rows=[dict(r) for r in c.execute('SELECT a.*,s.config,s.archived FROM alerts a JOIN searches s ON a.search_id=s.id WHERE '+clause+' ORDER BY a.created DESC,a.id DESC LIMIT 31 OFFSET ?',values+[page*30])]
+            channels=channel_summaries(c,user_id,[row['id'] for row in rows[:30]])
             for row in rows:
+                row['channels']=channels.get(row['id'],[])
                 row['search_name']=json.loads(row.pop('config'))['name'];row['payload']=json.loads(row['payload'])
         else:
             rows=[dict(r) for r in c.execute('''WITH changes AS (
