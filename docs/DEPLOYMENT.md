@@ -102,7 +102,7 @@ Abra o domínio e teste login, logout, criação de uma busca, reconexão e rece
 
 **WhatsApp:** configure provedor, URL, sessão e token em **Administração → Canais → WhatsApp**. Confirme a conectividade do servidor com seu integrador e faça um teste explícito para um número seu. Nada é enviado durante o build.
 
-**Google OAuth:** o assistente atual é local, com cliente Desktop/retorno loopback. Não é um fluxo OAuth web pronto para conectar remotamente no domínio da nuvem. Para o primeiro deploy, use SMTP. A identidade pública e os tokens desta máquina não acompanham Git nem imagem. Um OAuth web hospedado com consentimento/callback HTTPS é uma evolução separada; não simule isso liberando o bootstrap público ou expondo segredos. Consulte `GOOGLE_MAIL.md`.
+**Google OAuth:** em produção, configure em **Administração → Canais → E-mail → Integração Google do servidor** um cliente OAuth **Aplicativo da Web**. O painel mostra o callback HTTPS derivado de `RADAR_PUBLIC_URL`. Ative Gmail API e configure consentimento/público no mesmo projeto Google. Cadastre a URL de retorno exatamente, salve Client ID/Secret no painel e então informe o e-mail e autorize no Google. O segredo e os tokens permanecem em `/data/google-oauth-private.json`, fora da imagem e do Git. O cliente Desktop do Mac não serve para este fluxo. Consulte `GOOGLE_MAIL.md`.
 
 **Telegram:** ainda não é um transporte funcional. Não é habilitado pelo container.
 

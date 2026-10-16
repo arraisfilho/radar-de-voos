@@ -37,4 +37,4 @@ jobs:
       - run: docker compose config --quiet
       - run: docker compose --env-file deploy/cloud.env.example -f compose.cloud.yaml config --quiet
       - run: docker build -t radar-de-voos:ci .
-      - run: docker run --rm --network none radar-de-voos:ci python -c "from backend.app import app; assert app is not None"
+      - run: docker run --rm -i --network none radar-de-voos:ci python - < tests/container_oauth_smoke.py

@@ -37,7 +37,7 @@ async def lifespan(app):
     monitor.stop()
 
 
-app = FastAPI(title="Radar de Voos local", version="0.20.1", lifespan=lifespan,
+app = FastAPI(title="Radar de Voos local", version="0.20.2", lifespan=lifespan,
               docs_url=None, redoc_url=None)
 
 
@@ -120,7 +120,7 @@ def airline_logo(request:Request,code:str):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "version": "0.20.1", "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
+    return {"ok": True, "version": "0.20.2", "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
 
 
 @app.get("/api/airports")
@@ -554,12 +554,12 @@ def connect_mail_account(request: Request, account: mail_discovery.MailAccount):
     provider='google' if account.provider=='google' else mail_discovery.identify(account.email)
     if provider!='google':
         return {"provider":provider,"email":account.email,"ready":False}
-    if request.url.hostname not in ("127.0.0.1","localhost"):
+    if not public_mode() and request.url.hostname not in ("127.0.0.1","localhost"):
         raise HTTPException(422,"Adicione a conta neste Mac, em http://127.0.0.1:8765/")
     if not google_mail.public_settings()["configured"]:
         return {"provider":"google","email":account.email,"ready":False,"setup_required":True}
     try:
-        url=google_mail.start(user,request.cookies.get(accounts.COOKIE,""),"http://"+request.url.hostname+":"+str(request.url.port or 80),login_hint=account.email)
+        url=google_mail.start(user,request.cookies.get(accounts.COOKIE,""),(public_origin() if public_mode() else "http://"+request.url.hostname+":"+str(request.url.port or 80)),login_hint=account.email)
         return {"provider":"google","email":account.email,"ready":True,"url":url}
     except google_mail.GoogleMailError as exc:raise HTTPException(422,str(exc))
 
@@ -567,10 +567,10 @@ def connect_mail_account(request: Request, account: mail_discovery.MailAccount):
 @app.post("/api/google/start")
 def google_start(request: Request):
     user=accounts.require_admin(request)
-    if request.url.hostname not in ("127.0.0.1","localhost"):
+    if not public_mode() and request.url.hostname not in ("127.0.0.1","localhost"):
         raise HTTPException(422,"Conecte a conta Google neste Mac, abrindo http://127.0.0.1:8765/")
     try:
-        return {"url":google_mail.start(user,request.cookies.get(accounts.COOKIE,""),"http://"+request.url.hostname+":"+str(request.url.port or 80))}
+        return {"url":google_mail.start(user,request.cookies.get(accounts.COOKIE,""),(public_origin() if public_mode() else "http://"+request.url.hostname+":"+str(request.url.port or 80)))}
     except google_mail.GoogleMailError as exc:raise HTTPException(422,str(exc))
 
 
@@ -601,7 +601,7 @@ def google_callback(request: Request, state: str = "", code: str = "", error: st
     callback_title=translate('Conexão Google · Radar de Voos',language)
     back_label=translate('Voltar ao radar',language)
     nonce=secrets.token_urlsafe(20)
-    origin=json.dumps(pending["origin"] if pending else "http://127.0.0.1:8765")
+    origin=json.dumps(pending["origin"] if pending else (public_origin() if public_mode() else "http://127.0.0.1:8765"))
     payload=json.dumps({"type":"radar-google-oauth","ok":ok,"message":message}).replace('<','\\u003c')
     style='html{color-scheme:light;background:#f2f5f8;color:#182739;font:18px/1.6 system-ui,sans-serif}body{margin:0;padding:32px}main{max-width:520px;margin:40px auto;background:white;border:1px solid #c9d4df;border-radius:16px;padding:28px}h1{font-size:26px;line-height:1.3}a{color:#245580;font-weight:600}'
     document='<!doctype html><html lang="'+language+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+html.escape(callback_title)+'</title><style nonce="'+nonce+'">'+style+'</style></head><body><main><h1>'+html.escape(heading)+'</h1><p>'+html.escape(message)+'</p><a href="/" target="_blank" rel="noopener">'+html.escape(back_label)+'</a></main><script nonce="'+nonce+'">history.replaceState(null,"","/api/google/callback");if(window.opener){window.opener.postMessage('+payload+','+origin+');'+('window.close();' if ok else '')+'}</script></body></html>'

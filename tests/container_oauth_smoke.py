@@ -1,0 +1,20 @@
+"""Run inside the disposable runtime image, with --network none and no volumes."""
+import os
+os.environ['RADAR_DEPLOYMENT']='public'
+os.environ['RADAR_PUBLIC_URL']='https://radar.example.com'
+from fastapi import Request
+from backend import store
+from backend.app import app, google_callback
+from backend.i18n import translate
+
+store.setup(seed=False)
+assert app is not None
+assert translate('Conta conectada','es')=='Cuenta conectada'
+response=google_callback(Request({'type':'http','headers':[(b'accept-language',b'es')]}),state='invalid-fixture-state')
+assert response.status_code==200
+body=response.body.decode()
+assert 'Conexión no completada' in body
+assert 'https://radar.example.com' in body
+assert 'http://127.0.0.1:8765' not in body
+assert response.headers['cache-control']=='no-store'
+print('Runtime OAuth callback: packaged translations, HTTPS origin and safe invalid-state page passed.')

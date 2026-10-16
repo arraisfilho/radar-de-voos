@@ -204,6 +204,8 @@ export type User = {
 };
 
 export type GoogleMail = {
+  deployment?: "public" | "local";
+  client_type?: "web" | "desktop";
   configured: boolean;
   client_id: string;
   client_secret_set: boolean;

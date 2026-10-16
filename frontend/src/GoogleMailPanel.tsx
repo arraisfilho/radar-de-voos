@@ -39,6 +39,10 @@ export function GoogleMailPanel({
     [otherProvider, setOtherProvider] = useState(false),
     [testEmail, setTestEmail] = useState(testRecipient || status.email),
     [testing, setTesting] = useState(false);
+  const [clientId, setClientId] = useState(status.client_id || "");
+  const [clientSecret, setClientSecret] = useState("");
+  const [savingClient, setSavingClient] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(!status.configured);
   const popup = useRef<Window | null>(null);
   useEffect(() => {
     if (status.connected) {
@@ -136,9 +140,12 @@ export function GoogleMailPanel({
         windowRef?.close();
         setBusy(false);
         setProgress("");
+        setSetupOpen(true);
         setError(
           t(
-            "A conexão Google ainda não está disponível nesta versão. Você não precisa configurar o Google Cloud.",
+            status.deployment === "public"
+              ? "Configure a integração Google abaixo antes de conectar a conta."
+              : "A conexão Google deste ambiente ainda precisa ser ativada pelo responsável técnico do aplicativo.",
           ),
         );
         return;
@@ -191,6 +198,113 @@ export function GoogleMailPanel({
             </span>
           )}
         </div>
+        {status.deployment === "public" && (
+          <details
+            className="google-web-setup"
+            open={setupOpen}
+            onToggle={(event) => setSetupOpen(event.currentTarget.open)}
+          >
+            <summary>{t("Integração Google do servidor")}</summary>
+            <p className="help">
+              {t(
+                "Configure uma vez com um cliente OAuth do tipo Aplicativo da Web. Depois, basta informar o e-mail e autorizar no Google.",
+              )}
+            </p>
+            <p className="help">
+              <a
+                href="https://console.cloud.google.com/auth/clients"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t("Abrir clientes OAuth no Google Cloud")}
+              </a>
+            </p>
+            <label>
+              {t("URL de retorno autorizada")}
+              <input
+                readOnly
+                value={status.redirect_uri}
+                onFocus={(event) => event.currentTarget.select()}
+              />
+            </label>
+            <form
+              className="add-mail-account"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                setSavingClient(true);
+                setError("");
+                setMessage("");
+                try {
+                  await request(
+                    "/google/client",
+                    {
+                      client_id: clientId.trim(),
+                      client_secret: clientSecret.trim(),
+                      client_type: "web",
+                    },
+                    "PUT",
+                  );
+                  setClientSecret("");
+                  await onChanged();
+                  setSetupOpen(false);
+                  setMessage(
+                    t(
+                      "Integração salva. Informe seu e-mail e clique em Continuar para autorizar no Google.",
+                    ),
+                  );
+                } catch (error) {
+                  setError(t((error as Error).message));
+                } finally {
+                  setSavingClient(false);
+                }
+              }}
+            >
+              <label>
+                Client ID
+                <input
+                  required
+                  value={clientId}
+                  maxLength={300}
+                  disabled={savingClient || busy}
+                  autoComplete="off"
+                  onChange={(event) => setClientId(event.target.value)}
+                />
+              </label>
+              <label>
+                Client Secret
+                <input
+                  type="password"
+                  value={clientSecret}
+                  maxLength={500}
+                  disabled={savingClient || busy}
+                  autoComplete="new-password"
+                  required={
+                    !status.client_secret_set ||
+                    clientId.trim() !== status.client_id
+                  }
+                  placeholder={
+                    status.client_secret_set
+                      ? t("Deixe vazio para manter o segredo salvo")
+                      : ""
+                  }
+                  onChange={(event) => setClientSecret(event.target.value)}
+                />
+              </label>
+              <p className="help">
+                {t(
+                  "O segredo fica somente no servidor. Nunca o envie ao GitHub.",
+                )}
+              </p>
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={savingClient || busy}
+              >
+                {savingClient ? t("Salvando…") : t("Salvar integração Google")}
+              </Button>
+            </form>
+          </details>
+        )}
         {status.connected && !adding ? (
           <>
             <p className="google-account">{status.email}</p>
@@ -304,7 +418,7 @@ export function GoogleMailPanel({
               )}
             </p>
             <div className="google-mail-actions">
-              <Button type="submit" disabled={busy}>
+              <Button type="submit" disabled={busy || savingClient}>
                 {busy ? (
                   <LoaderCircle size={17} className="spin" />
                 ) : (

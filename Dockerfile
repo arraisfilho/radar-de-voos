@@ -17,6 +17,7 @@ RUN pip install --no-cache-dir -r requirements.lock
 COPY backend/ ./backend/
 COPY config/ ./config/
 COPY scripts/ ./scripts/
+COPY frontend/src/messages.json ./frontend/src/messages.json
 COPY --from=frontend /build/frontend/dist/ ./frontend/dist/
 USER 10001:10001
 EXPOSE 8765

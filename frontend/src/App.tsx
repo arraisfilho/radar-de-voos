@@ -1,3 +1,4 @@
+import { SystemVersion } from "./SystemVersion";
 import {SidebarSearches} from "./SidebarSearches";
 import {partyLabel} from "./passengers";
 import { t, getLocale, getLanguage, useLanguage } from "./i18n";
@@ -702,6 +703,7 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
           onSelect={id=>{setSelectedId(id);setView("searches");setDirection("outbound");}}
           onNew={newSearch}/>
         <div className="sidebar-bottom account-summary">
+          <SystemVersion />
           <LanguagePicker />
           <strong>{data.user.name}</strong>
           <span>{data.user.phone}</span>
@@ -718,6 +720,7 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
         </span>
         <LanguagePicker />
         <div className="mobile-account">
+          <SystemVersion />
           <strong>{data.user.name}</strong>
           <small>{data.user.phone}</small>
         </div>

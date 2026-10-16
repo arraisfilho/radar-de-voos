@@ -3677,3 +3677,11 @@ input[type="checkbox"] {
     padding-right: 12px;
   }
 }
+
+.google-web-setup {border:1px solid var(--border);border-radius:8px;padding:12px;margin:16px 0;min-width:0}
+.google-web-setup summary {cursor:pointer;font-weight:600;color:var(--primary);min-height:32px}
+.google-web-setup label {display:flex;flex-direction:column;gap:6px;font-size:14px;margin-top:12px}
+.google-web-setup .help {margin-top:8px}
+.google-web-setup input {min-width:0}
+.system-version {display:block;color:#526176;font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums}
+.auth-page>.system-version {position:absolute;top:26px;left:20px}

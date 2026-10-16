@@ -14,6 +14,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from pydantic import BaseModel, Field, model_validator
 from .store import db
+from .network import public_mode, public_origin
 
 AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -67,10 +68,12 @@ def application_client():
 
 def redirect_uri(data=None):
     data=data if data is not None else settings()
+    if public_mode():return public_origin()+'/api/google/callback'
     return 'http://127.0.0.1:8765/' if data.get('client_type')=='desktop' else REDIRECT_URI
 
 
 def ready(data):
+    if public_mode() and data.get('client_type','web')!='web':return False
     return bool(data.get('client_id') and (data.get('client_type')=='desktop' or data.get('client_secret')))
 
 
@@ -81,7 +84,7 @@ def client_parameters(data):
 def settings():
     with LOCK:
         private=json.loads(path().read_text()) if path().exists() else {}
-        public=application_client()
+        public={} if public_mode() else application_client()
         if not public:
             return private
         if private.get('client_id')!=public['client_id'] or private.get('client_type')!='desktop':
@@ -109,11 +112,15 @@ def public_settings():
     data = settings()
     return {'configured':ready(data),
             'client_id':data.get('client_id',''),'client_secret_set':bool(data.get('client_secret')),
-            'connected':bool(data.get('refresh_token') and not data.get('needs_reconnect')),
+            'connected':bool(ready(data) and data.get('refresh_token') and not data.get('needs_reconnect')),
+            'deployment':'public' if public_mode() else 'local',
+            'client_type':data.get('client_type','web'),
             'email':data.get('email',''),'error':data.get('error'), 'redirect_uri':redirect_uri(data)}
 
 
 def configure(client):
+    if public_mode() and client.client_type!='web':
+        raise GoogleMailError('Na nuvem, configure um cliente Google do tipo Aplicativo da Web.')
     with LOCK:
         previous = settings()
         if client.client_type=='web' and not client.client_secret and (not previous.get('client_secret') or client.client_id != previous.get('client_id')):
@@ -141,6 +148,8 @@ def remote(url, data=None, access_token=None, form=False):
 
 def start(user, cookie, origin, login_hint=None):
     data=settings()
+    if public_mode() and origin!=public_origin():
+        raise GoogleMailError('O endereço público da conexão Google é inválido.')
     if not ready(data):
         raise GoogleMailError('A conexão Google ainda não está habilitada nesta distribuição do aplicativo')
     state=secrets.token_urlsafe(40);verifier=secrets.token_urlsafe(64)
@@ -217,7 +226,7 @@ def finish(pending, code, denied=False):
 def access_token(force=False):
     with LOCK:
         data=settings()
-        if not data.get('refresh_token') or data.get('needs_reconnect'):
+        if not ready(data) or not data.get('refresh_token') or data.get('needs_reconnect'):
             raise GoogleMailError('Reconecte a conta Google na Administração')
         if not force and data.get('expires',0)>time.time()+60:return data['access_token']
         try:

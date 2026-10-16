@@ -3522,5 +3522,49 @@
   "Solicite seu cadastro ao administrador.": {
     "en": "Ask the administrator to create your account.",
     "es": "Solicita tu registro al administrador."
+  },
+  "Configure a integração Google abaixo antes de conectar a conta.": {
+    "en": "Configure the Google integration below before connecting the account.",
+    "es": "Configura la integración de Google abajo antes de conectar la cuenta."
+  },
+  "Integração Google do servidor": {
+    "en": "Server Google integration",
+    "es": "Integración de Google del servidor"
+  },
+  "Configure uma vez com um cliente OAuth do tipo Aplicativo da Web. Depois, basta informar o e-mail e autorizar no Google.": {
+    "en": "Set up a Web application OAuth client once. Then enter the email and authorize access with Google.",
+    "es": "Configura una vez un cliente OAuth de tipo Aplicación web. Después, introduce el correo y autoriza el acceso en Google."
+  },
+  "Abrir clientes OAuth no Google Cloud": {
+    "en": "Open OAuth clients in Google Cloud",
+    "es": "Abrir clientes OAuth en Google Cloud"
+  },
+  "URL de retorno autorizada": {
+    "en": "Authorized redirect URL",
+    "es": "URL de redirección autorizada"
+  },
+  "Integração salva. Informe seu e-mail e clique em Continuar para autorizar no Google.": {
+    "en": "Integration saved. Enter your email and click Continue to authorize access with Google.",
+    "es": "Integración guardada. Introduce tu correo y pulsa Continuar para autorizar el acceso en Google."
+  },
+  "Deixe vazio para manter o segredo salvo": {
+    "en": "Leave blank to keep the saved secret",
+    "es": "Déjalo vacío para conservar el secreto guardado"
+  },
+  "O segredo fica somente no servidor. Nunca o envie ao GitHub.": {
+    "en": "The secret stays on the server. Never send it to GitHub.",
+    "es": "El secreto permanece en el servidor. Nunca lo envíes a GitHub."
+  },
+  "Salvar integração Google": {
+    "en": "Save Google integration",
+    "es": "Guardar integración de Google"
+  },
+  "Na nuvem, configure um cliente Google do tipo Aplicativo da Web.": {
+    "en": "In the cloud, configure a Google Web application client.",
+    "es": "En la nube, configura un cliente de Google de tipo Aplicación web."
+  },
+  "O endereço público da conexão Google é inválido.": {
+    "en": "The public Google connection address is invalid.",
+    "es": "La dirección pública de la conexión de Google no es válida."
   }
 }

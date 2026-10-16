@@ -1,3 +1,4 @@
+import { SystemVersion } from "./SystemVersion";
 import { AdditionalPhones } from "./AdditionalPhones";
 import { useLanguage, getLanguage, t } from "./i18n";
 import { LanguagePicker } from "./LanguagePicker";
@@ -204,6 +205,7 @@ export function AuthGate() {
     );
   return (
     <main className="auth-page">
+      <SystemVersion />
       <LanguagePicker />
       <a href="/" className="brand auth-brand">
         <Plane size={28} />

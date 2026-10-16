@@ -327,3 +327,13 @@ Instalação local reiniciada após backup privado: health 0.20.0 e ambos os tra
 O relato e a captura de tela do Safari mostram o seletor de país com altura nativa diferente do telefone. Os seletores de país e idioma agora usam `appearance: none`, seta SVG e dimensões explícitas (46 px e 44 px). Mantêm semântica e interação nativas; em cores forçadas, a aparência do sistema é restaurada. O formulário preserva o empilhamento dos campos em telas estreitas, e o cabeçalho reserva espaço para o idioma. Não há migração nem alteração nas credenciais ou contatos.
 
 Validação executada: compilação TypeScript/Vite, todas as fixtures `tests/frontend_*.cjs` e `git diff --check`, aprovadas. A validação visual em Safari/iOS permanece pendente: esta sessão não dispõe de acesso permitido ao navegador para inspecionar a aplicação. O ajuste se baseia na captura fornecida e na revisão do CSS; as fixtures não comprovam renderização entre navegadores.
+
+
+## 0.20.2 — Google OAuth hospedado e versão visível
+
+- Implantação pública usa cliente Web e callback HTTPS derivado exclusivamente de `RADAR_PUBLIC_URL`. Manifesto Desktop local não sobrescreve configuração Web privada. Cliente Desktop é recusado na configuração pública; permissões administrativas, restrições de origem, state de uso único vinculado à sessão e PKCE permanecem ativos.
+- Painel administrativo permite configurar Client ID/Secret uma vez, mostra a URL de retorno e o link do Google Cloud. Segredo mascarado, apagado do estado do formulário após salvar, ausente nas respostas de configuração e gravado em arquivo privado 0600. Traduções PT/EN/ES incluídas.
+- Versão 0.20.2 visível na tela de acesso, barra lateral e cabeçalho móvel.
+- Corrigida embalagem Docker do catálogo de traduções que o callback importa em tempo de execução; smoke do container agora cobre a resposta HTML de estado inválido, origem pública HTTPS e tradução espanhola.
+
+Validação: 189 testes Python aprovados; todas as fixtures frontend, incluindo nova configuração Web, aprovadas; build TypeScript/Vite aprovado localmente e na imagem ARM64; callback executado dentro da imagem descartável com `--network none`, sem volumes nem credenciais reais, aprovado. `git diff --check` aprovado. Os testes OAuth simulam o Google: consentimento interativo, renovação e entrega reais na produção ainda dependem do cliente Web cadastrado no Google Cloud e da autorização do remetente. Nenhum e-mail ou WhatsApp foi enviado nesta revisão.

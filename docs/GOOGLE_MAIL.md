@@ -1,8 +1,25 @@
 # Conta Google para enviar alertas
 
-**Distribuição do código:** a identidade OAuth desta máquina é ignorada no Git e no Docker. Um clone novo não herda a conta conectada nem está pronto para login Google sem provisionamento. Na nuvem, o primeiro deploy usa SMTP; o assistente abaixo continua sendo local. Consulte `DEPLOYMENT.md`.
+**Distribuição do código:** a identidade OAuth desta máquina é ignorada no Git e no Docker. Um clone novo não herda a conta conectada. A instalação local usa cliente Desktop; a nuvem usa um cliente Aplicativo da Web configurado pelo administrador.
 
-## Para quem instala o radar
+## Conexão na nuvem (a partir de 0.20.2)
+
+1. No [Google Cloud](https://console.cloud.google.com/), selecione o projeto, habilite **Gmail API** e configure o público/consentimento do Google Auth Platform. O fluxo pede `openid`, `email` e `https://www.googleapis.com/auth/gmail.send`. Se o aplicativo estiver em teste, autorize a conta como usuário de teste quando aplicável; público Interno atende somente a organização Workspace correspondente. O Google pode exigir verificação conforme público e escopos.
+2. Em **Google Auth Platform → Clientes**, crie um cliente **Aplicativo da Web**, separado do Desktop local. Em **URIs de redirecionamento autorizados**, informe exatamente a URL que o painel do radar apresenta. Para esta instalação:
+
+   ```text
+   https://radar.arrais.net.br/api/google/callback
+   ```
+
+3. Abra **Administração → Canais → E-mail → Integração Google do servidor**. Preencha Client ID e Client Secret e salve. Deixar o segredo vazio preserva o existente somente para o mesmo Client ID. Trocar a integração remove a autorização anterior e requer reconexão.
+4. Informe a conta remetente e clique em **Continuar**. O navegador abre o Google; a senha é informada somente lá. Após autorizar, a janela retorna ao domínio do radar. Se o provedor Workspace não for reconhecido pelo DNS, escolha **Minha conta é do Google**.
+5. Informe o **E-mail para teste**, solicite o envio e consulte **Administração → Envios**. Autorização concluída e mensagem entregue são verificações distintas.
+
+Configurar o cliente é uma etapa única por instalação. Client Secret e tokens são gravados com modo 0600 no diretório privado persistente; nunca devem ser colocados no repositório ou enviados pelo chat. Use HTTPS com `RADAR_PUBLIC_URL` correto. O Nginx existente encaminha o callback como as demais rotas, sem configuração especial. A autorização usa state de uso único vinculado à sessão administrativa ativa e PKCE. Contas comuns não configuram remetentes.
+
+Referência: [OAuth para aplicações Web do Google](https://developers.google.com/identity/protocols/oauth2/web-server).
+
+## Para quem instala o radar localmente
 
 Em uma distribuição preparada, o administrador abre **Administração → Adicionar conta de e-mail**, informa o endereço, clica em **Continuar** e autoriza no Google. Não cria projeto no Google Cloud nem informa Client ID/Secret. Gmail é reconhecido pelo domínio; Google Workspace pelo MX, com escolha manual caso haja intermediários. A senha é informada apenas ao Google.
 

@@ -2,6 +2,7 @@
 import hashlib
 import importlib
 import json
+import os
 import tempfile
 import time
 import unittest
@@ -302,6 +303,71 @@ class GoogleMailTests(unittest.TestCase):
         mail.save_settings(mail.SMTPSettings(enabled=True,host='smtp.example.org',sender='old@example.org',recipient='test@example.org'))
         self.assertFalse(mail.available())
         self.assertEqual(mail.delivery_settings()['provider'],'google')
+
+    def cloud_client(self):
+        client=TestClient(self.app.app,base_url='https://radar.example.com',client=('203.0.113.10',5555))
+        self.addCleanup(client.close)
+        headers=self.headers|{'origin':'https://radar.example.com'}
+        login=client.post('/api/auth/login',json={'country':'US','phone':'6502530000','password':'fixture-password-only'},headers=headers)
+        self.assertEqual(login.status_code,200,login.text)
+        return client,headers
+
+    def test_cloud_web_authorization_exchange_and_replay(self):
+        with patch.dict(os.environ,{'RADAR_DEPLOYMENT':'public','RADAR_PUBLIC_URL':'https://radar.example.com'}):
+            client,headers=self.cloud_client()
+            response=client.put('/api/google/client',json=self.client_config,headers=headers)
+            self.assertEqual(response.status_code,200,response.text)
+            self.assertNotIn('client_secret',response.json())
+            self.assertNotIn('fixture-secret-not-real',response.text)
+            self.assertEqual(response.json()['deployment'],'public')
+            self.assertEqual(google_mail.path().stat().st_mode&0o777,0o600)
+            response=client.post('/api/mail/connect',json={'email':'sender@gmail.com'},headers=headers)
+            self.assertEqual(response.status_code,200,response.text)
+            query=parse_qs(urlsplit(response.json()['url']).query)
+            callback='https://radar.example.com/api/google/callback'
+            self.assertEqual(query['redirect_uri'],[callback])
+            self.assertEqual(query['code_challenge_method'],['S256'])
+            self.assertNotIn('fixture-secret-not-real',response.text)
+            tokens={'scope':google_mail.SCOPES,'access_token':'fixture-access','refresh_token':'fixture-refresh','expires_in':3600}
+            with patch.object(google_mail,'remote',side_effect=[tokens,{'email':'sender@gmail.com','email_verified':True}]) as remote:
+                response=client.get('/api/google/callback',params={'state':query['state'][0],'code':'fixture-code'})
+                self.assertIn('Conta conectada',response.text)
+                self.assertIn('https://radar.example.com',response.text)
+                params=remote.call_args_list[0].args[1]
+                self.assertEqual(params['redirect_uri'],callback)
+                self.assertEqual(params['client_secret'],'fixture-secret-not-real')
+                self.assertIn('code_verifier',params)
+            self.assertTrue(google_mail.public_settings()['connected'])
+            with patch.object(google_mail,'remote') as remote:
+                response=client.get('/api/google/callback',params={'state':query['state'][0],'code':'fixture-code'})
+                self.assertIn('expirou',response.text);remote.assert_not_called()
+            # Keep the saved secret when updating the same client without one.
+            response=client.put('/api/google/client',json={'client_id':self.client_config['client_id'],'client_secret':''},headers=headers)
+            self.assertEqual(response.status_code,200,response.text)
+            self.assertEqual(google_mail.settings()['client_secret'],'fixture-secret-not-real')
+
+    def test_cloud_requires_web_client_and_never_inherits_desktop_bundle(self):
+        self.bundled_desktop()
+        google_mail.write({**google_mail.application_client(),'refresh_token':'fixture-local-token'})
+        with patch.dict(os.environ,{'RADAR_DEPLOYMENT':'public','RADAR_PUBLIC_URL':'https://radar.example.com'}):
+            client,headers=self.cloud_client()
+            self.assertFalse(google_mail.public_settings()['configured'])
+            self.assertFalse(google_mail.public_settings()['connected'])
+            response=client.post('/api/mail/connect',json={'email':'sender@gmail.com'},headers=headers)
+            self.assertTrue(response.json()['setup_required'])
+            self.assertNotIn('url',response.json())
+            response=client.put('/api/google/client',json={'client_id':self.client_config['client_id'],'client_type':'desktop'},headers=headers)
+            self.assertEqual(response.status_code,422)
+            response=client.put('/api/google/client',json=self.client_config,headers=headers)
+            self.assertEqual(response.status_code,200,response.text)
+            self.assertEqual(google_mail.settings()['client_id'],self.client_config['client_id'])
+            with self.assertRaises(google_mail.GoogleMailError):
+                google_mail.start({'id':'fixture'},'cookie','https://evil.example.com')
+            self.assertEqual(client.post('/api/google/start',json={},headers=headers|{'origin':'https://evil.example.com'}).status_code,403)
+            anonymous=TestClient(self.app.app,base_url='https://radar.example.com',client=('203.0.113.10',5555))
+            self.addCleanup(anonymous.close)
+            self.assertEqual(anonymous.put('/api/google/client',json=self.client_config,headers=headers).status_code,401)
+
 
 
 class MailDiscoveryTests(unittest.TestCase):
