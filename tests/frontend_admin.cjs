@@ -1,0 +1,19 @@
+// Server-render administrative screens with fixtures; no browser or network access.
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const fromFrontend=require('node:module').createRequire(path.join(__dirname,'../frontend/package.json'));
+const React=fromFrontend('react'),{renderToStaticMarkup}=fromFrontend('react-dom/server'),ts=fromFrontend('typescript');
+const source=fs.readFileSync(path.join(__dirname,'../frontend/src/AdminPanel.tsx'),'utf8');
+const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
+let tab='deliveries',subchannel='email',fixture={items:[],total:0,page_size:15,totals:{}};
+const output={};let stateCalls=0;const mockReact={...React,useState:initial=>{const n=stateCalls++;return [n===0?tab:n===1?subchannel:initial,()=>{}];}};
+vm.runInNewContext(code,{URLSearchParams,exports:output,require:name=>name.endsWith('.css')?{}:name==='react'?mockReact:name==='./i18n'?{getLocale:()=> 'pt-BR',t:(key,args=[])=>key.replace(/\{(\d+)\}/g,(_,i)=>String(args[Number(i)]))}:name==='@tanstack/react-query'?{useQueryClient:()=>({}),useQuery:({queryKey,enabled})=>enabled===false?{}:{data:queryKey[0]==='delivery-retention'?{days:90,cutoff:Date.now()/1000-90*86400,total:18,protected:2,last_cleanup:null,batch_size:2000}:fixture}}:name==='./WhatsAppPanel'?{WhatsAppPanel:()=>React.createElement('p',{},'WhatsApp integration fixture')}:name==='./AdminUsers'?{AdminUsers:()=>React.createElement('p',{},'User management fixture')}:name==='./AuditPanel'?{AuditPanel:()=>React.createElement('p',{},'Audit fixture')}:name==='./ui'?{Card:({children,...props})=>React.createElement('section',props,children),Button:({children,variant,...props})=>React.createElement('button',props,children),Modal:({open,children})=>open?React.createElement('div',{},children):null}:fromFrontend(name)});
+function render(){stateCalls=0;return renderToStaticMarkup(React.createElement(output.AdminPanel,{request:()=>{},children:React.createElement('p',{},'Existing mail configuration')}));}
+let html=render();assert.ok(html.includes('Nenhum envio encontrado'));assert.ok(html.includes('role="tablist"'));assert.ok(html.includes('Nome ou login'));assert.ok(!html.includes('Existing mail configuration'));
+fixture={items:[{id:'fixture',created:1,subject:'<script>untrusted subject</script>',status:'sent',channel:'email',kind:'alert',recipients:['fixture@example.org'],account_name:'User fixture',login:'+123'}],total:18,page_size:15,totals:{sent:16,pending:1,failed:1}};
+html=render();assert.ok(html.includes('User fixture'));assert.ok(html.includes('fixture@example.org'));assert.ok(html.includes('Aceito pelo provedor'));assert.ok(html.includes('Página 1 de 2'));assert.ok(html.includes('&lt;script&gt;'));assert.ok(!html.includes('<script>'));
+tab='channels';html=render();assert.ok(html.includes('Existing mail configuration'));assert.ok(!html.includes('User fixture'));
+subchannel='whatsapp';html=render();assert.ok(html.includes('WhatsApp integration fixture'));assert.ok(!html.includes('Existing mail configuration'));subchannel='telegram';html=render();assert.ok(html.includes('Integração ainda não disponível'));subchannel='email';
+tab='retention';html=render();assert.ok(html.includes('após 90 dias'));assert.ok(html.includes('protegidos da limpeza'));assert.ok(html.includes('Consultar prévia'));assert.ok(!html.includes('Excluir 18'));
+tab='users';html=render();assert.ok(html.includes('User management fixture'));assert.ok(!html.includes('Existing mail configuration'));
+tab='audit';html=render();assert.ok(html.includes('Audit fixture'));assert.ok(!html.includes('Existing mail configuration'));
+console.log('Admin fixtures: isolated tabs, searchable paginated log, escaped content, unavailable channels and safe cleanup preview passed.');

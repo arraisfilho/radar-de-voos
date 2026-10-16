@@ -1,0 +1,44 @@
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+node_modules/
+frontend/dist/
+.data/
+*.db
+*.db-*
+*.sqlite*
+*.log
+smtp*.json
+.DS_Store
+work/
+test-results/
+playwright-report/
+google-oauth-private.json
+google-oauth-private.tmp
+
+whatsapp-private.json
+whatsapp-private.*.tmp
+# Installation-specific OAuth identity and deployment/runtime material
+config/google-oauth-public.json
+client_secret*.json
+credentials*.json
+*.pem
+*.key
+deploy/*.env
+backups/
+
+# Package-manager credentials must remain outside source/build context.
+**/.npmrc
+**/.pypirc
+**/*.p12
+
+# Local visual evidence can contain account/project details; keep it out of Git.
+docs/screenshots/
+docs/mockup-v2.png

@@ -1,0 +1,32 @@
+// Local filter previews use collected fixtures only; no requests or browser required.
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const ts=require('../frontend/node_modules/typescript');
+const code=ts.transpileModule(fs.readFileSync(__dirname+'/../frontend/src/preview.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const exportsObject={};vm.runInNewContext(code,{exports:exportsObject});
+const {matchesLeg,canPreview,filterFlights}=exportsObject;
+const leg={start:'2090-11-05T22:00',end:'2090-11-06T06:00',arrival_before:null,stops:[0,1,2],max_duration:900,max_layover:null,airlines:[]};
+const base={id:'direct',direction:'outbound',departure:'2090-11-05T23:00:00',arrival:'2090-11-06T01:00:00',duration_minutes:120,stops:0,airlines:['LATAM'],airline_codes:['LA'],layovers:[]};
+const pool=[base,{...base,id:'connection',duration_minutes:420,stops:1,airline_codes:['LA','G3'],layovers:[90]},{...base,id:'two-plus',duration_minutes:600,stops:3,layovers:[60,100,80]}];
+const config={origins:['THE'],destinations:['GRU','CGH'],adults:1,cabin:'economy',currency:'BRL',checked_bags:0,outbound:leg,inbound:null};
+const draft=structuredClone(config);draft.outbound.max_duration=180;draft.outbound.stops=[0];
+assert.equal(filterFlights(pool,draft).length,1);
+draft.outbound.max_duration=500;draft.outbound.stops=[0,1];assert.equal(filterFlights(pool,draft).length,2);
+draft.outbound.max_duration=900;draft.outbound.stops=[0,1,2];assert.equal(filterFlights(pool,draft).length,3,'Relaxing restores existing candidates');
+assert.equal(matchesLeg({...base,departure:leg.start},leg),true);assert.equal(matchesLeg({...base,departure:leg.end},leg),true);
+assert.equal(matchesLeg({...base,departure:'2090-11-06T06:00:01'},leg),false);
+assert.equal(matchesLeg({...base,departure:'2090-11-05T21:59:59'},leg),false);
+assert.equal(matchesLeg(pool[1],{...leg,max_layover:60}),false);
+assert.equal(matchesLeg(base,{...leg,arrival_before:'2090-11-06T01:00'}),true);
+assert.equal(matchesLeg(base,{...leg,arrival_before:'2090-11-06T00:59'}),false);
+assert.equal(matchesLeg(pool[1],{...leg,airlines:['LA']}),false,'All carriers must be allowed');
+assert.equal(matchesLeg(base,{...leg,airlines:['LA']}),true);
+assert.equal(filterFlights([{...base,direction:'inbound'}],config).length,0);
+assert.equal(canPreview(config,draft),true);
+for(const patch of [{currency:'USD'},{adults:2},{cabin:'business'},{checked_bags:1},{origins:['JFK']},{destinations:['LHR']},{inbound:{...leg}},{outbound:{...leg,start:'2090-11-04T22:00'}}])assert.equal(canPreview(config,{...draft,...patch}),false,JSON.stringify(patch));
+assert.equal(canPreview(config,{...draft,outbound:{...leg,start:'2090-11-05T23:00'}}),true,'Time change within collected dates is local');
+assert.equal(config.outbound.max_duration,900,'Preview does not mutate saved criteria');assert.equal(pool.length,3);
+console.log('Local preview: duration/stops widening, overnight boundaries, layovers, arrival, carriers, one-way and acquisition compatibility passed.');
+
+assert.equal(matchesLeg({...base,duration_minutes:4200,stops:5},{...leg,max_duration:null}),true,'No duration limit includes long multi-stop itineraries');
+assert.equal(matchesLeg({...base,duration_minutes:4200,stops:5},{...leg,max_duration:2880}),false,'An explicit 48-hour limit excludes longer itineraries');
+assert.equal(matchesLeg({...base,duration_minutes:2880,stops:5},{...leg,max_duration:2880}),true,'48-hour boundary remains inclusive');

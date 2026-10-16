@@ -1,0 +1,33 @@
+name: radar-cloud
+services:
+  app:
+    build: .
+    image: radar-de-voos:local
+    init: true
+    restart: unless-stopped
+    environment:
+      RADAR_DEPLOYMENT: public
+      RADAR_PUBLIC_URL: https://${RADAR_DOMAIN:?Configure RADAR_DOMAIN em deploy/cloud.env}
+      RADAR_TRUSTED_PROXY: ${RADAR_TRUSTED_PROXY:-172.30.88.1}
+    ports:
+      - "${RADAR_PUBLISHED_HOST:-127.0.0.1}:${RADAR_UPSTREAM_PORT:-8765}:8765"
+    volumes:
+      - radar_data:/data
+    networks:
+      radar:
+        ipv4_address: 172.30.88.3
+    read_only: true
+    tmpfs: ["/tmp:mode=1777,size=64m"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 45s
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+
+networks:
+  radar:
+    ipam:
+      config: [{subnet: 172.30.88.0/24}]
+volumes:
+  radar_data:

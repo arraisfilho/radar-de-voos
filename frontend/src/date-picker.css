@@ -1,0 +1,236 @@
+.date-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  border: 1px solid #aab9c8;
+  border-radius: 6px;
+  padding: 7px 9px;
+  background: #fff;
+  color: #24364a;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+.date-trigger > svg {
+  flex-shrink: 0;
+  color: #526b86;
+}
+.date-trigger:hover {
+  border-color: #315a82;
+  background: #f8fafc;
+}
+.date-trigger:focus-visible,
+.calendar-popover button:focus-visible,
+.calendar-popover input:focus-visible,
+.calendar-popover select:focus-visible {
+  outline: 2px solid #315f90;
+  outline-offset: 2px;
+}
+.calendar-popover {
+  z-index: 150;
+  width: min(340px, calc(100vw - 24px));
+  max-height: var(--radix-popover-content-available-height);
+  overflow: auto;
+  padding: 12px;
+  background: #fff;
+  color: #24364a;
+  border: 1px solid #c8d5e2;
+  border-radius: 12px;
+  box-shadow: 0 14px 40px #162f532b;
+  font-size: 14px;
+  overscroll-behavior: contain;
+  animation: calendar-enter 0.12s ease-out;
+}
+.calendar-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  gap: 8px;
+}
+.calendar-top strong {
+  font-size: 14px;
+}
+.calendar-close {
+  display: grid;
+  place-items: center;
+  background: none;
+  color: #526b86;
+  border: 0;
+  border-radius: 6px;
+  min-width: 36px;
+  min-height: 36px;
+  cursor: pointer;
+}
+.calendar-popover .rdp-root {
+  --rdp-accent-color: #315a82;
+  --rdp-accent-background-color: #e8eff7;
+  --rdp-day-height: 40px;
+  --rdp-day-width: 40px;
+  --rdp-day_button-height: 38px;
+  --rdp-day_button-width: 38px;
+  --rdp-selected-border: 0;
+  --rdp-day_button-border-radius: 8px;
+  --rdp-outside-opacity: 0.55;
+  --rdp-today-color: #315a82;
+  margin: 0;
+}
+.calendar-popover .rdp-months {
+  max-width: none;
+  display: block;
+}
+.calendar-popover .rdp-month_grid {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.calendar-popover .rdp-day {
+  padding: 1px;
+  text-align: center;
+  width: calc(100% / 7);
+}
+.calendar-popover .rdp-day_button {
+  font: inherit;
+  margin: auto;
+  color: inherit;
+  width: 100%;
+  max-width: var(--rdp-day_button-width);
+}
+.calendar-popover .rdp-selected .rdp-day_button {
+  background: #315a82;
+  color: #fff;
+  font-weight: 700;
+}
+.calendar-popover .rdp-today:not(.rdp-selected) .rdp-day_button {
+  box-shadow: inset 0 0 0 1px #7895b3;
+  font-weight: 700;
+}
+.calendar-popover .rdp-day_button:hover {
+  background: #e8eff7;
+  color: #24364a;
+}
+.calendar-popover .rdp-selected .rdp-day_button:hover {
+  background: #294e74;
+  color: white;
+}
+.calendar-popover .rdp-weekday {
+  font-size: 12px;
+  font-weight: 600;
+  color: #526175;
+  opacity: 1;
+  padding: 9px 0;
+}
+.calendar-popover .rdp-month_caption {
+  height: 42px;
+  justify-content: center;
+}
+.calendar-popover .rdp-dropdowns {
+  font-size: 14px;
+  font-weight: 600;
+  gap: 8px;
+}
+.calendar-popover .rdp-dropdown_root {
+  padding: 5px 4px;
+  border-radius: 5px;
+}
+.calendar-popover .rdp-dropdown {
+  font: inherit;
+  color: #24364a;
+}
+.calendar-popover .rdp-chevron {
+  fill: #315a82;
+}
+.calendar-popover .rdp-button_previous,
+.calendar-popover .rdp-button_next {
+  border-radius: 6px;
+  min-width: 38px;
+  min-height: 40px;
+}
+.calendar-manual {
+  border-top: 1px solid #dce4ec;
+  margin-top: 10px;
+  padding-top: 10px;
+}
+.calendar-manual > label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #526175;
+}
+.calendar-manual > div {
+  display: flex;
+  gap: 8px;
+}
+.calendar-manual input {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid #aab9c8;
+  border-radius: 6px;
+  padding: 8px;
+  font: inherit;
+}
+.calendar-manual button {
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: #315a82;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+.calendar-manual p {
+  font-size: 12px;
+  color: #a02b2b;
+  margin: 6px 0 0;
+}
+@keyframes calendar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 600px) {
+  .date-trigger {
+    font-size: 16px;
+    min-height: 42px;
+  }
+  .calendar-popover {
+    width: min(360px, calc(100vw - 24px));
+  }
+  .calendar-popover .rdp-root {
+    --rdp-day-height: 44px;
+    --rdp-day_button-height: 42px;
+    --rdp-day_button-width: 40px;
+  }
+  .calendar-manual input {
+    font-size: 16px;
+  }
+  .calendar-manual button,
+  .calendar-close {
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .calendar-popover {
+    animation: none;
+  }
+}
+/* Typing and the calendar share one field; only the icon opens the popover. */
+.date-field{display:flex;align-items:center;min-width:0;position:relative;background:white;border:1px solid #aab9c8;border-radius:6px}
+.date-field:focus-within{outline:2px solid #315f90;outline-offset:1px}
+.filter-form .date-field input:not([type=checkbox]){width:100%;min-width:0;border:0;outline:none;box-shadow:none;background:transparent;padding:7px 8px;font-variant-numeric:tabular-nums}
+.date-calendar-button{display:grid;place-items:center;flex-shrink:0;min-width:38px;min-height:38px;border:0;border-radius:5px;color:#315a82;background:transparent;cursor:pointer}
+.date-calendar-button:hover{background:#e8eff7}.date-calendar-button:focus-visible{outline:2px solid #315f90;outline-offset:-3px}
+@media(max-width:600px){.date-calendar-button{min-height:44px;min-width:40px}}

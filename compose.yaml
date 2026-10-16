@@ -1,0 +1,32 @@
+name: radar
+services:
+  app:
+    build: .
+    image: radar-de-voos:local
+    init: true
+    restart: unless-stopped
+    environment:
+      RADAR_DEPLOYMENT: local
+      RADAR_LAN_CIDR: 172.30.87.0/24
+      RADAR_PUBLIC_URL: http://127.0.0.1:${RADAR_LOCAL_PORT:-8765}
+    ports:
+      - "127.0.0.1:${RADAR_LOCAL_PORT:-8765}:8765"
+    volumes:
+      - radar_data:/data
+    networks:
+      radar:
+    read_only: true
+    tmpfs:
+      - /tmp:mode=1777,size=64m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 45s
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+networks:
+  radar:
+    ipam:
+      config: [{subnet: 172.30.87.0/24}]
+volumes:
+  radar_data:

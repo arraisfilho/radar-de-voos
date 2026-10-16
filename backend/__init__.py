@@ -1,0 +1,1 @@
+"""Local airfare monitoring service."""

@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const ts=require('../frontend/node_modules/typescript');
+const code=ts.transpileModule(fs.readFileSync(__dirname+'/../frontend/src/statePolling.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const out={};vm.runInNewContext(code,{exports:out});const {reusableRevision}=out;
+assert.equal(reusableRevision(undefined,100,100),undefined);
+assert.equal(reusableRevision({revision:'opaque',server_time:1000,quote_expires:1060},500000,559000),'opaque');
+assert.equal(reusableRevision({revision:'opaque',server_time:1000,quote_expires:1060},500000,560000),undefined,'Departures invalidate the quote cache even when DB did not change');
+assert.equal(reusableRevision({revision:'opaque',server_time:1000,quote_expires:null},500000,999999),'opaque');
+assert.equal(reusableRevision({revision:'opaque',server_time:1000,quote_expires:1060},500000,400000),'opaque','Backward client-clock movement does not imply expiry');
+console.log('Conditional state cache: revision reuse, departure expiry and device clock offset passed.');

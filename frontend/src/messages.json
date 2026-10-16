@@ -1,0 +1,3526 @@
+{
+  "Radar de Voos": {
+    "en": "Flight Radar",
+    "es": "Radar de Vuelos"
+  },
+  "Minhas buscas": {
+    "en": "My searches",
+    "es": "Mis búsquedas"
+  },
+  "Histórico": {
+    "en": "History",
+    "es": "Historial"
+  },
+  "Alertas": {
+    "en": "Alerts",
+    "es": "Alertas"
+  },
+  "Meu perfil": {
+    "en": "My profile",
+    "es": "Mi perfil"
+  },
+  "Administração": {
+    "en": "Administration",
+    "es": "Administración"
+  },
+  "Nova busca": {
+    "en": "New search",
+    "es": "Nueva búsqueda"
+  },
+  "Suas próximas viagens": {
+    "en": "Your next trips",
+    "es": "Tus próximos viajes"
+  },
+  "Sair da conta": {
+    "en": "Sign out",
+    "es": "Cerrar sesión"
+  },
+  "Seus monitoramentos": {
+    "en": "Your monitors",
+    "es": "Tus seguimientos"
+  },
+  "Ativo": {
+    "en": "Active",
+    "es": "Activo"
+  },
+  "ativos": {
+    "en": "active",
+    "es": "activos"
+  },
+  "Pausado": {
+    "en": "Paused",
+    "es": "Pausado"
+  },
+  "Pausada": {
+    "en": "Paused",
+    "es": "Pausada"
+  },
+  "Pausar": {
+    "en": "Pause",
+    "es": "Pausar"
+  },
+  "Retomar": {
+    "en": "Resume",
+    "es": "Reanudar"
+  },
+  "Encerrar": {
+    "en": "End monitoring",
+    "es": "Finalizar"
+  },
+  "Encerrada": {
+    "en": "Ended",
+    "es": "Finalizada"
+  },
+  "Encerrado": {
+    "en": "Ended",
+    "es": "Finalizado"
+  },
+  "Prazo encerrado": {
+    "en": "Monitoring period ended",
+    "es": "Plazo finalizado"
+  },
+  "Monitoramento encerrado. Histórico preservado.": {
+    "en": "Monitoring ended. History kept.",
+    "es": "Seguimiento finalizado. Historial conservado."
+  },
+  "Monitoramento pausado.": {
+    "en": "Monitoring paused.",
+    "es": "Seguimiento pausado."
+  },
+  "Monitoramento retomado.": {
+    "en": "Monitoring resumed.",
+    "es": "Seguimiento reanudado."
+  },
+  "Monitoramento": {
+    "en": "Monitoring",
+    "es": "Seguimiento"
+  },
+  "Selecione uma busca": {
+    "en": "Select a search",
+    "es": "Selecciona una búsqueda"
+  },
+  "Voltar ao monitoramento": {
+    "en": "Resume monitoring",
+    "es": "Volver al seguimiento"
+  },
+  "Reutilizar com novas datas": {
+    "en": "Reuse with new dates",
+    "es": "Reutilizar con nuevas fechas"
+  },
+  "Encerrar monitoramento": {
+    "en": "End monitoring",
+    "es": "Finalizar seguimiento"
+  },
+  "Histórico de preços": {
+    "en": "Price history",
+    "es": "Historial de precios"
+  },
+  "EVOLUÇÃO DOS PREÇOS": {
+    "en": "PRICE HISTORY",
+    "es": "EVOLUCIÓN DE PRECIOS"
+  },
+  "SEU RADAR DE PASSAGENS": {
+    "en": "YOUR FLIGHT RADAR",
+    "es": "TU RADAR DE VUELOS"
+  },
+  "OPORTUNIDADES ENCONTRADAS": {
+    "en": "DEALS FOUND",
+    "es": "OPORTUNIDADES ENCONTRADAS"
+  },
+  "PREFERÊNCIAS DO RADAR": {
+    "en": "RADAR PREFERENCES",
+    "es": "PREFERENCIAS DEL RADAR"
+  },
+  "Encontre o melhor preço dentro dos seus planos.": {
+    "en": "Find the best fare for your plans.",
+    "es": "Encuentra la mejor tarifa para tus planes."
+  },
+  "Gerencie seus dados e os contatos que recebem seus alertas.": {
+    "en": "Manage your details and alert contacts.",
+    "es": "Gestiona tus datos y contactos de alertas."
+  },
+  "Configure o serviço de envio para todas as contas.": {
+    "en": "Configure the delivery service for all accounts.",
+    "es": "Configura el servicio de envío para todas las cuentas."
+  },
+  "Selecione uma busca para acompanhar.": {
+    "en": "Select a search to monitor.",
+    "es": "Selecciona una búsqueda para seguir."
+  },
+  "Suas viagens, acompanhadas.": {
+    "en": "Your trips, monitored.",
+    "es": "Tus viajes, en seguimiento."
+  },
+  "Suas viagens e alertas em um só lugar.": {
+    "en": "Your trips and alerts in one place.",
+    "es": "Tus viajes y alertas en un solo lugar."
+  },
+  "Suas buscas": {
+    "en": "Your searches",
+    "es": "Tus búsquedas"
+  },
+  "SUAS BUSCAS": {
+    "en": "YOUR SEARCHES",
+    "es": "TUS BÚSQUEDAS"
+  },
+  "Minhas viagens": {
+    "en": "My trips",
+    "es": "Mis viajes"
+  },
+  "Minha viagem": {
+    "en": "My trip",
+    "es": "Mi viaje"
+  },
+  "Minha conta é do Google": {
+    "en": "My account uses Google",
+    "es": "Mi cuenta es de Google"
+  },
+  "Busca": {
+    "en": "Search",
+    "es": "Búsqueda"
+  },
+  "Buscas": {
+    "en": "Searches",
+    "es": "Búsquedas"
+  },
+  "Buscas arquivadas": {
+    "en": "Archived searches",
+    "es": "Búsquedas archivadas"
+  },
+  "Buscando…": {
+    "en": "Searching…",
+    "es": "Buscando…"
+  },
+  "Buscando opções": {
+    "en": "Finding options",
+    "es": "Buscando opciones"
+  },
+  "Buscando oportunidades…": {
+    "en": "Finding deals…",
+    "es": "Buscando ofertas…"
+  },
+  "Buscando no catálogo mundial…": {
+    "en": "Searching worldwide airports…",
+    "es": "Buscando aeropuertos del mundo…"
+  },
+  "Buscar agora": {
+    "en": "Search now",
+    "es": "Buscar ahora"
+  },
+  "Atualizar preços agora": {
+    "en": "Update prices now",
+    "es": "Actualizar precios ahora"
+  },
+  "Ao vivo": {
+    "en": "Live",
+    "es": "En vivo"
+  },
+  "Acompanhamento ao vivo": {
+    "en": "Live monitoring",
+    "es": "Seguimiento en vivo"
+  },
+  "A primeira coleta ainda não foi concluída.": {
+    "en": "The first check has not finished yet.",
+    "es": "La primera consulta aún no ha terminado."
+  },
+  "A primeira coleta está a caminho": {
+    "en": "The first check is on its way",
+    "es": "La primera consulta está en camino"
+  },
+  "Aguardando a primeira coleta.": {
+    "en": "Waiting for the first check.",
+    "es": "Esperando la primera consulta."
+  },
+  "Aguardando a próxima oportunidade": {
+    "en": "Waiting for the next deal",
+    "es": "Esperando la próxima oportunidad"
+  },
+  "Aguarde…": {
+    "en": "Please wait…",
+    "es": "Espera…"
+  },
+  "Atualizado": {
+    "en": "Updated",
+    "es": "Actualizado"
+  },
+  "Atualizado às ": {
+    "en": "Updated at ",
+    "es": "Actualizado a las "
+  },
+  "Atualizando preços…": {
+    "en": "Updating prices…",
+    "es": "Actualizando precios…"
+  },
+  "Atualização a cada": {
+    "en": "Update every",
+    "es": "Actualización cada"
+  },
+  "Atualização a caminho": {
+    "en": "Update on its way",
+    "es": "Actualización en camino"
+  },
+  "Atualização parcial": {
+    "en": "Partial update",
+    "es": "Actualización parcial"
+  },
+  "Atualização pendente": {
+    "en": "Update pending",
+    "es": "Actualización pendiente"
+  },
+  "Agendada": {
+    "en": "Scheduled",
+    "es": "Programada"
+  },
+  "Consultando": {
+    "en": "Checking",
+    "es": "Consultando"
+  },
+  "Falha de coleta": {
+    "en": "Check failed",
+    "es": "Error de consulta"
+  },
+  "Falha na consulta": {
+    "en": "Query failed",
+    "es": "Consulta fallida"
+  },
+  "Falhou": {
+    "en": "Failed",
+    "es": "Falló"
+  },
+  "Última atualização:": {
+    "en": "Last update:",
+    "es": "Última actualización:"
+  },
+  "Última resposta válida:": {
+    "en": "Last valid response:",
+    "es": "Última respuesta válida:"
+  },
+  "Última tentativa:": {
+    "en": "Last attempt:",
+    "es": "Último intento:"
+  },
+  "Último preço encontrado · atualização pendente": {
+    "en": "Last observed price · update pending",
+    "es": "Último precio encontrado · actualización pendiente"
+  },
+  "Próxima atualização em {0}": {
+    "en": "Next update in {0}",
+    "es": "Próxima actualización en {0}"
+  },
+  "Sem busca ativa": {
+    "en": "No active search",
+    "es": "Sin búsqueda activa"
+  },
+  "Sem conexão com o servidor": {
+    "en": "No server connection",
+    "es": "Sin conexión con el servidor"
+  },
+  "Sem conexão. Exibindo a última atualização.": {
+    "en": "Offline. Showing the last update.",
+    "es": "Sin conexión. Mostrando la última actualización."
+  },
+  "Seu radar está pausado. Retome quando quiser.": {
+    "en": "Your radar is paused. Resume anytime.",
+    "es": "Tu radar está pausado. Reanúdalo cuando quieras."
+  },
+  "Seu radar continua buscando enquanto você faz outras coisas.": {
+    "en": "Your radar keeps checking while you do other things.",
+    "es": "Tu radar sigue buscando mientras haces otras cosas."
+  },
+  "O monitoramento está ativo. Você também pode buscar agora, sem esperar a próxima atualização.": {
+    "en": "Monitoring is active. You can also search now.",
+    "es": "El seguimiento está activo. También puedes buscar ahora."
+  },
+  "Estamos atualizando suas opções. Tente buscar novamente em instantes.": {
+    "en": "We are updating your options. Try again shortly.",
+    "es": "Estamos actualizando tus opciones. Inténtalo de nuevo en breve."
+  },
+  "Estamos procurando novas opções para sua viagem.": {
+    "en": "We are finding new options for your trip.",
+    "es": "Estamos buscando nuevas opciones para tu viaje."
+  },
+  "As tarifas reais aparecerão aqui assim que a fonte responder.": {
+    "en": "Fares will appear as soon as the provider responds.",
+    "es": "Las tarifas aparecerán cuando responda el proveedor."
+  },
+  "Nenhum voo corresponde aos filtros": {
+    "en": "No flights match your filters",
+    "es": "Ningún vuelo coincide con los filtros"
+  },
+  "Sem opções elegíveis": {
+    "en": "No matching options",
+    "es": "Sin opciones que coincidan"
+  },
+  "Experimente ampliar a janela ou a duração. Seus critérios não são relaxados automaticamente.": {
+    "en": "Try widening the time window or duration. Your filters are not changed automatically.",
+    "es": "Prueba ampliar el horario o la duración. Tus filtros no cambian automáticamente."
+  },
+  "Origem": {
+    "en": "From",
+    "es": "Origen"
+  },
+  "Destino": {
+    "en": "To",
+    "es": "Destino"
+  },
+  "Origem · múltiplos aeroportos": {
+    "en": "From · multiple airports",
+    "es": "Origen · varios aeropuertos"
+  },
+  "Destino · múltiplos aeroportos": {
+    "en": "To · multiple airports",
+    "es": "Destino · varios aeropuertos"
+  },
+  "Cidade, aeroporto ou código IATA": {
+    "en": "City, airport or IATA code",
+    "es": "Ciudad, aeropuerto o código IATA"
+  },
+  "Aeroportos de {0}": {
+    "en": "Airports in {0}",
+    "es": "Aeropuertos de {0}"
+  },
+  "Nenhum aeroporto encontrado. Tente o nome local ou código IATA.": {
+    "en": "No airports found. Try the local name or IATA code.",
+    "es": "No se encontraron aeropuertos. Prueba el nombre local o código IATA."
+  },
+  "Não foi possível consultar o catálogo.": {
+    "en": "Could not search the airport catalog.",
+    "es": "No se pudo consultar el catálogo."
+  },
+  "Limite de 3 aeroportos": {
+    "en": "Up to 3 airports",
+    "es": "Máximo 3 aeropuertos"
+  },
+  "{0} aeroportos. Use as setas e Enter para selecionar.": {
+    "en": "{0} airports. Use arrows and Enter to select.",
+    "es": "{0} aeropuertos. Usa las flechas y Enter para seleccionar."
+  },
+  "Remover {0} de {1}": {
+    "en": "Remove {0} from {1}",
+    "es": "Quitar {0} de {1}"
+  },
+  "a origem": {
+    "en": "the origin",
+    "es": "el origen"
+  },
+  "o destino": {
+    "en": "the destination",
+    "es": "el destino"
+  },
+  "+ Adicionar outr": {
+    "en": "+ Add another",
+    "es": "+ Añadir otro"
+  },
+  "Cancelar adição": {
+    "en": "Cancel adding",
+    "es": "Cancelar adición"
+  },
+  "Aeroportos diferentes na ida e na volta: chegada em": {
+    "en": "Different airports on outbound and return: arrive at",
+    "es": "Aeropuertos diferentes en ida y vuelta: llegada a"
+  },
+  "e saída de": {
+    "en": "and depart from",
+    "es": "y salida de"
+  },
+  "Selecione ao menos uma origem e um destino.": {
+    "en": "Select at least one origin and destination.",
+    "es": "Selecciona al menos un origen y un destino."
+  },
+  "Origem e destino precisam ser aeroportos diferentes.": {
+    "en": "Origin and destination must be different airports.",
+    "es": "El origen y destino deben ser aeropuertos diferentes."
+  },
+  "Cada janela deve ser crescente e abranger no máximo sete datas.": {
+    "en": "Each time window must end after it starts and span up to seven dates.",
+    "es": "Cada horario debe terminar después del inicio y abarcar hasta siete fechas."
+  },
+  "A volta precisa começar após o início da ida.": {
+    "en": "The return must start after the outbound start.",
+    "es": "La vuelta debe comenzar después del inicio de la ida."
+  },
+  "Selecione ao menos uma categoria de escalas por trecho.": {
+    "en": "Select at least one stop category per leg.",
+    "es": "Selecciona al menos una categoría de escalas por trayecto."
+  },
+  "Etapas do cadastro": {
+    "en": "Search setup steps",
+    "es": "Pasos de configuración"
+  },
+  "Sua próxima viagem": {
+    "en": "Your next trip",
+    "es": "Tu próximo viaje"
+  },
+  "O que faz um voo servir para você?": {
+    "en": "What makes a flight work for you?",
+    "es": "¿Qué necesitas de un vuelo?"
+  },
+  "Quando devemos avisar?": {
+    "en": "When should we notify you?",
+    "es": "¿Cuándo debemos avisarte?"
+  },
+  "Viagem": {
+    "en": "Trip",
+    "es": "Viaje"
+  },
+  "Preferências": {
+    "en": "Preferences",
+    "es": "Preferencias"
+  },
+  "Tipo de viagem": {
+    "en": "Trip type",
+    "es": "Tipo de viaje"
+  },
+  "Somente ida": {
+    "en": "One way",
+    "es": "Solo ida"
+  },
+  "Só ida": {
+    "en": "One way",
+    "es": "Solo ida"
+  },
+  "Busca somente de ida": {
+    "en": "One-way search",
+    "es": "Búsqueda de solo ida"
+  },
+  "Ida e volta": {
+    "en": "Round trip",
+    "es": "Ida y vuelta"
+  },
+  "Ida": {
+    "en": "Outbound",
+    "es": "Ida"
+  },
+  "Volta": {
+    "en": "Return",
+    "es": "Vuelta"
+  },
+  "Ida ·": {
+    "en": "Outbound ·",
+    "es": "Ida ·"
+  },
+  "Ida:": {
+    "en": "Outbound:",
+    "es": "Ida:"
+  },
+  "Volta:": {
+    "en": "Return:",
+    "es": "Vuelta:"
+  },
+  "Adultos": {
+    "en": "Adults",
+    "es": "Adultos"
+  },
+  "{0} adultos": {
+    "en": "{0} adults",
+    "es": "{0} adultos"
+  },
+  "adulto(s) / trecho": {
+    "en": "adult(s) / leg",
+    "es": "adulto(s) / trayecto"
+  },
+  "adulto(s) por trecho.": {
+    "en": "adult(s) per leg.",
+    "es": "adulto(s) por trayecto."
+  },
+  "adulto(s) ·": {
+    "en": "adult(s) ·",
+    "es": "adulto(s) ·"
+  },
+  "adulto(s) · bilhetes separados": {
+    "en": "adult(s) · separate tickets",
+    "es": "adulto(s) · billetes separados"
+  },
+  "Valores para o total de": {
+    "en": "Prices for a total of",
+    "es": "Precios para un total de"
+  },
+  "Por": {
+    "en": "For",
+    "es": "Para"
+  },
+  "Ida e volta separadas ·": {
+    "en": "Outbound and return separately ·",
+    "es": "Ida y vuelta por separado ·"
+  },
+  "adulto(s) por trecho · horário UTC−3": {
+    "en": "adult(s) per leg · local device time",
+    "es": "adulto(s) por trayecto · hora del dispositivo"
+  },
+  "Datas e horários locais de cada aeroporto de partida.": {
+    "en": "Dates and times are local to each departure airport.",
+    "es": "Fechas y horarios locales de cada aeropuerto de salida."
+  },
+  "Janela de saída": {
+    "en": "Departure window",
+    "es": "Horario de salida"
+  },
+  "Quando você pode sair?": {
+    "en": "When can you depart?",
+    "es": "¿Cuándo puedes salir?"
+  },
+  "Início da janela de saída": {
+    "en": "Departure window starts",
+    "es": "Inicio del horario de salida"
+  },
+  "Fim da janela de saída": {
+    "en": "Departure window ends",
+    "es": "Fin del horario de salida"
+  },
+  "Horário inicial de saída": {
+    "en": "Earliest departure",
+    "es": "Primera salida"
+  },
+  "Horário limite de saída": {
+    "en": "Latest departure",
+    "es": "Última salida"
+  },
+  "Até": {
+    "en": "Until",
+    "es": "Hasta"
+  },
+  "Para atravessar a meia-noite, escolha o dia seguinte em “Até”. Máximo de sete datas.": {
+    "en": "To cross midnight, choose the next day under Until. Up to seven dates.",
+    "es": "Para cruzar la medianoche, elige el día siguiente en Hasta. Máximo siete fechas."
+  },
+  "Trecho a configurar": {
+    "en": "Leg to configure",
+    "es": "Trayecto a configurar"
+  },
+  "Escalas permitidas": {
+    "en": "Allowed stops",
+    "es": "Escalas permitidas"
+  },
+  "Direto": {
+    "en": "Nonstop",
+    "es": "Directo"
+  },
+  "Sem escalas": {
+    "en": "Nonstop",
+    "es": "Sin escalas"
+  },
+  "1 escala": {
+    "en": "1 stop",
+    "es": "1 escala"
+  },
+  "2 ou mais": {
+    "en": "2 or more",
+    "es": "2 o más"
+  },
+  "2+ escalas": {
+    "en": "2+ stops",
+    "es": "2+ escalas"
+  },
+  "{0} escala{1} · {2}": {
+    "en": "{0} stop{1} · {2}",
+    "es": "{0} escala{1} · {2}"
+  },
+  "Duração máxima da viagem": {
+    "en": "Maximum trip duration",
+    "es": "Duración máxima del viaje"
+  },
+  "Inclui os voos e a espera nas conexões.": {
+    "en": "Includes flights and layover time.",
+    "es": "Incluye vuelos y espera en conexiones."
+  },
+  "Mais preferências do trecho": {
+    "en": "More leg preferences",
+    "es": "Más preferencias del trayecto"
+  },
+  "Chegar até (opcional)": {
+    "en": "Arrive by (optional)",
+    "es": "Llegar antes de (opcional)"
+  },
+  "Horário local do destino.": {
+    "en": "Local time at destination.",
+    "es": "Hora local del destino."
+  },
+  "Limitar espera por conexão": {
+    "en": "Limit layover duration",
+    "es": "Limitar espera por conexión"
+  },
+  "Máximo por conexão": {
+    "en": "Maximum per layover",
+    "es": "Máximo por conexión"
+  },
+  "Companhias aéreas (opcional)": {
+    "en": "Airlines (optional)",
+    "es": "Aerolíneas (opcional)"
+  },
+  "Ex.: LA, BA, AA": {
+    "en": "E.g. LA, BA, AA",
+    "es": "Ej.: LA, BA, AA"
+  },
+  "Códigos IATA de dois caracteres, separados por vírgula. Vazio aceita todas as companhias.": {
+    "en": "Two-character IATA codes, comma-separated. Leave blank for all airlines.",
+    "es": "Códigos IATA de dos caracteres, separados por comas. Vacío acepta todas las aerolíneas."
+  },
+  "Bagagem despachada": {
+    "en": "Checked baggage",
+    "es": "Equipaje facturado"
+  },
+  "Taxas a incluir na pesquisa": {
+    "en": "Fees to include in search",
+    "es": "Cargos a incluir en la búsqueda"
+  },
+  "Não adicionar taxas de bagagem": {
+    "en": "Do not add baggage fees",
+    "es": "No añadir cargos de equipaje"
+  },
+  "Incluir 1 mala despachada": {
+    "en": "Include 1 checked bag",
+    "es": "Incluir 1 maleta facturada"
+  },
+  "Incluir 2 malas despachadas": {
+    "en": "Include 2 checked bags",
+    "es": "Incluir 2 maletas facturadas"
+  },
+  "Solicita taxas estimadas nos dois trechos. A fonte não confirma franquia, peso ou dimensões de cada tarifa. Confira na companhia antes de comprar.": {
+    "en": "Requests estimated fees for both legs. Check baggage allowance, weight and dimensions with the airline before buying.",
+    "es": "Solicita cargos estimados para ambos trayectos. Confirma franquicia, peso y dimensiones con la aerolínea antes de comprar."
+  },
+  "{0} mala(s) na pesquisa": {
+    "en": "{0} checked bag(s) in search",
+    "es": "{0} maleta(s) en la búsqueda"
+  },
+  "Taxas de bagagem não adicionadas": {
+    "en": "Baggage fees not added",
+    "es": "Cargos de equipaje no añadidos"
+  },
+  "Pesquisa com taxas estimadas para {0} mala(s) despachada(s). Franquia e peso a confirmar na companhia.": {
+    "en": "Includes estimated fees for {0} checked bag(s). Confirm allowance and weight with the airline.",
+    "es": "Incluye cargos estimados para {0} maleta(s). Confirma franquicia y peso con la aerolínea."
+  },
+  "Taxas de bagagem não adicionadas à pesquisa. Confira a franquia da tarifa na companhia.": {
+    "en": "Baggage fees not added. Check the fare allowance with the airline.",
+    "es": "Cargos de equipaje no añadidos. Confirma la franquicia con la aerolínea."
+  },
+  "Moeda da pesquisa": {
+    "en": "Search currency",
+    "es": "Moneda de la búsqueda"
+  },
+  "A sugestão inicial usa região/idioma e fuso do navegador; não é sua localização exata. Escolha outra moeda se preferir. Ao trocar, a meta é limpa e a queda mínima volta a 50 na nova moeda. A compra segue as condições do vendedor.": {
+    "en": "Suggested from your browser region and time zone, not precise location. Changing currency clears the target and resets the minimum drop to 50 units. Payment follows the seller’s terms.",
+    "es": "Sugerida por región e idioma del navegador y zona horaria, no ubicación exacta. Cambiar moneda borra el objetivo y restablece la bajada mínima a 50 unidades. El pago depende del vendedor."
+  },
+  "Meta": {
+    "en": "Target",
+    "es": "Objetivo"
+  },
+  "Meta por trecho (": {
+    "en": "Target per leg (",
+    "es": "Objetivo por trayecto ("
+  },
+  "Queda mínima (": {
+    "en": "Minimum drop (",
+    "es": "Bajada mínima ("
+  },
+  "Intervalo entre coletas": {
+    "en": "Check interval",
+    "es": "Intervalo de consultas"
+  },
+  "Enviar alertas": {
+    "en": "Send alerts",
+    "es": "Enviar alertas"
+  },
+  "Como você quer receber?": {
+    "en": "How would you like to be notified?",
+    "es": "¿Cómo quieres recibirlas?"
+  },
+  "Em breve": {
+    "en": "Coming soon",
+    "es": "Próximamente"
+  },
+  "Adicione até quatro e-mails em Meu perfil. Você não precisa configurar um servidor.": {
+    "en": "Add up to four emails in My profile. No server setup needed.",
+    "es": "Añade hasta cuatro correos en Mi perfil. No necesitas configurar un servidor."
+  },
+  "Enviar para: {0}": {
+    "en": "Send to: {0}",
+    "es": "Enviar a: {0}"
+  },
+  "Nome e cabine": {
+    "en": "Name and cabin",
+    "es": "Nombre y cabina"
+  },
+  "Nome da busca": {
+    "en": "Search name",
+    "es": "Nombre de la búsqueda"
+  },
+  "Cabine": {
+    "en": "Cabin",
+    "es": "Cabina"
+  },
+  "Econômica": {
+    "en": "Economy",
+    "es": "Económica"
+  },
+  "Econômica premium": {
+    "en": "Premium economy",
+    "es": "Económica premium"
+  },
+  "Executiva": {
+    "en": "Business",
+    "es": "Ejecutiva"
+  },
+  "Primeira classe": {
+    "en": "First class",
+    "es": "Primera clase"
+  },
+  "Filtros": {
+    "en": "Filters",
+    "es": "Filtros"
+  },
+  "Filtros da busca": {
+    "en": "Search filters",
+    "es": "Filtros de búsqueda"
+  },
+  "Preço e monitoramento": {
+    "en": "Price and monitoring",
+    "es": "Precio y seguimiento"
+  },
+  "Há alterações não salvas.": {
+    "en": "You have unsaved changes.",
+    "es": "Hay cambios sin guardar."
+  },
+  "Salvar filtros": {
+    "en": "Save filters",
+    "es": "Guardar filtros"
+  },
+  "Salvar busca": {
+    "en": "Save search",
+    "es": "Guardar búsqueda"
+  },
+  "Salvar configuração": {
+    "en": "Save settings",
+    "es": "Guardar configuración"
+  },
+  "Salvando…": {
+    "en": "Saving…",
+    "es": "Guardando…"
+  },
+  "Voltar": {
+    "en": "Back",
+    "es": "Volver"
+  },
+  "Continuar": {
+    "en": "Continue",
+    "es": "Continuar"
+  },
+  "Cancelar": {
+    "en": "Cancel",
+    "es": "Cancelar"
+  },
+  "Você pode revisar antes de salvar.": {
+    "en": "You can review before saving.",
+    "es": "Puedes revisar antes de guardar."
+  },
+  "Escolha de onde sair e para onde ir. Você pode adicionar outros aeroportos se quiser.": {
+    "en": "Choose departure and destination. Add alternative airports if needed.",
+    "es": "Elige origen y destino. Puedes añadir aeropuertos alternativos."
+  },
+  "Escolha aeroportos, uma janela de saída e quanto quer pagar.": {
+    "en": "Choose airports, a departure window and your budget.",
+    "es": "Elige aeropuertos, horario de salida y presupuesto."
+  },
+  "Escolha os aeroportos, horários e condições. Salvar altera o radar e os alertas.": {
+    "en": "Choose airports, times and preferences. Saving updates monitoring and alerts.",
+    "es": "Elige aeropuertos, horarios y preferencias. Guardar actualiza seguimiento y alertas."
+  },
+  "Vamos acompanhar sua próxima viagem?": {
+    "en": "Ready to monitor your next trip?",
+    "es": "¿Seguimos tu próximo viaje?"
+  },
+  "Criar primeira busca": {
+    "en": "Create first search",
+    "es": "Crear primera búsqueda"
+  },
+  "Editar busca": {
+    "en": "Edit search",
+    "es": "Editar búsqueda"
+  },
+  "Busca salva. A próxima coleta usará os novos filtros.": {
+    "en": "Search saved. The next check will use your new filters.",
+    "es": "Búsqueda guardada. La próxima consulta usará los nuevos filtros."
+  },
+  "Busca pausada. Nenhuma nova coleta será agendada.": {
+    "en": "Search paused. No new checks will be scheduled.",
+    "es": "Búsqueda pausada. No se programarán nuevas consultas."
+  },
+  "Busca arquivada; o histórico permanece no banco.": {
+    "en": "Search archived; history is preserved.",
+    "es": "Búsqueda archivada; historial conservado."
+  },
+  "Busca arquivada. Histórico preservado no banco local.": {
+    "en": "Search archived. Local history preserved.",
+    "es": "Búsqueda archivada. Historial local conservado."
+  },
+  "Busca restaurada e pausada. Revise as datas antes de retomar.": {
+    "en": "Search restored and paused. Review dates before resuming.",
+    "es": "Búsqueda restaurada y pausada. Revisa las fechas antes de reanudar."
+  },
+  "Arquivar busca": {
+    "en": "Archive search",
+    "es": "Archivar búsqueda"
+  },
+  "Restaurar": {
+    "en": "Restore",
+    "es": "Restaurar"
+  },
+  "Pausar busca": {
+    "en": "Pause search",
+    "es": "Pausar búsqueda"
+  },
+  "Retomar busca": {
+    "en": "Resume search",
+    "es": "Reanudar búsqueda"
+  },
+  "Excluir": {
+    "en": "Delete",
+    "es": "Eliminar"
+  },
+  "Excluir {0}": {
+    "en": "Delete {0}",
+    "es": "Eliminar {0}"
+  },
+  "Excluir monitoramento": {
+    "en": "Delete monitoring",
+    "es": "Eliminar seguimiento"
+  },
+  "Excluir monitoramento?": {
+    "en": "Delete monitoring?",
+    "es": "¿Eliminar seguimiento?"
+  },
+  "Excluir definitivamente": {
+    "en": "Delete permanently",
+    "es": "Eliminar definitivamente"
+  },
+  "A exclusão remove esta busca, preços coletados, histórico e alertas locais. Não pode ser desfeita e não retira e-mails já enviados.": {
+    "en": "This permanently removes the search, collected prices, history and local alerts. Already sent emails cannot be recalled.",
+    "es": "Elimina permanentemente la búsqueda, precios, historial y alertas locales. No retira correos ya enviados."
+  },
+  "Monitoramento excluído.": {
+    "en": "Monitoring deleted.",
+    "es": "Seguimiento eliminado."
+  },
+  "Conferir pesquisa": {
+    "en": "Check search",
+    "es": "Consultar búsqueda"
+  },
+  "Ver passagem": {
+    "en": "View flight",
+    "es": "Ver vuelo"
+  },
+  "Melhores opções": {
+    "en": "Best options",
+    "es": "Mejores opciones"
+  },
+  "Menor ida": {
+    "en": "Lowest outbound",
+    "es": "Menor ida"
+  },
+  "Menor volta": {
+    "en": "Lowest return",
+    "es": "Menor vuelta"
+  },
+  "Soma estimada": {
+    "en": "Estimated total",
+    "es": "Total estimado"
+  },
+  "Melhor preço encontrado para suas preferências. A opção pode ter mudado.": {
+    "en": "Best fare matching your preferences. The option may have changed.",
+    "es": "Mejor tarifa para tus preferencias. La opción puede haber cambiado."
+  },
+  "Dentro do orçamento configurado": {
+    "en": "Within your budget",
+    "es": "Dentro del presupuesto"
+  },
+  "A partir de": {
+    "en": "From",
+    "es": "Desde"
+  },
+  "Detalhes do itinerário": {
+    "en": "Itinerary details",
+    "es": "Detalles del itinerario"
+  },
+  "Conexão de": {
+    "en": "Layover of",
+    "es": "Conexión de"
+  },
+  "opções encontradas ·": {
+    "en": "options found ·",
+    "es": "opciones encontradas ·"
+  },
+  "{0} elegíveis": {
+    "en": "{0} matching",
+    "es": "{0} válidas"
+  },
+  "Confirme disponibilidade, bagagem e condições no site de compra.": {
+    "en": "Confirm availability, baggage and terms with the seller.",
+    "es": "Confirma disponibilidad, equipaje y condiciones con el vendedor."
+  },
+  "Menor preço por janela": {
+    "en": "Lowest fare per window",
+    "es": "Menor precio por horario"
+  },
+  "Menor preço": {
+    "en": "Lowest fare",
+    "es": "Menor precio"
+  },
+  "Ida e volta separadas": {
+    "en": "Outbound and return separately",
+    "es": "Ida y vuelta por separado"
+  },
+  "Coletas registradas": {
+    "en": "Recorded checks",
+    "es": "Consultas registradas"
+  },
+  "Preços para suas preferências atuais e anteriores": {
+    "en": "Prices for current and previous preferences",
+    "es": "Precios para preferencias actuales y anteriores"
+  },
+  "Data e hora": {
+    "en": "Date and time",
+    "es": "Fecha y hora"
+  },
+  "Direção": {
+    "en": "Direction",
+    "es": "Dirección"
+  },
+  "Opções": {
+    "en": "Options",
+    "es": "Opciones"
+  },
+  "Cobertura": {
+    "en": "Coverage",
+    "es": "Cobertura"
+  },
+  "Atuais": {
+    "en": "Current",
+    "es": "Actuales"
+  },
+  "Anteriores": {
+    "en": "Previous",
+    "es": "Anteriores"
+  },
+  "Exportar dados": {
+    "en": "Export data",
+    "es": "Exportar datos"
+  },
+  "Histórico preservado": {
+    "en": "History preserved",
+    "es": "Historial conservado"
+  },
+  "Preços encontrados para esta busca": {
+    "en": "Observed fares for this search",
+    "es": "Precios encontrados para esta búsqueda"
+  },
+  "O histórico começa com a primeira coleta completa.": {
+    "en": "History starts with the first complete check.",
+    "es": "El historial comienza con la primera consulta completa."
+  },
+  "Evolução real do menor preço elegível em cada direção": {
+    "en": "Observed lowest matching fare by direction",
+    "es": "Evolución del menor precio válido por dirección"
+  },
+  "Trechos": {
+    "en": "Legs",
+    "es": "Trayectos"
+  },
+  "Versão {0}": {
+    "en": "Version {0}",
+    "es": "Versión {0}"
+  },
+  "Carregando…": {
+    "en": "Loading…",
+    "es": "Cargando…"
+  },
+  "Não foi possível carregar o gráfico": {
+    "en": "Could not load the chart",
+    "es": "No se pudo cargar el gráfico"
+  },
+  "Evolução dos preços de ida e volta": {
+    "en": "Outbound and return fare history",
+    "es": "Evolución de precios de ida y vuelta"
+  },
+  "Toque em um ponto para ver o preço e o horário.": {
+    "en": "Tap a point to see its price and time.",
+    "es": "Toca un punto para ver precio y horario."
+  },
+  "O gráfico agrupa o menor preço por intervalo quando há muitas coletas. Os dados completos permanecem no histórico exportado.": {
+    "en": "For large histories, the chart groups the lowest fare per interval. Full data is available in the export.",
+    "es": "Si hay muchas consultas, el gráfico agrupa el menor precio por intervalo. Los datos completos están en la exportación."
+  },
+  "Seus alertas": {
+    "en": "Your alerts",
+    "es": "Tus alertas"
+  },
+  "Alertas desta busca": {
+    "en": "Alerts for this search",
+    "es": "Alertas de esta búsqueda"
+  },
+  "Oportunidades que respeitam seus filtros salvos.": {
+    "en": "Deals matching your saved filters.",
+    "es": "Ofertas que cumplen tus filtros guardados."
+  },
+  "Ver todos": {
+    "en": "View all",
+    "es": "Ver todos"
+  },
+  "Adicione seus e-mails no perfil para receber alertas.": {
+    "en": "Add your email addresses in your profile to receive alerts.",
+    "es": "Añade tus correos al perfil para recibir alertas."
+  },
+  "Uma primeira coleta cria a referência. Novas quedas elegíveis aparecem aqui.": {
+    "en": "The first check sets a baseline. New qualifying drops appear here.",
+    "es": "La primera consulta establece una referencia. Las nuevas bajadas aparecen aquí."
+  },
+  "Uma coleta inicial estabelece a referência. O alerta também pode ocorrer na primeira consulta se já atingir a meta.": {
+    "en": "The first check sets a baseline and can alert if your target is already met.",
+    "es": "La primera consulta establece la referencia y puede avisar si ya alcanza tu objetivo."
+  },
+  "Você recebe um aviso quando encontramos um preço dentro da sua meta ou uma queda relevante.": {
+    "en": "Get notified when a fare meets your target or drops significantly.",
+    "es": "Recibe un aviso cuando el precio alcanza tu objetivo o baja significativamente."
+  },
+  "Avisaremos ao atingir {0} ou cair pelo menos {1}.": {
+    "en": "We will notify you at {0} or a drop of at least {1}.",
+    "es": "Te avisaremos al llegar a {0} o bajar al menos {1}."
+  },
+  "Economia de": {
+    "en": "Save",
+    "es": "Ahorro de"
+  },
+  "Na fila": {
+    "en": "Queued",
+    "es": "En cola"
+  },
+  "Na fila de e-mail": {
+    "en": "Queued for email",
+    "es": "En cola de correo"
+  },
+  "Enviando": {
+    "en": "Sending",
+    "es": "Enviando"
+  },
+  "Enviado ao provedor": {
+    "en": "Accepted by provider",
+    "es": "Aceptado por el proveedor"
+  },
+  "Envio não confirmado": {
+    "en": "Send not confirmed",
+    "es": "Envío no confirmado"
+  },
+  "Envio requer verificação": {
+    "en": "Send needs verification",
+    "es": "Envío requiere revisión"
+  },
+  "Cancelado": {
+    "en": "Cancelled",
+    "es": "Cancelado"
+  },
+  "Não enviado: alerta antigo": {
+    "en": "Not sent: outdated alert",
+    "es": "No enviado: alerta antigua"
+  },
+  "Somente no painel": {
+    "en": "Dashboard only",
+    "es": "Solo en el panel"
+  },
+  "Serviço de envio indisponível": {
+    "en": "Delivery service unavailable",
+    "es": "Servicio de envío no disponible"
+  },
+  "Adicione um e-mail no perfil": {
+    "en": "Add an email to your profile",
+    "es": "Añade un correo al perfil"
+  },
+  "Escolha suas viagens. Nós acompanhamos os preços.": {
+    "en": "Choose your trips. We track the fares.",
+    "es": "Elige tus viajes. Seguimos los precios."
+  },
+  "Entre no seu radar": {
+    "en": "Sign in to your radar",
+    "es": "Entra a tu radar"
+  },
+  "Crie sua conta": {
+    "en": "Create your account",
+    "es": "Crea tu cuenta"
+  },
+  "Cadastre o administrador": {
+    "en": "Create the administrator",
+    "es": "Registra al administrador"
+  },
+  "Criar administrador": {
+    "en": "Create administrator",
+    "es": "Crear administrador"
+  },
+  "Configurar o primeiro administrador neste Mac": {
+    "en": "Set up the first administrator on this Mac",
+    "es": "Configurar el primer administrador en este Mac"
+  },
+  "Esta configuração inicial só está disponível neste computador.": {
+    "en": "Initial setup is only available on this computer.",
+    "es": "La configuración inicial solo está disponible en este equipo."
+  },
+  "Se já cadastrou esse telefone, use a senha da conta existente.": {
+    "en": "If this phone is registered, use the existing password.",
+    "es": "Si este teléfono ya está registrado, usa su contraseña actual."
+  },
+  "Celular de acesso": {
+    "en": "Sign-in phone",
+    "es": "Teléfono de acceso"
+  },
+  "Seu nome": {
+    "en": "Your name",
+    "es": "Tu nombre"
+  },
+  "Senha": {
+    "en": "Password",
+    "es": "Contraseña"
+  },
+  "Use pelo menos dez caracteres.": {
+    "en": "Use at least ten characters.",
+    "es": "Usa al menos diez caracteres."
+  },
+  "Entrar": {
+    "en": "Sign in",
+    "es": "Entrar"
+  },
+  "Criar conta": {
+    "en": "Create account",
+    "es": "Crear cuenta"
+  },
+  "Ainda não tem conta?": {
+    "en": "New here?",
+    "es": "¿Aún no tienes cuenta?"
+  },
+  "Já tem uma conta?": {
+    "en": "Already have an account?",
+    "es": "¿Ya tienes una cuenta?"
+  },
+  "Abrindo seu radar…": {
+    "en": "Opening your radar…",
+    "es": "Abriendo tu radar…"
+  },
+  "Meu cadastro": {
+    "en": "My details",
+    "es": "Mis datos"
+  },
+  "Telefone de acesso": {
+    "en": "Sign-in phone",
+    "es": "Teléfono de acceso"
+  },
+  "Este é o número usado para entrar na conta.": {
+    "en": "This number is used to sign in.",
+    "es": "Este número se usa para entrar a la cuenta."
+  },
+  "E-mails para receber alertas": {
+    "en": "Alert email addresses",
+    "es": "Correos para recibir alertas"
+  },
+  "Cadastre até quatro endereços. Os alertas serão enviados a todos eles.": {
+    "en": "Add up to four addresses. Alerts will be sent to all of them.",
+    "es": "Añade hasta cuatro correos. Las alertas se enviarán a todos."
+  },
+  "Adicionar e-mail": {
+    "en": "Add email",
+    "es": "Añadir correo"
+  },
+  "Adicionar outro e-mail": {
+    "en": "Add another email",
+    "es": "Añadir otro correo"
+  },
+  "Adicionar e-mails para alertas (opcional)": {
+    "en": "Add alert emails (optional)",
+    "es": "Añadir correos de alertas (opcional)"
+  },
+  "Remover e-mail {0}": {
+    "en": "Remove email {0}",
+    "es": "Quitar correo {0}"
+  },
+  "Número para WhatsApp": {
+    "en": "WhatsApp number",
+    "es": "Número de WhatsApp"
+  },
+  "Usar meu telefone de acesso": {
+    "en": "Use my sign-in phone",
+    "es": "Usar mi teléfono de acceso"
+  },
+  "Outro número para WhatsApp": {
+    "en": "Another WhatsApp number",
+    "es": "Otro número de WhatsApp"
+  },
+  "Você pode trocar este contato sem mudar seu telefone de acesso nem criar outra conta. O número fica salvo para quando os alertas por WhatsApp estiverem disponíveis.": {
+    "en": "Change this contact without changing your sign-in phone or creating another account. It will be saved for future WhatsApp alerts.",
+    "es": "Cambia este contacto sin cambiar el teléfono de acceso ni crear otra cuenta. Se guardará para futuras alertas por WhatsApp."
+  },
+  "Usuário do Telegram (opcional)": {
+    "en": "Telegram username (optional)",
+    "es": "Usuario de Telegram (opcional)"
+  },
+  "Salva seu contato para a futura integração. O envio pelo Telegram ainda não está disponível e exigirá conectar sua conta ao bot do radar.": {
+    "en": "Saves your contact for a future integration. Telegram delivery will require connecting to the radar bot.",
+    "es": "Guarda el contacto para una futura integración. El envío por Telegram requerirá conectar tu cuenta al bot."
+  },
+  "Seus contatos foram salvos.": {
+    "en": "Your contacts were saved.",
+    "es": "Tus contactos se guardaron."
+  },
+  "Salvar meus dados": {
+    "en": "Save my details",
+    "es": "Guardar mis datos"
+  },
+  "Você só precisa informar os contatos. O serviço de envio é configurado pelo administrador.": {
+    "en": "Just enter your contacts. The administrator configures delivery.",
+    "es": "Solo necesitas indicar tus contactos. El administrador configura el envío."
+  },
+  "Ative “Enviar alertas” nas buscas que deseja acompanhar. Os e-mails do seu perfil serão usados nas próximas notificações.": {
+    "en": "Enable Send alerts on your searches. Future notifications use your profile emails.",
+    "es": "Activa Enviar alertas en tus búsquedas. Las próximas notificaciones usarán los correos del perfil."
+  },
+  "Sua conta": {
+    "en": "Your account",
+    "es": "Tu cuenta"
+  },
+  "Conectado como": {
+    "en": "Signed in as",
+    "es": "Conectado como"
+  },
+  "A formatação acompanha o país. {0}Você também pode colar um número com +DDI.": {
+    "en": "Formatting follows the selected country. {0}You can also paste a number with +country code.",
+    "es": "El formato depende del país. {0}También puedes pegar un número con +código de país."
+  },
+  "Exemplo: {0}. ": {
+    "en": "Example: {0}. ",
+    "es": "Ejemplo: {0}. "
+  },
+  "Código de área e número": {
+    "en": "Area code and number",
+    "es": "Código de área y número"
+  },
+  "{0}: código de área e número": {
+    "en": "{0}: area code and number",
+    "es": "{0}: código de área y número"
+  },
+  "País e código internacional de": {
+    "en": "Country and calling code for",
+    "es": "País y código internacional de"
+  },
+  "País e código internacional de {0}": {
+    "en": "Country and calling code for {0}",
+    "es": "País y código internacional de {0}"
+  },
+  "Confira o código de área e a quantidade de dígitos para o país selecionado.": {
+    "en": "Check the area code and number length for this country.",
+    "es": "Revisa el código de área y la cantidad de dígitos para este país."
+  },
+  "Adicionar conta de e-mail": {
+    "en": "Add an email account",
+    "es": "Añadir cuenta de correo"
+  },
+  "Adicionar conta": {
+    "en": "Add account",
+    "es": "Añadir cuenta"
+  },
+  "Conta de envio": {
+    "en": "Sending account",
+    "es": "Cuenta de envío"
+  },
+  "Seus alertas serão enviados por esta conta.": {
+    "en": "Your alerts will be sent from this account.",
+    "es": "Tus alertas se enviarán desde esta cuenta."
+  },
+  "Informe seu e-mail. Nós identificamos o provedor e abrimos o login para você.": {
+    "en": "Enter your email. We identify the provider and open sign-in for you.",
+    "es": "Indica tu correo. Identificamos el proveedor y abrimos el inicio de sesión."
+  },
+  "Seu e-mail": {
+    "en": "Your email",
+    "es": "Tu correo"
+  },
+  "Gmail e Google Workspace abrem a janela de login do Google. Sua senha é informada somente lá.": {
+    "en": "Gmail and Google Workspace open Google sign-in. Enter your password only there.",
+    "es": "Gmail y Google Workspace abren el acceso de Google. Introduce tu contraseña solo allí."
+  },
+  "Conectada": {
+    "en": "Connected",
+    "es": "Conectada"
+  },
+  "Trocar conta": {
+    "en": "Switch account",
+    "es": "Cambiar cuenta"
+  },
+  "Desconectar": {
+    "en": "Disconnect",
+    "es": "Desconectar"
+  },
+  "Conta adicionada.": {
+    "en": "Account added.",
+    "es": "Cuenta añadida."
+  },
+  "Conta desconectada deste radar.": {
+    "en": "Account disconnected from this radar.",
+    "es": "Cuenta desconectada de este radar."
+  },
+  "Identificando sua conta…": {
+    "en": "Identifying your account…",
+    "es": "Identificando tu cuenta…"
+  },
+  "Identificando o provedor do seu e-mail…": {
+    "en": "Identifying your email provider…",
+    "es": "Identificando tu proveedor de correo…"
+  },
+  "Conclua o login na janela do Google.": {
+    "en": "Complete sign-in in the Google window.",
+    "es": "Completa el acceso en la ventana de Google."
+  },
+  "Conectando…": {
+    "en": "Connecting…",
+    "es": "Conectando…"
+  },
+  "O navegador não permitiu abrir a janela de login. Tente em uma janela do Safari ou Chrome.": {
+    "en": "The sign-in window was blocked. Try Safari or Chrome.",
+    "es": "Se bloqueó la ventana de acceso. Prueba Safari o Chrome."
+  },
+  "Permita a abertura da janela de login no navegador e tente novamente.": {
+    "en": "Allow the sign-in popup and try again.",
+    "es": "Permite la ventana de acceso y vuelve a intentarlo."
+  },
+  "A janela de login foi fechada. Clique em Continuar para tentar novamente.": {
+    "en": "The sign-in window was closed. Click Continue to retry.",
+    "es": "La ventana de acceso se cerró. Pulsa Continuar para reintentar."
+  },
+  "A conexão Google ainda não está disponível nesta versão. Você não precisa configurar o Google Cloud.": {
+    "en": "Google connection is not available in this version yet. You do not need to configure Google Cloud.",
+    "es": "La conexión Google aún no está disponible en esta versión. No necesitas configurar Google Cloud."
+  },
+  "Não foi possível concluir a conexão Google. Tente novamente.": {
+    "en": "Could not complete the Google connection. Try again.",
+    "es": "No se pudo completar la conexión Google. Inténtalo de nuevo."
+  },
+  "Não identificamos o Google automaticamente. Sua conta pode usar outro provedor ou um serviço intermediário.": {
+    "en": "Google was not detected. Your account may use another provider or an intermediary.",
+    "es": "No detectamos Google. Tu cuenta puede usar otro proveedor o un intermediario."
+  },
+  "Configurar outro provedor": {
+    "en": "Configure another provider",
+    "es": "Configurar otro proveedor"
+  },
+  "E-mail para teste": {
+    "en": "Test email recipient",
+    "es": "Destinatario de prueba"
+  },
+  "Este endereço será salvo para os próximos testes. Os destinatários dos alertas continuam no perfil de cada usuário.": {
+    "en": "This address is saved for future tests. Alert recipients remain in each user profile.",
+    "es": "Este correo se guarda para futuras pruebas. Los destinatarios de alertas siguen en cada perfil."
+  },
+  "Enviar e-mail de teste": {
+    "en": "Send test email",
+    "es": "Enviar correo de prueba"
+  },
+  "Solicitando…": {
+    "en": "Requesting…",
+    "es": "Solicitando…"
+  },
+  "Teste solicitado para {0}. Acompanhe o resultado em Atividade de envio.": {
+    "en": "Test requested for {0}. Check Delivery activity for the result.",
+    "es": "Prueba solicitada para {0}. Consulta el resultado en Actividad de envío."
+  },
+  "Configuração manual SMTP": {
+    "en": "Manual SMTP setup",
+    "es": "Configuración manual SMTP"
+  },
+  "E-mail por SMTP": {
+    "en": "Email via SMTP",
+    "es": "Correo por SMTP"
+  },
+  "As credenciais ficam neste computador e não entram no Git.": {
+    "en": "Credentials stay on this computer and outside Git.",
+    "es": "Las credenciales permanecen en este equipo, fuera de Git."
+  },
+  "Habilitar envio de e-mails": {
+    "en": "Enable email delivery",
+    "es": "Habilitar envío de correos"
+  },
+  "Habilitado": {
+    "en": "Enabled",
+    "es": "Habilitado"
+  },
+  "Não configurado": {
+    "en": "Not configured",
+    "es": "Sin configurar"
+  },
+  "Servidor SMTP": {
+    "en": "SMTP server",
+    "es": "Servidor SMTP"
+  },
+  "Porta": {
+    "en": "Port",
+    "es": "Puerto"
+  },
+  "Segurança": {
+    "en": "Security",
+    "es": "Seguridad"
+  },
+  "STARTTLS (normalmente porta 587)": {
+    "en": "STARTTLS (usually port 587)",
+    "es": "STARTTLS (normalmente puerto 587)"
+  },
+  "TLS direto (normalmente porta 465)": {
+    "en": "Direct TLS (usually port 465)",
+    "es": "TLS directo (normalmente puerto 465)"
+  },
+  "Usuário SMTP": {
+    "en": "SMTP username",
+    "es": "Usuario SMTP"
+  },
+  "Senha ou senha de aplicativo": {
+    "en": "Password or app password",
+    "es": "Contraseña o contraseña de aplicación"
+  },
+  "Senha salva · deixe vazio para manter": {
+    "en": "Saved password · leave blank to keep",
+    "es": "Contraseña guardada · deja vacío para conservar"
+  },
+  "Digite somente neste formulário local": {
+    "en": "Enter only in this local form",
+    "es": "Introduce solo en este formulario local"
+  },
+  "E-mail remetente": {
+    "en": "Sender email",
+    "es": "Correo remitente"
+  },
+  "E-mail para testes": {
+    "en": "Test recipient",
+    "es": "Destinatario de pruebas"
+  },
+  "Configuração SMTP salva localmente. Use o botão abaixo para testar.": {
+    "en": "SMTP settings saved locally. Use the button below to test.",
+    "es": "Configuración SMTP guardada localmente. Usa el botón de prueba."
+  },
+  "E-mail de teste colocado na fila. Acompanhe o resultado ao lado.": {
+    "en": "Test email queued. Check delivery activity.",
+    "es": "Correo de prueba en cola. Consulta la actividad de envío."
+  },
+  "O teste usa o destinatário da configuração já salva. Alertas antigos que aguardavam configuração não são enviados retroativamente. Nenhuma mensagem é marcada como entregue sem confirmação.": {
+    "en": "Tests use the saved recipient. Old alerts are not sent retroactively. Provider acceptance does not confirm inbox delivery.",
+    "es": "La prueba usa el destinatario guardado. Las alertas antiguas no se envían retroactivamente. La aceptación del proveedor no confirma la entrega en bandeja."
+  },
+  "Atividade de envio": {
+    "en": "Delivery activity",
+    "es": "Actividad de envío"
+  },
+  "Nenhum envio solicitado. Salve a configuração e envie um teste quando estiver pronto.": {
+    "en": "No delivery requested. Save settings and request a test when ready.",
+    "es": "No hay envíos solicitados. Guarda la configuración y solicita una prueba."
+  },
+  "Para:": {
+    "en": "To:",
+    "es": "Para:"
+  },
+  "Sobre esta versão": {
+    "en": "About this version",
+    "es": "Acerca de esta versión"
+  },
+  "Ambiente local": {
+    "en": "Local environment",
+    "es": "Entorno local"
+  },
+  "Ambiente local, para um usuário. O monitoramento continua com o navegador fechado enquanto o servidor e o computador estiverem ligados.": {
+    "en": "Local environment. Monitoring continues with the browser closed while the server and computer are running.",
+    "es": "Entorno local. El seguimiento continúa con el navegador cerrado mientras el servidor y equipo estén encendidos."
+  },
+  "Ambiente local com contas individuais. O monitoramento continua com o navegador fechado enquanto o servidor e o computador estiverem ligados.": {
+    "en": "Local environment with individual accounts. Monitoring continues with the browser closed while the computer and server are running.",
+    "es": "Entorno local con cuentas individuales. El seguimiento continúa con el navegador cerrado mientras el equipo y servidor estén encendidos."
+  },
+  "Os dados e a senha SMTP ficam em uma pasta local ignorada pelo Git. Hospedagem permanente e recuperação de acesso serão etapas posteriores.": {
+    "en": "Data and SMTP credentials stay in a local folder excluded from Git. Hosting and account recovery are future steps.",
+    "es": "Los datos y credenciales SMTP quedan en una carpeta local excluida de Git. El alojamiento y recuperación de acceso son pasos futuros."
+  },
+  "Tarifas pesquisadas no Google Voos": {
+    "en": "Fares searched on Google Flights",
+    "es": "Tarifas consultadas en Google Flights"
+  },
+  "Preços observados, sem garantia de disponibilidade · horários das coletas em UTC−3": {
+    "en": "Observed fares; availability may change · times follow your device",
+    "es": "Tarifas observadas; disponibilidad sujeta a cambios · horas del dispositivo"
+  },
+  "Tarifas reais · coleta periódica": {
+    "en": "Observed fares · periodic checks",
+    "es": "Tarifas observadas · consultas periódicas"
+  },
+  "Google Flights via fast-flights": {
+    "en": "Google Flights via fast-flights",
+    "es": "Google Flights mediante fast-flights"
+  },
+  "Encerramento automático:": {
+    "en": "Automatic end:",
+    "es": "Finalización automática:"
+  },
+  "· fim da última janela de partida.": {
+    "en": "· end of the final departure window.",
+    "es": "· fin del último horario de salida."
+  },
+  "Detalhes técnicos": {
+    "en": "Technical details",
+    "es": "Detalles técnicos"
+  },
+  "Conectando ao seu radar…": {
+    "en": "Connecting to your radar…",
+    "es": "Conectando a tu radar…"
+  },
+  "O radar está desconectado": {
+    "en": "Radar is offline",
+    "es": "El radar está desconectado"
+  },
+  "Inicie o servidor local seguindo as instruções do projeto.": {
+    "en": "Start the local server following the project instructions.",
+    "es": "Inicia el servidor local siguiendo las instrucciones del proyecto."
+  },
+  "Tentar novamente": {
+    "en": "Try again",
+    "es": "Intentar de nuevo"
+  },
+  "Não foi possível conectar ao radar.": {
+    "en": "Could not connect to radar.",
+    "es": "No se pudo conectar al radar."
+  },
+  "Não foi possível conectar ao serviço local": {
+    "en": "Could not connect to the local service",
+    "es": "No se pudo conectar al servicio local"
+  },
+  "Não foi possível concluir a ação": {
+    "en": "Could not complete the action",
+    "es": "No se pudo completar la acción"
+  },
+  "Não foi possível encerrar a sessão": {
+    "en": "Could not sign out",
+    "es": "No se pudo cerrar la sesión"
+  },
+  "Sessão encerrada": {
+    "en": "Session ended",
+    "es": "Sesión finalizada"
+  },
+  "Pular para o conteúdo": {
+    "en": "Skip to content",
+    "es": "Saltar al contenido"
+  },
+  "Navegação principal": {
+    "en": "Main navigation",
+    "es": "Navegación principal"
+  },
+  "Navegação no celular": {
+    "en": "Mobile navigation",
+    "es": "Navegación móvil"
+  },
+  "Radar de Voos, início": {
+    "en": "Flight Radar, home",
+    "es": "Radar de Vuelos, inicio"
+  },
+  "Fechar janela": {
+    "en": "Close window",
+    "es": "Cerrar ventana"
+  },
+  "Dispensar mensagem": {
+    "en": "Dismiss message",
+    "es": "Descartar mensaje"
+  },
+  "Auditoria de acessos": {
+    "en": "Access audit",
+    "es": "Auditoría de accesos"
+  },
+  "Seus acessos recentes": {
+    "en": "Your recent access",
+    "es": "Tus accesos recientes"
+  },
+  "Não foi possível carregar os acessos": {
+    "en": "Could not load access history",
+    "es": "No se pudieron cargar los accesos"
+  },
+  "Login realizado": {
+    "en": "Sign-in successful",
+    "es": "Inicio de sesión correcto"
+  },
+  "Login recusado": {
+    "en": "Sign-in rejected",
+    "es": "Inicio de sesión rechazado"
+  },
+  "Tentativas limitadas": {
+    "en": "Attempts limited",
+    "es": "Intentos limitados"
+  },
+  "Cadastro realizado": {
+    "en": "Account created",
+    "es": "Cuenta creada"
+  },
+  "Administrador criado": {
+    "en": "Administrator created",
+    "es": "Administrador creado"
+  },
+  "Logout realizado": {
+    "en": "Signed out",
+    "es": "Sesión cerrada"
+  },
+  "IP da conexão e navegador/sistema informados pelo dispositivo. Não identificam com certeza uma pessoa ou o modelo do aparelho. Retenção padrão: 90 dias, até 20 mil registros.": {
+    "en": "Connection IP and browser/system declared by the device. They do not prove identity or hardware model. Default retention: 90 days, up to 20,000 records.",
+    "es": "IP de conexión y navegador/sistema declarados por el dispositivo. No prueban identidad ni modelo del equipo. Retención predeterminada: 90 días, hasta 20.000 registros."
+  },
+  "Conta": {
+    "en": "Account",
+    "es": "Cuenta"
+  },
+  "Evento": {
+    "en": "Event",
+    "es": "Evento"
+  },
+  "Dispositivo": {
+    "en": "Device",
+    "es": "Dispositivo"
+  },
+  "Não identificado": {
+    "en": "Unknown",
+    "es": "No identificado"
+  },
+  "Opcional": {
+    "en": "Optional",
+    "es": "Opcional"
+  },
+  "{0}: minutos": {
+    "en": "{0}: minutes",
+    "es": "{0}: minutos"
+  },
+  "{0} h{1}": {
+    "en": "{0} h{1}",
+    "es": "{0} h{1}"
+  },
+  "{0} min": {
+    "en": "{0} min",
+    "es": "{0} min"
+  },
+  " {0} min": {
+    "en": " {0} min",
+    "es": " {0} min"
+  },
+  "Telegram": {
+    "en": "Telegram",
+    "es": "Telegram"
+  },
+  "WhatsApp": {
+    "en": "WhatsApp",
+    "es": "WhatsApp"
+  },
+  "Ainda não realizada": {
+    "en": "Not checked yet",
+    "es": "Aún no realizada"
+  },
+  "Desconectado": {
+    "en": "Disconnected",
+    "es": "Desconectado"
+  },
+  "Gerencie o serviço de e-mail e mantenha suas buscas existentes.": {
+    "en": "Manage email delivery and keep your existing searches.",
+    "es": "Gestiona el envío de correo y conserva tus búsquedas."
+  },
+  "· menor preço por intervalo": {
+    "en": "· lowest fare per interval",
+    "es": "· menor precio por intervalo"
+  },
+  "Idioma": {
+    "en": "Language",
+    "es": "Idioma"
+  },
+  "Não foi possível salvar o idioma dos alertas.": {
+    "en": "Could not save the alert language.",
+    "es": "No se pudo guardar el idioma de las alertas."
+  },
+  "Telefone ou senha incorretos": {
+    "en": "Incorrect phone or password",
+    "es": "Teléfono o contraseña incorrectos"
+  },
+  "Muitas tentativas. Aguarde alguns minutos e tente novamente.": {
+    "en": "Too many attempts. Wait a few minutes and try again.",
+    "es": "Demasiados intentos. Espera unos minutos e inténtalo de nuevo."
+  },
+  "Entre na sua conta para continuar": {
+    "en": "Sign in to continue",
+    "es": "Inicia sesión para continuar"
+  },
+  "Esta configuração é exclusiva do administrador": {
+    "en": "This setting is for administrators only",
+    "es": "Esta configuración es exclusiva del administrador"
+  },
+  "Informe endereços de e-mail válidos": {
+    "en": "Enter valid email addresses",
+    "es": "Indica direcciones de correo válidas"
+  },
+  "Informe um telefone válido, com DDD ou código de área": {
+    "en": "Enter a valid phone number with area code",
+    "es": "Indica un teléfono válido con código de área"
+  },
+  "Selecione um país válido": {
+    "en": "Select a valid country",
+    "es": "Selecciona un país válido"
+  },
+  "Informe seu nome": {
+    "en": "Enter your name",
+    "es": "Indica tu nombre"
+  },
+  "Informe um nome sem quebras de linha": {
+    "en": "Enter a name without line breaks",
+    "es": "Indica un nombre sin saltos de línea"
+  },
+  "Informe o usuário Telegram com 5 a 32 caracteres: letras, números e sublinhado": {
+    "en": "Enter a Telegram username with 5 to 32 letters, digits or underscores",
+    "es": "Indica un usuario de Telegram de 5 a 32 letras, números o guiones bajos"
+  },
+  "Não foi possível cadastrar esse telefone. Se já tem conta, entre.": {
+    "en": "Could not register this phone. Sign in if you already have an account.",
+    "es": "No se pudo registrar este teléfono. Inicia sesión si ya tienes cuenta."
+  },
+  "Esse telefone já tem conta. Use a senha existente para configurar o administrador.": {
+    "en": "This phone is already registered. Use its existing password to configure the administrator.",
+    "es": "Este teléfono ya está registrado. Usa su contraseña actual para configurar al administrador."
+  },
+  "O administrador já foi cadastrado": {
+    "en": "An administrator is already registered",
+    "es": "Ya hay un administrador registrado"
+  },
+  "Busca não encontrada": {
+    "en": "Search not found",
+    "es": "Búsqueda no encontrada"
+  },
+  "Busca arquivada não encontrada": {
+    "en": "Archived search not found",
+    "es": "Búsqueda archivada no encontrada"
+  },
+  "O piloto permite até cinco buscas": {
+    "en": "This version allows up to five searches",
+    "es": "Esta versión permite hasta cinco búsquedas"
+  },
+  "O piloto permite até cinco buscas ativas ou pausadas": {
+    "en": "This version allows up to five active or paused searches",
+    "es": "Esta versión permite hasta cinco búsquedas activas o pausadas"
+  },
+  "O piloto aceita até 24 combinações aeroporto/data por ciclo": {
+    "en": "This version allows 24 airport/date combinations per cycle",
+    "es": "Esta versión permite 24 combinaciones de aeropuerto y fecha por ciclo"
+  },
+  "A janela de viagem já terminou para um aeroporto selecionado": {
+    "en": "The travel window has ended for a selected airport",
+    "es": "El horario del viaje ya terminó para un aeropuerto seleccionado"
+  },
+  "A janela de viagem já terminou; crie uma nova busca com datas futuras": {
+    "en": "The travel window has ended; create a search with future dates",
+    "es": "El horario del viaje ya terminó; crea una búsqueda con fechas futuras"
+  },
+  "A janela de viagem já terminou; revise as datas para retomar": {
+    "en": "The travel window has ended; review dates before resuming",
+    "es": "El horario del viaje terminó; revisa las fechas para reanudar"
+  },
+  "A janela deve ser crescente e abranger no máximo sete datas": {
+    "en": "The window must end after it starts and span up to seven dates",
+    "es": "El horario debe terminar después del inicio y abarcar hasta siete fechas"
+  },
+  "A janela da volta deve começar após o início da ida": {
+    "en": "Return must start after the outbound start",
+    "es": "La vuelta debe comenzar después del inicio de la ida"
+  },
+  "A chegada deve usar horário local do destino": {
+    "en": "Arrival must use the destination local time",
+    "es": "La llegada debe usar la hora local del destino"
+  },
+  "Informe a janela no horário local, sem deslocamento de fuso": {
+    "en": "Enter the window in local time without a time-zone offset",
+    "es": "Indica el horario en hora local sin desplazamiento de zona"
+  },
+  "Escolha um aeroporto com código IATA válido no catálogo mundial": {
+    "en": "Choose an airport with a valid IATA code",
+    "es": "Elige un aeropuerto con código IATA válido"
+  },
+  "Escolha uma moeda suportada pelo motor de busca": {
+    "en": "Choose a supported search currency",
+    "es": "Elige una moneda admitida por el buscador"
+  },
+  "Um mesmo aeroporto não pode estar nos dois lados": {
+    "en": "The same airport cannot be both origin and destination",
+    "es": "El mismo aeropuerto no puede ser origen y destino"
+  },
+  "Selecione ao menos uma categoria de escalas": {
+    "en": "Select at least one stop category",
+    "es": "Selecciona al menos una categoría de escalas"
+  },
+  "Informe códigos IATA de companhias com dois caracteres, como LA, BA ou AA": {
+    "en": "Enter two-character airline IATA codes, such as LA, BA or AA",
+    "es": "Indica códigos IATA de aerolínea de dos caracteres, como LA, BA o AA"
+  },
+  "Retome a busca para consultar novamente": {
+    "en": "Resume monitoring to search again",
+    "es": "Reanuda el seguimiento para buscar de nuevo"
+  },
+  "Uma coleta já está em andamento": {
+    "en": "A check is already running",
+    "es": "Ya hay una consulta en curso"
+  },
+  "Aguarde 30 segundos entre solicitações de coleta": {
+    "en": "Wait 30 seconds between manual checks",
+    "es": "Espera 30 segundos entre consultas manuales"
+  },
+  "Aguarde o envio em andamento antes de excluir esta busca": {
+    "en": "Wait for the current delivery before deleting this search",
+    "es": "Espera el envío en curso antes de eliminar la búsqueda"
+  },
+  "Aguarde um minuto antes de enviar outro teste": {
+    "en": "Wait one minute before requesting another test",
+    "es": "Espera un minuto antes de solicitar otra prueba"
+  },
+  "Conecte uma conta Google ou configure o SMTP antes do teste": {
+    "en": "Connect a Google account or configure SMTP before testing",
+    "es": "Conecta una cuenta Google o configura SMTP antes de probar"
+  },
+  "Informe servidor, remetente e destinatário": {
+    "en": "Enter server, sender and recipient",
+    "es": "Indica servidor, remitente y destinatario"
+  },
+  "Endereço de e-mail inválido": {
+    "en": "Invalid email address",
+    "es": "Dirección de correo inválida"
+  },
+  "Campo contém caractere inválido": {
+    "en": "The field contains an invalid character",
+    "es": "El campo contiene un carácter inválido"
+  },
+  "Ao mudar servidor ou usuário, informe novamente a senha SMTP": {
+    "en": "Re-enter the SMTP password after changing server or username",
+    "es": "Vuelve a indicar la contraseña SMTP al cambiar servidor o usuario"
+  },
+  "Autenticação SMTP recusada. Confira usuário e senha de aplicativo.": {
+    "en": "SMTP authentication rejected. Check username and app password.",
+    "es": "Autenticación SMTP rechazada. Revisa usuario y contraseña de aplicación."
+  },
+  "Destinatário recusado pelo servidor SMTP.": {
+    "en": "The SMTP server rejected the recipient.",
+    "es": "El servidor SMTP rechazó al destinatario."
+  },
+  "Não foi possível validar a conexão TLS com o servidor SMTP.": {
+    "en": "Could not validate the SMTP TLS connection.",
+    "es": "No se pudo validar la conexión TLS del servidor SMTP."
+  },
+  "Envio SMTP não confirmado. Verifique servidor, porta e conexão; não foi marcado como entregue.": {
+    "en": "SMTP send unconfirmed. Check server, port and connection; delivery is not confirmed.",
+    "es": "Envío SMTP no confirmado. Revisa servidor, puerto y conexión; no se confirmó la entrega."
+  },
+  "Esta autorização expirou ou não pertence a uma sessão administrativa ativa. Abra a conexão novamente.": {
+    "en": "This authorization expired or has no active administrator session. Start the connection again.",
+    "es": "La autorización caducó o no tiene una sesión administrativa activa. Inicia la conexión de nuevo."
+  },
+  "A conexão com Google não foi autorizada. Você pode tentar novamente.": {
+    "en": "Google connection was not authorized. You can try again.",
+    "es": "La conexión Google no fue autorizada. Puedes intentarlo de nuevo."
+  },
+  "Autorize o envio de e-mails para concluir a conexão com Google": {
+    "en": "Allow email sending to complete the Google connection",
+    "es": "Autoriza el envío de correos para completar la conexión Google"
+  },
+  "Reconecte a conta Google na Administração": {
+    "en": "Reconnect the Google account in Administration",
+    "es": "Vuelve a conectar la cuenta Google en Administración"
+  },
+  "Não foi possível falar com o Google para concluir a conexão. Verifique a conexão de internet e tente novamente.": {
+    "en": "Could not reach Google. Check your internet connection and try again.",
+    "es": "No se pudo contactar con Google. Revisa la conexión a internet e inténtalo de nuevo."
+  },
+  "O Google retornou uma resposta incompleta. Inicie a conexão novamente.": {
+    "en": "Google returned an incomplete response. Connect again.",
+    "es": "Google devolvió una respuesta incompleta. Conecta de nuevo."
+  },
+  "O Google não confirmou o endereço da conta selecionada": {
+    "en": "Google did not verify the selected email address",
+    "es": "Google no confirmó el correo seleccionado"
+  },
+  "Não foi possível conectar ao Google para renovar a autorização": {
+    "en": "Could not reach Google to refresh authorization",
+    "es": "No se pudo contactar con Google para renovar la autorización"
+  },
+  "Não foi possível renovar a autorização Google. Confira a conexão na Administração.": {
+    "en": "Could not refresh Google authorization. Check Administration.",
+    "es": "No se pudo renovar la autorización Google. Revisa Administración."
+  },
+  "O Google recusou o envio. Confira a API Gmail e as permissões do projeto na Administração.": {
+    "en": "Google rejected sending. Check Gmail API and project permissions in Administration.",
+    "es": "Google rechazó el envío. Revisa Gmail API y permisos del proyecto en Administración."
+  },
+  "Envio pelo Google não confirmado. Não haverá reenvio automático para evitar duplicação.": {
+    "en": "Google send unconfirmed. No automatic retry to avoid duplicates.",
+    "es": "Envío Google no confirmado. No habrá reintento automático para evitar duplicados."
+  },
+  "O Google não confirmou o aceite da mensagem. Não haverá reenvio automático.": {
+    "en": "Google did not confirm message acceptance. No automatic retry.",
+    "es": "Google no confirmó la aceptación del mensaje. No habrá reintento automático."
+  },
+  "O Google exige uma credencial adicional do aplicativo. A integração precisa ser ajustada pelo responsável pelo radar; sua senha não é necessária.": {
+    "en": "Google requires an additional application credential. The maintainer must adjust the integration; your password is not needed.",
+    "es": "Google requiere otra credencial de la aplicación. El responsable debe ajustar la integración; no se necesita tu contraseña."
+  },
+  "O Google não concluiu a conexão. Tente novamente ou solicite a revisão da integração do radar.": {
+    "en": "Google did not complete the connection. Retry or ask the maintainer to review it.",
+    "es": "Google no completó la conexión. Reintenta o solicita revisar la integración."
+  },
+  "A conexão Google ainda não está habilitada nesta distribuição do aplicativo": {
+    "en": "Google connection is not enabled in this distribution yet",
+    "es": "La conexión Google aún no está habilitada en esta distribución"
+  },
+  "Conecte a conta Google neste Mac, abrindo http://127.0.0.1:8765/": {
+    "en": "Connect the Google account on this Mac at http://127.0.0.1:8765/",
+    "es": "Conecta la cuenta Google en este Mac en http://127.0.0.1:8765/"
+  },
+  "Adicione a conta neste Mac, em http://127.0.0.1:8765/": {
+    "en": "Add the account on this Mac at http://127.0.0.1:8765/",
+    "es": "Añade la cuenta en este Mac en http://127.0.0.1:8765/"
+  },
+  "Crie o primeiro administrador neste Mac, em http://127.0.0.1:8765/": {
+    "en": "Create the first administrator on this Mac at http://127.0.0.1:8765/",
+    "es": "Crea el primer administrador en este Mac en http://127.0.0.1:8765/"
+  },
+  "Meta atingida": {
+    "en": "Target reached",
+    "es": "Objetivo alcanzado"
+  },
+  "Nova menor tarifa": {
+    "en": "New lowest fare",
+    "es": "Nueva tarifa mínima"
+  },
+  "O Google recusou a identificação do aplicativo. O responsável pelo radar precisa revisar a integração.": {
+    "en": "Google rejected the app identity. The maintainer needs to review the integration.",
+    "es": "Google rechazó la identidad de la aplicación. El responsable debe revisar la integración."
+  },
+  "A autorização Google expirou ou já foi usada. Clique em Continuar para iniciar um novo login.": {
+    "en": "Google authorization expired or was already used. Click Continue to sign in again.",
+    "es": "La autorización Google caducó o ya fue usada. Pulsa Continuar para entrar de nuevo."
+  },
+  "O endereço de retorno do aplicativo não foi aceito pelo Google. O responsável pelo radar precisa revisar a integração.": {
+    "en": "Google rejected the callback address. The maintainer must review the integration.",
+    "es": "Google rechazó la dirección de retorno. El responsable debe revisar la integración."
+  },
+  "A conexão não foi autorizada. Confira as permissões da conta Google e tente novamente.": {
+    "en": "Connection not authorized. Check Google account permissions and retry.",
+    "es": "Conexión no autorizada. Revisa los permisos de la cuenta Google y reintenta."
+  },
+  "O Google recusou a conclusão da conexão. Tente novamente; se persistir, o responsável pelo radar precisa revisar a integração.": {
+    "en": "Google rejected the connection. Retry; if it persists, ask the maintainer to review it.",
+    "es": "Google rechazó la conexión. Reintenta; si persiste, solicita al responsable revisar la integración."
+  },
+  "A autorização expirou ou foi revogada. Reconecte a conta Google.": {
+    "en": "Authorization expired or was revoked. Reconnect Google.",
+    "es": "La autorización caducó o fue revocada. Vuelve a conectar Google."
+  },
+  "Field required": {
+    "en": "Required field",
+    "es": "Campo obligatorio"
+  },
+  "Conexão Google · Radar de Voos": {
+    "en": "Google connection · Flight Radar",
+    "es": "Conexión Google · Radar de Vuelos"
+  },
+  "Conta conectada": {
+    "en": "Account connected",
+    "es": "Cuenta conectada"
+  },
+  "Conexão não concluída": {
+    "en": "Connection not completed",
+    "es": "Conexión no completada"
+  },
+  "Conta Google conectada. Você pode fechar esta janela.": {
+    "en": "Google account connected. You can close this window.",
+    "es": "Cuenta Google conectada. Puedes cerrar esta ventana."
+  },
+  "Voltar ao radar": {
+    "en": "Return to radar",
+    "es": "Volver al radar"
+  },
+  "Preços observados, sem garantia de disponibilidade · horários no fuso do dispositivo": {
+    "en": "Observed fares; availability may change · times follow your device",
+    "es": "Tarifas observadas; disponibilidad sujeta a cambios · horas del dispositivo"
+  },
+  "adulto(s) por trecho · fuso do dispositivo": {
+    "en": "adult(s) per leg · device time zone",
+    "es": "adulto(s) por trayecto · zona horaria del dispositivo"
+  },
+  "Selecionar ponto do gráfico": {
+    "en": "Select chart point",
+    "es": "Seleccionar punto del gráfico"
+  },
+  "Selecione um ponto": {
+    "en": "Select a point",
+    "es": "Selecciona un punto"
+  },
+  "Acessos registrados para segurança e auditoria: IP, navegador e sistema.": {
+    "en": "Access is logged for security and auditing: IP, browser and operating system.",
+    "es": "Los accesos se registran para seguridad y auditoría: IP, navegador y sistema."
+  },
+  "Esqueci minha senha": {
+    "en": "Forgot password",
+    "es": "Olvidé mi contraseña"
+  },
+  "Horário silencioso": {
+    "en": "Quiet hours",
+    "es": "Horario silencioso"
+  },
+  "Silenciar alertas de preço neste horário": {
+    "en": "Mute price alerts during these hours",
+    "es": "Silenciar alertas de precio durante este horario"
+  },
+  "Início": {
+    "en": "Start",
+    "es": "Inicio"
+  },
+  "Fim": {
+    "en": "End",
+    "es": "Fin"
+  },
+  "Fuso horário": {
+    "en": "Time zone",
+    "es": "Zona horaria"
+  },
+  "As oportunidades continuam no painel. Alertas silenciados não são enviados depois. E-mails de segurança continuam ativos.": {
+    "en": "Opportunities remain in the dashboard. Muted alerts are not sent later. Security emails remain active.",
+    "es": "Las oportunidades siguen en el panel. Las alertas silenciadas no se envían después. Los correos de seguridad siguen activos."
+  },
+  "Recuperar acesso": {
+    "en": "Recover access",
+    "es": "Recuperar acceso"
+  },
+  "Senha atualizada. Entre novamente em seus dispositivos.": {
+    "en": "Password updated. Sign in again on your devices.",
+    "es": "Contraseña actualizada. Inicia sesión de nuevo en tus dispositivos."
+  },
+  "Se a conta tiver um e-mail cadastrado e o envio estiver disponível, você receberá um link válido por 20 minutos.": {
+    "en": "If the account has a saved email and sending is available, you will receive a link valid for 20 minutes.",
+    "es": "Si la cuenta tiene un correo guardado y el envío está disponible, recibirás un enlace válido por 20 minutos."
+  },
+  "As senhas não coincidem": {
+    "en": "Passwords do not match",
+    "es": "Las contraseñas no coinciden"
+  },
+  "Nova senha": {
+    "en": "New password",
+    "es": "Nueva contraseña"
+  },
+  "Confirmar senha": {
+    "en": "Confirm password",
+    "es": "Confirmar contraseña"
+  },
+  "O link será enviado ao primeiro e-mail salvo no seu perfil.": {
+    "en": "The link will be sent to the first email saved in your profile.",
+    "es": "El enlace se enviará al primer correo guardado en tu perfil."
+  },
+  "Salvar nova senha": {
+    "en": "Save new password",
+    "es": "Guardar nueva contraseña"
+  },
+  "Enviar link de recuperação": {
+    "en": "Send recovery link",
+    "es": "Enviar enlace de recuperación"
+  },
+  "Voltar ao login": {
+    "en": "Back to sign in",
+    "es": "Volver al inicio de sesión"
+  },
+  "Atualização automática a cada cinco minutos, com controle de fila pelo sistema.": {
+    "en": "Automatic updates every five minutes, managed by the system queue.",
+    "es": "Actualización automática cada cinco minutos, gestionada por la cola del sistema."
+  },
+  "Variações de preço": {
+    "en": "Price changes",
+    "es": "Variaciones de precio"
+  },
+  "Somente o primeiro preço e as mudanças de valor": {
+    "en": "Only the first price and subsequent changes",
+    "es": "Solo el primer precio y los cambios de valor"
+  },
+  "Primeiro preço": {
+    "en": "First price",
+    "es": "Primer precio"
+  },
+  "Na fila de atualização": {
+    "en": "Queued for update",
+    "es": "En cola de actualización"
+  },
+  "{0} escala(s)": {
+    "en": "{0} stop(s)",
+    "es": "{0} escala(s)"
+  },
+  "{0} adulto(s) · por trecho": {
+    "en": "{0} adult(s) · per leg",
+    "es": "{0} adulto(s) · por trayecto"
+  },
+  "Silenciado neste horário": {
+    "en": "Muted during quiet hours",
+    "es": "Silenciado durante este horario"
+  },
+  "O link de recuperação expirou ou já foi usado": {
+    "en": "The recovery link expired or was already used",
+    "es": "El enlace de recuperación caducó o ya se utilizó"
+  },
+  "Fuso horário inválido": {
+    "en": "Invalid time zone",
+    "es": "Zona horaria no válida"
+  },
+  "Horário inválido": {
+    "en": "Invalid time",
+    "es": "Hora no válida"
+  },
+  "O horário silencioso deve ter início e fim diferentes": {
+    "en": "Quiet hours must have different start and end times",
+    "es": "El horario silencioso debe tener inicio y fin diferentes"
+  },
+  "As consultas são automáticas a cada cinco minutos": {
+    "en": "Searches run automatically every five minutes",
+    "es": "Las consultas son automáticas cada cinco minutos"
+  },
+  "Preço anterior → atual": {
+    "en": "Previous → current price",
+    "es": "Precio anterior → actual"
+  },
+  "Recuperação solicitada": {
+    "en": "Recovery requested",
+    "es": "Recuperación solicitada"
+  },
+  "Senha redefinida": {
+    "en": "Password reset",
+    "es": "Contraseña restablecida"
+  },
+  "Escolha um fuso horário válido": {
+    "en": "Choose a valid time zone",
+    "es": "Elige una zona horaria válida"
+  },
+  "Informe um horário válido": {
+    "en": "Enter a valid time",
+    "es": "Introduce una hora válida"
+  },
+  "O monitoramento é automático a cada cinco minutos. Em períodos de fila, a atualização pode levar mais tempo.": {
+    "en": "Monitoring runs automatically every five minutes. Updates may take longer when queued.",
+    "es": "El seguimiento es automático cada cinco minutos. Las actualizaciones pueden tardar más cuando hay cola."
+  },
+  "Prévia nos voos já coletados. Salve para atualizar o monitoramento.": {
+    "en": "Preview of collected flights. Save to update monitoring.",
+    "es": "Vista previa de vuelos recopilados. Guarda para actualizar el seguimiento."
+  },
+  "Estas mudanças precisam de nova coleta após salvar. Os preços abaixo seguem a busca salva.": {
+    "en": "These changes need a new collection after saving. Prices below follow the saved search.",
+    "es": "Estos cambios necesitan una nueva consulta después de guardar. Los precios de abajo siguen la búsqueda guardada."
+  },
+  "Mostrar mais · {0} de {1}": {
+    "en": "Show more · {0} of {1}",
+    "es": "Mostrar más · {0} de {1}"
+  },
+  "Alterações pendentes": {
+    "en": "Unsaved changes",
+    "es": "Cambios pendientes"
+  },
+  "Salve para atualizar o monitoramento.": {
+    "en": "Save to update monitoring.",
+    "es": "Guarda para actualizar el seguimiento."
+  },
+  "Descartar": {
+    "en": "Discard",
+    "es": "Descartar"
+  },
+  "Salvar": {
+    "en": "Save",
+    "es": "Guardar"
+  },
+  "{0} opções na prévia": {
+    "en": "{0} options in preview",
+    "es": "{0} opciones en la vista previa"
+  },
+  "Nova coleta após salvar": {
+    "en": "New collection after saving",
+    "es": "Nueva consulta después de guardar"
+  },
+  "Ver resultados": {
+    "en": "View results",
+    "es": "Ver resultados"
+  },
+  "Dados e credenciais ficam em uma pasta local ignorada pelo Git. A recuperação de acesso usa o primeiro e-mail salvo no perfil.": {
+    "en": "Data and credentials stay in a local folder ignored by Git. Account recovery uses the first email saved in the profile.",
+    "es": "Los datos y las credenciales quedan en una carpeta local ignorada por Git. La recuperación usa el primer correo guardado en el perfil."
+  },
+  "Preços observados, sem garantia de disponibilidade · voos no horário local dos aeroportos": {
+    "en": "Observed fares, availability not guaranteed · flights in local airport time",
+    "es": "Precios observados, disponibilidad no garantizada · vuelos en hora local de los aeropuertos"
+  },
+  "Página inicial": {
+    "en": "Home",
+    "es": "Inicio"
+  },
+  "E-mails de alerta": {
+    "en": "Alert emails",
+    "es": "Correos para alertas"
+  },
+  "WhatsApp e Telegram": {
+    "en": "WhatsApp and Telegram",
+    "es": "WhatsApp y Telegram"
+  },
+  "E-mail enviado": {
+    "en": "Email sent",
+    "es": "Correo enviado"
+  },
+  "Na fila de envio": {
+    "en": "Queued to send",
+    "es": "En cola de envío"
+  },
+  "Falha no envio": {
+    "en": "Sending failed",
+    "es": "Error de envío"
+  },
+  "Sem e-mail cadastrado": {
+    "en": "No saved email",
+    "es": "Sin correo guardado"
+  },
+  "Aguardando serviço de envio": {
+    "en": "Waiting for sending service",
+    "es": "Esperando servicio de envío"
+  },
+  "Aviso expirado": {
+    "en": "Notice expired",
+    "es": "Aviso caducado"
+  },
+  "Não foi possível carregar os alertas": {
+    "en": "Could not load alerts",
+    "es": "No se pudieron cargar las alertas"
+  },
+  "Enviados por e-mail": {
+    "en": "Sent by email",
+    "es": "Enviados por correo"
+  },
+  "Pendentes": {
+    "en": "Pending",
+    "es": "Pendientes"
+  },
+  "Exigem atenção": {
+    "en": "Need attention",
+    "es": "Requieren atención"
+  },
+  "Tipo de histórico": {
+    "en": "History type",
+    "es": "Tipo de historial"
+  },
+  "Avisos": {
+    "en": "Notifications",
+    "es": "Avisos"
+  },
+  "Todas as viagens": {
+    "en": "All trips",
+    "es": "Todos los viajes"
+  },
+  "Situação": {
+    "en": "Status",
+    "es": "Estado"
+  },
+  "Todos os avisos": {
+    "en": "All notifications",
+    "es": "Todos los avisos"
+  },
+  "Enviados": {
+    "en": "Sent",
+    "es": "Enviados"
+  },
+  "Com problema": {
+    "en": "Need attention",
+    "es": "Con problemas"
+  },
+  "Os avisos ficam registrados aqui, mesmo após encerrar a busca. Enviado significa aceito pelo serviço de e-mail.": {
+    "en": "Notifications stay here after monitoring ends. Sent means accepted by the email service.",
+    "es": "Los avisos quedan aquí al finalizar el seguimiento. Enviado significa aceptado por el servicio de correo."
+  },
+  "Altas e quedas do menor preço elegível. O voo pode mudar. Somente oportunidades elegíveis geram avisos.": {
+    "en": "Rises and drops in the lowest eligible fare. The flight may change. Only eligible opportunities trigger notifications.",
+    "es": "Subidas y bajadas del menor precio elegible. El vuelo puede cambiar. Solo las oportunidades elegibles generan avisos."
+  },
+  "Nenhum aviso registrado ainda": {
+    "en": "No notifications recorded yet",
+    "es": "Aún no hay avisos registrados"
+  },
+  "Nenhuma variação registrada ainda": {
+    "en": "No price changes recorded yet",
+    "es": "Aún no hay variaciones registradas"
+  },
+  "Os registros aparecem após as coletas. Uma alta de preço não é um e-mail enviado.": {
+    "en": "Records appear after collections. A price increase does not mean an email was sent.",
+    "es": "Los registros aparecen después de las consultas. Una subida de precio no significa que se envió un correo."
+  },
+  "Preço subiu": {
+    "en": "Price rose",
+    "es": "El precio subió"
+  },
+  "Preço caiu": {
+    "en": "Price dropped",
+    "es": "El precio bajó"
+  },
+  "Variação observada · no painel": {
+    "en": "Observed change · dashboard only",
+    "es": "Variación observada · solo en el panel"
+  },
+  "Ver histórico": {
+    "en": "View history",
+    "es": "Ver historial"
+  },
+  "Abrir busca": {
+    "en": "Open search",
+    "es": "Abrir búsqueda"
+  },
+  "Mais recentes": {
+    "en": "Newer",
+    "es": "Más recientes"
+  },
+  "Página {0}": {
+    "en": "Page {0}",
+    "es": "Página {0}"
+  },
+  "Mais antigos": {
+    "en": "Older",
+    "es": "Más antiguos"
+  },
+  "Filtros usados": {
+    "en": "Applied filters",
+    "es": "Filtros utilizados"
+  },
+  "Filtros atuais": {
+    "en": "Current filters",
+    "es": "Filtros actuales"
+  },
+  "Suas buscas e oportunidades em um só lugar.": {
+    "en": "Your searches and opportunities in one place.",
+    "es": "Tus búsquedas y oportunidades en un solo lugar."
+  },
+  "Em acompanhamento": {
+    "en": "Monitored trips",
+    "es": "En seguimiento"
+  },
+  "Encerradas": {
+    "en": "Ended",
+    "es": "Finalizadas"
+  },
+  "Seu histórico começa com uma viagem": {
+    "en": "Your history starts with a trip",
+    "es": "Tu historial comienza con un viaje"
+  },
+  "Baixar histórico": {
+    "en": "Download history",
+    "es": "Descargar historial"
+  },
+  "Qual será sua próxima viagem?": {
+    "en": "Where will you travel next?",
+    "es": "¿Cuál será tu próximo viaje?"
+  },
+  "Escolha uma rota e acompanhe os preços. Nós avisamos quando surgir uma oportunidade.": {
+    "en": "Choose a route and track fares. We will notify you when an opportunity appears.",
+    "es": "Elige una ruta y sigue los precios. Te avisamos cuando surja una oportunidad."
+  },
+  "Criar primeiro monitoramento": {
+    "en": "Create first monitor",
+    "es": "Crear primer seguimiento"
+  },
+  "{0} ativas · {1} pausadas": {
+    "en": "{0} active · {1} paused",
+    "es": "{0} activas · {1} pausadas"
+  },
+  "Selecione uma viagem para ver os voos.": {
+    "en": "Select a trip to view flights.",
+    "es": "Selecciona un viaje para ver los vuelos."
+  },
+  "Última ida observada": {
+    "en": "Last observed outbound fare",
+    "es": "Último precio de ida observado"
+  },
+  "Última volta observada": {
+    "en": "Last observed return fare",
+    "es": "Último precio de vuelta observado"
+  },
+  "Ver voos": {
+    "en": "View flights",
+    "es": "Ver vuelos"
+  },
+  "Aguardando primeira coleta": {
+    "en": "Waiting for first collection",
+    "es": "Esperando la primera consulta"
+  },
+  "Selecione uma companhia da lista ou limpe o campo.": {
+    "en": "Select an airline from the list or clear the field.",
+    "es": "Selecciona una aerolínea de la lista o limpia el campo."
+  },
+  "Não foi possível buscar as companhias.": {
+    "en": "Could not search airlines.",
+    "es": "No se pudieron buscar las aerolíneas."
+  },
+  "Companhia aérea": {
+    "en": "Airline",
+    "es": "Aerolínea"
+  },
+  "Remover companhia {0}": {
+    "en": "Remove airline {0}",
+    "es": "Eliminar aerolínea {0}"
+  },
+  "Limpar": {
+    "en": "Clear",
+    "es": "Limpiar"
+  },
+  "Nome ou sigla: LATAM, LA…": {
+    "en": "Name or code: LATAM, LA…",
+    "es": "Nombre o código: LATAM, LA…"
+  },
+  "Companhias encontradas": {
+    "en": "Airlines found",
+    "es": "Aerolíneas encontradas"
+  },
+  "Nenhuma companhia encontrada. Tente o nome ou a sigla.": {
+    "en": "No airlines found. Try the name or code.",
+    "es": "No se encontraron aerolíneas. Prueba el nombre o el código."
+  },
+  "Usar sigla informada": {
+    "en": "Use entered code",
+    "es": "Usar el código ingresado"
+  },
+  "Até 20 companhias por trecho.": {
+    "en": "Up to 20 airlines per leg.",
+    "es": "Hasta 20 aerolíneas por trayecto."
+  },
+  "A busca usará somente as companhias selecionadas.": {
+    "en": "Only selected airlines will be included.",
+    "es": "La búsqueda incluirá solo las aerolíneas seleccionadas."
+  },
+  "Sem seleção, todas as companhias.": {
+    "en": "No selection includes all airlines.",
+    "es": "Sin selección, todas las aerolíneas."
+  },
+  "{0}: horas": {
+    "en": "{0}: hours",
+    "es": "{0}: horas"
+  },
+  "Taxas estimadas nos dois trechos; franquia e peso a confirmar.": {
+    "en": "Estimated fees for both legs; confirm allowance and weight.",
+    "es": "Tasas estimadas para ambos trayectos; confirma franquicia y peso."
+  },
+  "Chegada e conexões": {
+    "en": "Arrival and connections",
+    "es": "Llegada y conexiones"
+  },
+  "Aceito pelo provedor": {
+    "en": "Accepted by provider",
+    "es": "Aceptado por el proveedor"
+  },
+  "Expirado": {
+    "en": "Expired",
+    "es": "Caducado"
+  },
+  "Todos os canais": {
+    "en": "All channels",
+    "es": "Todos los canales"
+  },
+  "E-mail": {
+    "en": "Email",
+    "es": "Correo electrónico"
+  },
+  "Alerta": {
+    "en": "Alert",
+    "es": "Alerta"
+  },
+  "Teste": {
+    "en": "Test",
+    "es": "Prueba"
+  },
+  "Recuperação de acesso": {
+    "en": "Account recovery",
+    "es": "Recuperación de acceso"
+  },
+  "Registro anterior": {
+    "en": "Earlier record",
+    "es": "Registro anterior"
+  },
+  "Não foi possível carregar os registros.": {
+    "en": "Could not load records.",
+    "es": "No se pudieron cargar los registros."
+  },
+  "Detalhes do envio": {
+    "en": "Delivery details",
+    "es": "Detalles del envío"
+  },
+  "Conteúdo registrado e resultado da tentativa de envio.": {
+    "en": "Recorded content and delivery attempt result.",
+    "es": "Contenido registrado y resultado del intento de envío."
+  },
+  "Usuário": {
+    "en": "User",
+    "es": "Usuario"
+  },
+  "Destinatários": {
+    "en": "Recipients",
+    "es": "Destinatarios"
+  },
+  "Canal / serviço": {
+    "en": "Channel / service",
+    "es": "Canal / servicio"
+  },
+  "Não registrado": {
+    "en": "Not recorded",
+    "es": "No registrado"
+  },
+  "Tipo": {
+    "en": "Type",
+    "es": "Tipo"
+  },
+  "Solicitado em": {
+    "en": "Requested at",
+    "es": "Solicitado el"
+  },
+  "Concluído em": {
+    "en": "Completed at",
+    "es": "Completado el"
+  },
+  "Tentativas": {
+    "en": "Attempts",
+    "es": "Intentos"
+  },
+  "Mensagem": {
+    "en": "Message",
+    "es": "Mensaje"
+  },
+  "Conteúdo protegido: mensagens de recuperação de acesso não exibem links de segurança.": {
+    "en": "Protected content: account recovery messages do not display security links.",
+    "es": "Contenido protegido: los mensajes de recuperación de acceso no muestran enlaces de seguridad."
+  },
+  "Aceito pelo provedor não confirma entrega na caixa de entrada ou leitura pelo destinatário.": {
+    "en": "Accepted by the provider does not confirm inbox delivery or recipient reading.",
+    "es": "La aceptación por el proveedor no confirma la entrega en la bandeja de entrada ni la lectura del destinatario."
+  },
+  "Consulte destinatários, resultados e o conteúdo de cada mensagem.": {
+    "en": "Look up recipients, results and the content of each message.",
+    "es": "Consulte destinatarios, resultados y el contenido de cada mensaje."
+  },
+  "Atualizar": {
+    "en": "Refresh",
+    "es": "Actualizar"
+  },
+  "Canal": {
+    "en": "Channel",
+    "es": "Canal"
+  },
+  "Todas as situações": {
+    "en": "All statuses",
+    "es": "Todos los estados"
+  },
+  "Na fila / enviando": {
+    "en": "Queued / sending",
+    "es": "En cola / enviando"
+  },
+  "Erro / verificar": {
+    "en": "Error / review",
+    "es": "Error / revisar"
+  },
+  "Cancelado / expirado / silenciado": {
+    "en": "Cancelled / expired / muted",
+    "es": "Cancelado / caducado / silenciado"
+  },
+  "Nome ou login": {
+    "en": "Name or login",
+    "es": "Nombre o usuario de acceso"
+  },
+  "Mensagem ou destinatário": {
+    "en": "Message or recipient",
+    "es": "Mensaje o destinatario"
+  },
+  "De": {
+    "en": "From",
+    "es": "Desde"
+  },
+  "Consultar": {
+    "en": "Search",
+    "es": "Consultar"
+  },
+  "Limpar filtros": {
+    "en": "Clear filters",
+    "es": "Borrar filtros"
+  },
+  "{0} registros": {
+    "en": "{0} records",
+    "es": "{0} registros"
+  },
+  "{0} aceitos · {1} pendentes · {2} para verificar": {
+    "en": "{0} accepted · {1} pending · {2} to review",
+    "es": "{0} aceptados · {1} pendientes · {2} por revisar"
+  },
+  "Usuário / destinatário": {
+    "en": "User / recipient",
+    "es": "Usuario / destinatario"
+  },
+  "Detalhes": {
+    "en": "Details",
+    "es": "Detalles"
+  },
+  "Ver envio: {0}": {
+    "en": "View delivery: {0}",
+    "es": "Ver envío: {0}"
+  },
+  "Ver": {
+    "en": "View",
+    "es": "Ver"
+  },
+  "Nenhum envio encontrado com estes filtros.": {
+    "en": "No deliveries found with these filters.",
+    "es": "No se encontraron envíos con estos filtros."
+  },
+  "Página {0} de {1}": {
+    "en": "Page {0} of {1}",
+    "es": "Página {0} de {1}"
+  },
+  "Consulta atualizada em {0}": {
+    "en": "Results refreshed at {0}",
+    "es": "Consulta actualizada el {0}"
+  },
+  "Página anterior": {
+    "en": "Previous page",
+    "es": "Página anterior"
+  },
+  "Próxima página": {
+    "en": "Next page",
+    "es": "Página siguiente"
+  },
+  "A consulta mantém um recorte estável. Use Atualizar para incluir novos envios.": {
+    "en": "Results use a stable snapshot. Refresh to include new deliveries.",
+    "es": "La consulta mantiene un corte estable. Actualice para incluir nuevos envíos."
+  },
+  "{0} registros de envio removidos.": {
+    "en": "{0} delivery records removed.",
+    "es": "{0} registros de envío eliminados."
+  },
+  "Há mais registros. Consulte uma nova prévia para continuar.": {
+    "en": "More records remain. Request a new preview to continue.",
+    "es": "Quedan más registros. Consulte una nueva vista previa para continuar."
+  },
+  "Retenção e limpeza": {
+    "en": "Retention and cleanup",
+    "es": "Retención y limpieza"
+  },
+  "Registros de envio concluídos são removidos automaticamente após {0} dias.": {
+    "en": "Completed delivery records are automatically removed after {0} days.",
+    "es": "Los registros de envíos completados se eliminan automáticamente después de {0} días."
+  },
+  "registros de envio": {
+    "en": "delivery records",
+    "es": "registros de envío"
+  },
+  "na fila ou em processamento, protegidos da limpeza": {
+    "en": "queued or processing, protected from cleanup",
+    "es": "en cola o en proceso, protegidos de la limpieza"
+  },
+  "A limpeza é verificada a cada hora, em lotes de até {0} registros. Preços e histórico de oportunidades são preservados.": {
+    "en": "Cleanup is checked hourly, in batches of up to {0} records. Prices and opportunity history are preserved.",
+    "es": "La limpieza se comprueba cada hora, en lotes de hasta {0} registros. Se conservan los precios y el historial de oportunidades."
+  },
+  "Última verificação: {0}": {
+    "en": "Last check: {0}",
+    "es": "Última comprobación: {0}"
+  },
+  "Limpeza manual": {
+    "en": "Manual cleanup",
+    "es": "Limpieza manual"
+  },
+  "Remove o conteúdo e os registros de envios concluídos, de todos os usuários e canais, antes da data escolhida. Esta ação não pode ser desfeita.": {
+    "en": "Removes the content and records of completed deliveries, for all users and channels, before the selected date. This cannot be undone.",
+    "es": "Elimina el contenido y los registros de envíos completados, de todos los usuarios y canales, anteriores a la fecha elegida. Esta acción no se puede deshacer."
+  },
+  "Concluídos antes de": {
+    "en": "Completed before",
+    "es": "Completados antes de"
+  },
+  "Consultar prévia": {
+    "en": "Preview cleanup",
+    "es": "Consultar vista previa"
+  },
+  "{0} registros serão excluídos neste lote.": {
+    "en": "{0} records will be deleted in this batch.",
+    "es": "Se eliminarán {0} registros en este lote."
+  },
+  "Total elegível: {0}. Pendentes e envios em processamento não serão excluídos.": {
+    "en": "Total eligible: {0}. Queued and processing deliveries will not be deleted.",
+    "es": "Total elegible: {0}. No se eliminarán los envíos en cola ni en proceso."
+  },
+  "Entendo que esta exclusão é definitiva.": {
+    "en": "I understand this deletion is permanent.",
+    "es": "Entiendo que esta eliminación es definitiva."
+  },
+  "Excluir {0} registros": {
+    "en": "Delete {0} records",
+    "es": "Eliminar {0} registros"
+  },
+  "Envios": {
+    "en": "Deliveries",
+    "es": "Envíos"
+  },
+  "Canais": {
+    "en": "Channels",
+    "es": "Canales"
+  },
+  "Auditoria": {
+    "en": "Audit",
+    "es": "Auditoría"
+  },
+  "Retenção": {
+    "en": "Retention",
+    "es": "Retención"
+  },
+  "Canais de envio": {
+    "en": "Delivery channels",
+    "es": "Canales de envío"
+  },
+  "Integração ainda não disponível. Nenhuma mensagem é enviada por este canal.": {
+    "en": "Integration not available yet. No messages are sent through this channel.",
+    "es": "La integración aún no está disponible. No se envían mensajes por este canal."
+  },
+  "As credenciais de envio serão administradas aqui; os contatos dos destinatários ficam no perfil de cada usuário.": {
+    "en": "Sending credentials will be managed here; recipient contacts remain in each user's profile.",
+    "es": "Las credenciales de envío se administrarán aquí; los contactos de los destinatarios permanecen en el perfil de cada usuario."
+  },
+  "E-mail de teste colocado na fila. Consulte a aba Envios.": {
+    "en": "Test email queued. Check the Deliveries tab.",
+    "es": "Correo de prueba en cola. Consulte la pestaña Envíos."
+  },
+  "Registro de envio não encontrado": {
+    "en": "Delivery record not found",
+    "es": "Registro de envío no encontrado"
+  },
+  "A data de limpeza não pode estar no futuro": {
+    "en": "Cleanup date cannot be in the future",
+    "es": "La fecha de limpieza no puede estar en el futuro"
+  },
+  "Prévia expirada. Consulte novamente antes de limpar.": {
+    "en": "Preview expired. Request a new preview before deleting.",
+    "es": "La vista previa ha caducado. Consulte de nuevo antes de eliminar."
+  },
+  "Os registros mudaram. Consulte novamente antes de limpar.": {
+    "en": "Records changed. Request a new preview before deleting.",
+    "es": "Los registros cambiaron. Consulte de nuevo antes de eliminar."
+  },
+  "Outros telefones": {
+    "en": "Other phone numbers",
+    "es": "Otros teléfonos"
+  },
+  "Outros números para alertas": {
+    "en": "Additional alert numbers",
+    "es": "Otros números para alertas"
+  },
+  "Até quatro números adicionais. Não alteram o telefone de acesso. O envio por WhatsApp depende da integração do canal.": {
+    "en": "Up to four additional numbers. They do not change the login phone. WhatsApp delivery requires channel integration.",
+    "es": "Hasta cuatro números adicionales. No cambian el teléfono de acceso. El envío por WhatsApp depende de la integración del canal."
+  },
+  "Telefone adicional {0}": {
+    "en": "Additional phone {0}",
+    "es": "Teléfono adicional {0}"
+  },
+  "Remover telefone {0}": {
+    "en": "Remove phone {0}",
+    "es": "Eliminar teléfono {0}"
+  },
+  "Adicionar telefone": {
+    "en": "Add phone",
+    "es": "Añadir teléfono"
+  },
+  "Limpar logs": {
+    "en": "Clear logs",
+    "es": "Limpiar registros"
+  },
+  "Retenção salva. A nova regra será aplicada nas verificações automáticas.": {
+    "en": "Retention saved. The new rule will apply during automatic checks.",
+    "es": "Retención guardada. La nueva regla se aplicará en las comprobaciones automáticas."
+  },
+  "{0} registros removidos.": {
+    "en": "{0} records removed.",
+    "es": "{0} registros eliminados."
+  },
+  "Tipo de log": {
+    "en": "Log type",
+    "es": "Tipo de registro"
+  },
+  "Registros de acesso são removidos automaticamente após {0} dias, com limite de 20 mil registros.": {
+    "en": "Access records are automatically removed after {0} days, with a limit of 20,000 records.",
+    "es": "Los registros de acceso se eliminan automáticamente después de {0} días, con un límite de 20 mil registros."
+  },
+  "registros": {
+    "en": "records",
+    "es": "registros"
+  },
+  "Manter logs por (dias)": {
+    "en": "Keep logs for (days)",
+    "es": "Conservar registros durante (días)"
+  },
+  "Salvar retenção": {
+    "en": "Save retention",
+    "es": "Guardar retención"
+  },
+  "Reduzir o prazo permite excluir registros antigos na próxima verificação automática. Preços e oportunidades são preservados.": {
+    "en": "Shortening retention allows old records to be deleted at the next automatic check. Prices and opportunities are preserved.",
+    "es": "Al reducir el plazo, los registros antiguos podrán eliminarse en la próxima comprobación automática. Se conservan los precios y las oportunidades."
+  },
+  "Limpeza em lotes de até {0} registros.": {
+    "en": "Cleanup in batches of up to {0} records.",
+    "es": "Limpieza en lotes de hasta {0} registros."
+  },
+  "Exclui definitivamente os logs selecionados de todos os usuários. Não remove contas, preços ou oportunidades.": {
+    "en": "Permanently deletes the selected logs for all users. Does not remove accounts, prices or opportunities.",
+    "es": "Elimina definitivamente los registros seleccionados de todos los usuarios. No elimina cuentas, precios ni oportunidades."
+  },
+  "O que excluir": {
+    "en": "What to delete",
+    "es": "Qué eliminar"
+  },
+  "Anteriores à data": {
+    "en": "Before date",
+    "es": "Anteriores a la fecha"
+  },
+  "Todos os envios concluídos": {
+    "en": "All completed deliveries",
+    "es": "Todos los envíos completados"
+  },
+  "Todos os acessos registrados": {
+    "en": "All recorded accesses",
+    "es": "Todos los accesos registrados"
+  },
+  "Registrados antes de": {
+    "en": "Recorded before",
+    "es": "Registrados antes de"
+  },
+  "Total elegível: {0}.": {
+    "en": "Total eligible: {0}.",
+    "es": "Total elegible: {0}."
+  },
+  "Pendentes e envios em processamento não serão excluídos.": {
+    "en": "Queued and processing deliveries will not be deleted.",
+    "es": "No se eliminarán los envíos en cola ni en proceso."
+  },
+  "O espaço liberado é reutilizado pelo SQLite. Esta limpeza não apaga backups nem reduz necessariamente o arquivo imediatamente.": {
+    "en": "Freed space is reused by SQLite. This cleanup does not delete backups or necessarily shrink the file immediately.",
+    "es": "SQLite reutiliza el espacio liberado. Esta limpieza no elimina copias de seguridad ni reduce necesariamente el archivo de inmediato."
+  },
+  "Usuários": {
+    "en": "Users",
+    "es": "Usuarios"
+  },
+  "Não foi possível carregar os usuários.": {
+    "en": "Could not load users.",
+    "es": "No se pudieron cargar los usuarios."
+  },
+  "Cadastro salvo.": {
+    "en": "Account saved.",
+    "es": "Datos guardados."
+  },
+  "As senhas não conferem.": {
+    "en": "Passwords do not match.",
+    "es": "Las contraseñas no coinciden."
+  },
+  "Senha redefinida. As sessões da conta foram encerradas.": {
+    "en": "Password reset. The account sessions have ended.",
+    "es": "Contraseña restablecida. Se cerraron las sesiones de la cuenta."
+  },
+  "Cadastro de usuários": {
+    "en": "User management",
+    "es": "Gestión de usuarios"
+  },
+  "Gerencie contas e contatos sem alterar sua sessão de administrador.": {
+    "en": "Manage accounts and contacts without changing your administrator session.",
+    "es": "Administre cuentas y contactos sin cambiar su sesión de administrador."
+  },
+  "Novo usuário": {
+    "en": "New user",
+    "es": "Nuevo usuario"
+  },
+  "Buscar usuário": {
+    "en": "Find user",
+    "es": "Buscar usuario"
+  },
+  "Nome, telefone ou e-mail": {
+    "en": "Name, phone or email",
+    "es": "Nombre, teléfono o correo"
+  },
+  "Administrador": {
+    "en": "Administrator",
+    "es": "Administrador"
+  },
+  "Editar usuário {0}": {
+    "en": "Edit user {0}",
+    "es": "Editar usuario {0}"
+  },
+  "Editar": {
+    "en": "Edit",
+    "es": "Editar"
+  },
+  "Redefinir senha de {0}": {
+    "en": "Reset password for {0}",
+    "es": "Restablecer contraseña de {0}"
+  },
+  "Nenhum usuário encontrado.": {
+    "en": "No users found.",
+    "es": "No se encontraron usuarios."
+  },
+  "{0} usuários · página {1}": {
+    "en": "{0} users · page {1}",
+    "es": "{0} usuarios · página {1}"
+  },
+  "Editar cadastro": {
+    "en": "Edit account",
+    "es": "Editar datos"
+  },
+  "Dados de acesso, contatos e preferências do usuário.": {
+    "en": "User login details, contacts and preferences.",
+    "es": "Datos de acceso, contactos y preferencias del usuario."
+  },
+  "Nome": {
+    "en": "Name",
+    "es": "Nombre"
+  },
+  "Alterar o telefone de acesso encerra as sessões desta conta.": {
+    "en": "Changing the login phone ends this account's sessions.",
+    "es": "Al cambiar el teléfono de acceso se cierran las sesiones de esta cuenta."
+  },
+  "Senha inicial": {
+    "en": "Initial password",
+    "es": "Contraseña inicial"
+  },
+  "Mínimo de 10 caracteres. Compartilhe a senha por um meio seguro.": {
+    "en": "At least 10 characters. Share the password through a secure channel.",
+    "es": "Mínimo de 10 caracteres. Comparta la contraseña por un medio seguro."
+  },
+  "Usar o telefone de acesso no WhatsApp": {
+    "en": "Use the login phone for WhatsApp",
+    "es": "Usar el teléfono de acceso en WhatsApp"
+  },
+  "Conta do Telegram": {
+    "en": "Telegram account",
+    "es": "Cuenta de Telegram"
+  },
+  "Contatos são salvos; os envios por WhatsApp e Telegram dependem das respectivas integrações.": {
+    "en": "Contacts are saved; WhatsApp and Telegram delivery requires their respective integrations.",
+    "es": "Se guardan los contactos; los envíos por WhatsApp y Telegram dependen de sus respectivas integraciones."
+  },
+  "Salvar cadastro": {
+    "en": "Save account",
+    "es": "Guardar datos"
+  },
+  "Redefinir senha": {
+    "en": "Reset password",
+    "es": "Restablecer contraseña"
+  },
+  "Nova senha para {0}.": {
+    "en": "New password for {0}.",
+    "es": "Nueva contraseña para {0}."
+  },
+  "Confirmar nova senha": {
+    "en": "Confirm new password",
+    "es": "Confirmar nueva contraseña"
+  },
+  "Encerrar as sessões desta conta e invalidar os links de recuperação anteriores.": {
+    "en": "End this account's sessions and invalidate previous recovery links.",
+    "es": "Cerrar las sesiones de esta cuenta e invalidar los enlaces de recuperación anteriores."
+  },
+  "Cadastro criado pelo administrador": {
+    "en": "Account created by administrator",
+    "es": "Cuenta creada por el administrador"
+  },
+  "Cadastro alterado pelo administrador": {
+    "en": "Account updated by administrator",
+    "es": "Cuenta modificada por el administrador"
+  },
+  "Senha redefinida pelo administrador": {
+    "en": "Password reset by administrator",
+    "es": "Contraseña restablecida por el administrador"
+  },
+  "Por: {0}": {
+    "en": "By: {0}",
+    "es": "Por: {0}"
+  },
+  "Usuário não encontrado": {
+    "en": "User not found",
+    "es": "Usuario no encontrado"
+  },
+  "Este telefone já está cadastrado": {
+    "en": "This phone is already registered",
+    "es": "Este teléfono ya está registrado"
+  },
+  "por trecho": {
+    "en": "per leg",
+    "es": "por trayecto"
+  },
+  "bilhetes separados": {
+    "en": "separate tickets",
+    "es": "billetes separados"
+  },
+  "por trecho · fuso do dispositivo": {
+    "en": "per leg · device time zone",
+    "es": "por trayecto · zona horaria del dispositivo"
+  },
+  "Escolha uma rota e acompanhe os preços.": {
+    "en": "Choose a route and track prices.",
+    "es": "Elija una ruta y siga los precios."
+  },
+  "Nós avisamos quando surgir uma oportunidade.": {
+    "en": "We will notify you when an opportunity appears.",
+    "es": "Le avisaremos cuando aparezca una oportunidad."
+  },
+  "Até nove passageiros, com um adulto por bebê no colo.": {
+    "en": "Up to nine passengers, with one adult per lap infant.",
+    "es": "Hasta nueve pasajeros, con un adulto por bebé en el regazo."
+  },
+  "Concluir": {
+    "en": "Finish",
+    "es": "Finalizar"
+  },
+  "Crianças": {
+    "en": "Children",
+    "es": "Niños"
+  },
+  "Bebês (opcional)": {
+    "en": "Infants (optional)",
+    "es": "Bebés (opcional)"
+  },
+  "Bebês com assento": {
+    "en": "Infants with a seat",
+    "es": "Bebés con asiento"
+  },
+  "Bebês no colo": {
+    "en": "Infants on lap",
+    "es": "Bebés en el regazo"
+  },
+  "Máximo de nove passageiros. Cada bebê no colo precisa de um adulto.": {
+    "en": "Maximum of nine passengers. Each lap infant needs one adult.",
+    "es": "Máximo de nueve pasajeros. Cada bebé en el regazo necesita un adulto."
+  },
+  "Agora escolha a janela de saída da volta.": {
+    "en": "Now choose the return departure window.",
+    "es": "Ahora elija la ventana de salida de la vuelta."
+  },
+  "Nome do monitoramento (opcional)": {
+    "en": "Monitor name (optional)",
+    "es": "Nombre del seguimiento (opcional)"
+  },
+  "Sem nome? Usaremos a rota e a data da viagem.": {
+    "en": "No name? We will use the route and travel date.",
+    "es": "¿Sin nombre? Usaremos la ruta y la fecha del viaje."
+  },
+  "Continuar para a volta": {
+    "en": "Continue to return flight",
+    "es": "Continuar a la vuelta"
+  },
+  "{0} adulto(s)": {
+    "en": "{0} adult(s)",
+    "es": "{0} adulto(s)"
+  },
+  "{0} passageiros": {
+    "en": "{0} passengers",
+    "es": "{0} pasajeros"
+  },
+  "A pesquisa permite até nove passageiros no total": {
+    "en": "Searches support up to nine passengers in total",
+    "es": "La búsqueda permite hasta nueve pasajeros en total"
+  },
+  "Cada bebê no colo precisa estar acompanhado por um adulto": {
+    "en": "Each lap infant must be accompanied by an adult",
+    "es": "Cada bebé en el regazo debe estar acompañado por un adulto"
+  },
+  "Por e-mail": {
+    "en": "By email",
+    "es": "Por correo"
+  },
+  "Meta {0}": {
+    "en": "Target {0}",
+    "es": "Objetivo {0}"
+  },
+  "Sem meta de preço": {
+    "en": "No price target",
+    "es": "Sin objetivo de precio"
+  },
+  "Queda mínima {0}": {
+    "en": "Minimum drop {0}",
+    "es": "Bajada mínima {0}"
+  },
+  "Configurar alertas": {
+    "en": "Configure alerts",
+    "es": "Configurar alertas"
+  },
+  "Último alerta desta busca": {
+    "en": "Latest alert for this search",
+    "es": "Última alerta de esta búsqueda"
+  },
+  "Defina a meta de preço e como receber as oportunidades.": {
+    "en": "Set a price target and how to receive opportunities.",
+    "es": "Defina el objetivo de precio y cómo recibir las oportunidades."
+  },
+  "Há filtros pendentes. Salvar aplica todas as alterações desta busca.": {
+    "en": "There are pending filters. Saving applies all changes to this search.",
+    "es": "Hay filtros pendientes. Al guardar se aplican todos los cambios de esta búsqueda."
+  },
+  "Sobre a moeda e os preços": {
+    "en": "About currency and prices",
+    "es": "Sobre la moneda y los precios"
+  },
+  "Preço total para {0}, por trecho.": {
+    "en": "Total price for {0}, per leg.",
+    "es": "Precio total para {0}, por trayecto."
+  },
+  "Horários e conexões": {
+    "en": "Times and connections",
+    "es": "Horarios y conexiones"
+  },
+  "Chegada definida": {
+    "en": "Arrival limit set",
+    "es": "Límite de llegada definido"
+  },
+  "Conexão até {0}": {
+    "en": "Connection up to {0}",
+    "es": "Conexión hasta {0}"
+  },
+  "Salvar alertas": {
+    "en": "Save alerts",
+    "es": "Guardar alertas"
+  },
+  "Salvar também aplica as alterações pendentes da busca.": {
+    "en": "Saving also applies the pending changes to this search.",
+    "es": "Al guardar también se aplican los cambios pendientes de esta búsqueda."
+  },
+  "Você pode trocar este contato sem mudar seu telefone de acesso. Ative o WhatsApp nos alertas de cada busca.": {
+    "en": "You can change this contact without changing your login phone. Enable WhatsApp in each search's alerts.",
+    "es": "Puede cambiar este contacto sin cambiar el teléfono de acceso. Active WhatsApp en las alertas de cada búsqueda."
+  },
+  "Aceito por parte dos destinos": {
+    "en": "Accepted for some recipients",
+    "es": "Aceptado para parte de los destinatarios"
+  },
+  "Aceitos pelo provedor": {
+    "en": "Accepted by provider",
+    "es": "Aceptados por el proveedor"
+  },
+  "ID no integrador: {0}": {
+    "en": "Provider ID: {0}",
+    "es": "ID en el integrador: {0}"
+  },
+  "Contatos para alertas. O Telegram depende de integração futura.": {
+    "en": "Alert contacts. Telegram requires a future integration.",
+    "es": "Contactos para alertas. Telegram depende de una integración futura."
+  },
+  "Indisponível": {
+    "en": "Unavailable",
+    "es": "No disponible"
+  },
+  "WhatsApp para: {0}": {
+    "en": "WhatsApp to: {0}",
+    "es": "WhatsApp para: {0}"
+  },
+  "Cadastre o número WhatsApp em Meu perfil.": {
+    "en": "Add your WhatsApp number in My profile.",
+    "es": "Añada su número de WhatsApp en Mi perfil."
+  },
+  "Você pode selecionar mais de um canal.": {
+    "en": "You can select more than one channel.",
+    "es": "Puede seleccionar más de un canal."
+  },
+  "Não foi possível carregar a configuração WhatsApp.": {
+    "en": "Could not load WhatsApp settings.",
+    "es": "No se pudo cargar la configuración de WhatsApp."
+  },
+  "Configuração WhatsApp salva. Use Verificar sessão antes do teste.": {
+    "en": "WhatsApp settings saved. Check the session before testing.",
+    "es": "Configuración de WhatsApp guardada. Verifique la sesión antes de la prueba."
+  },
+  "Pronta para envio": {
+    "en": "Ready to send",
+    "es": "Lista para enviar"
+  },
+  "Criada": {
+    "en": "Created",
+    "es": "Creada"
+  },
+  "Inicializando": {
+    "en": "Initializing",
+    "es": "Inicializando"
+  },
+  "Aguardando leitura do QR code": {
+    "en": "Waiting for QR code scan",
+    "es": "Esperando lectura del código QR"
+  },
+  "Autenticando": {
+    "en": "Authenticating",
+    "es": "Autenticando"
+  },
+  "Desconectada": {
+    "en": "Disconnected",
+    "es": "Desconectada"
+  },
+  "Falha na sessão": {
+    "en": "Session failed",
+    "es": "Error en la sesión"
+  },
+  "Escolha o integrador e configure a conexão de envio.": {
+    "en": "Choose the integrator and configure the sending connection.",
+    "es": "Elija el integrador y configure la conexión de envío."
+  },
+  "Tipo de integração": {
+    "en": "Integration type",
+    "es": "Tipo de integración"
+  },
+  "Token salvo · deixe vazio para manter": {
+    "en": "Token saved · leave empty to keep",
+    "es": "Token guardado · déjelo vacío para conservarlo"
+  },
+  "Use a URL base, sem /api/docs. O ID da sessão é o identificador exibido no integrador.": {
+    "en": "Use the base URL, without /api/docs. The session ID is the identifier shown by the integrator.",
+    "es": "Use la URL base, sin /api/docs. El ID de sesión es el identificador mostrado por el integrador."
+  },
+  "Habilitar envios por WhatsApp": {
+    "en": "Enable WhatsApp delivery",
+    "es": "Habilitar envíos por WhatsApp"
+  },
+  "O token fica somente no servidor, em arquivo privado fora do Git.": {
+    "en": "The token stays on the server, in a private file outside Git.",
+    "es": "El token permanece en el servidor, en un archivo privado fuera de Git."
+  },
+  "Sessão WhatsApp pronta.": {
+    "en": "WhatsApp session ready.",
+    "es": "Sesión de WhatsApp lista."
+  },
+  "A sessão ainda não está pronta para enviar.": {
+    "en": "The session is not ready to send yet.",
+    "es": "La sesión aún no está lista para enviar."
+  },
+  "Verificar sessão": {
+    "en": "Check session",
+    "es": "Verificar sesión"
+  },
+  "Salve as alterações antes de verificar ou enviar um teste.": {
+    "en": "Save changes before checking or sending a test.",
+    "es": "Guarde los cambios antes de verificar o enviar una prueba."
+  },
+  "Enviar mensagem de teste": {
+    "en": "Send test message",
+    "es": "Enviar mensaje de prueba"
+  },
+  "O teste envia uma mensagem real apenas para o número informado. Consulte o resultado na aba Envios.": {
+    "en": "The test sends a real message only to the number entered. Check the result in the Deliveries tab.",
+    "es": "La prueba envía un mensaje real solo al número indicado. Consulte el resultado en la pestaña Envíos."
+  },
+  "Teste WhatsApp colocado na fila. Consulte a aba Envios.": {
+    "en": "WhatsApp test queued. Check the Deliveries tab.",
+    "es": "Prueba de WhatsApp en cola. Consulte la pestaña Envíos."
+  },
+  "Número para teste": {
+    "en": "Test number",
+    "es": "Número de prueba"
+  },
+  "Enviar uma mensagem de teste para este número.": {
+    "en": "Send a test message to this number.",
+    "es": "Enviar un mensaje de prueba a este número."
+  },
+  "Enviar teste WhatsApp": {
+    "en": "Send WhatsApp test",
+    "es": "Enviar prueba de WhatsApp"
+  },
+  "Aceitação pelo integrador não confirma entrega ou leitura. Falhas ambíguas não são reenviadas automaticamente.": {
+    "en": "Acceptance by the integrator does not confirm delivery or reading. Ambiguous failures are not retried automatically.",
+    "es": "La aceptación por el integrador no confirma entrega ni lectura. Los fallos ambiguos no se reintentan automáticamente."
+  },
+  "URL do serviço": {
+    "en": "Service URL",
+    "es": "URL del servicio"
+  },
+  "ID da sessão": {
+    "en": "Session ID",
+    "es": "ID de sesión"
+  },
+  "Token da API": {
+    "en": "API token",
+    "es": "Token de la API"
+  },
+  "Campo de integração desconhecido": {
+    "en": "Unknown integration field",
+    "es": "Campo de integración desconocido"
+  },
+  "Campo de integração inválido": {
+    "en": "Invalid integration field",
+    "es": "Campo de integración inválido"
+  },
+  "Use uma URL HTTPS válida, sem credenciais ou parâmetros": {
+    "en": "Use a valid HTTPS URL without credentials or query parameters",
+    "es": "Use una URL HTTPS válida sin credenciales ni parámetros"
+  },
+  "Porta inválida na URL": {
+    "en": "Invalid URL port",
+    "es": "Puerto inválido en la URL"
+  },
+  "Informe a URL base do serviço, sem /api ou /api/docs": {
+    "en": "Enter the service base URL without /api or /api/docs",
+    "es": "Indique la URL base del servicio sin /api ni /api/docs"
+  },
+  "ID de sessão muito longo": {
+    "en": "Session ID is too long",
+    "es": "ID de sesión demasiado largo"
+  },
+  "Token deve conter apenas caracteres ASCII": {
+    "en": "Token must contain ASCII characters only",
+    "es": "El token solo puede contener caracteres ASCII"
+  },
+  "Configure URL, sessão e token do WhatsApp": {
+    "en": "Configure the WhatsApp URL, session and token",
+    "es": "Configure la URL, sesión y token de WhatsApp"
+  },
+  "Token do WhatsApp recusado": {
+    "en": "WhatsApp token rejected",
+    "es": "Token de WhatsApp rechazado"
+  },
+  "Acesso à sessão WhatsApp não autorizado": {
+    "en": "WhatsApp session access denied",
+    "es": "Acceso a la sesión de WhatsApp no autorizado"
+  },
+  "Sessão WhatsApp não encontrada": {
+    "en": "WhatsApp session not found",
+    "es": "Sesión de WhatsApp no encontrada"
+  },
+  "Sessão WhatsApp inativa ou requisição recusada": {
+    "en": "WhatsApp session inactive or request rejected",
+    "es": "Sesión de WhatsApp inactiva o solicitud rechazada"
+  },
+  "Limite da API WhatsApp atingido": {
+    "en": "WhatsApp API rate limit reached",
+    "es": "Límite de la API de WhatsApp alcanzado"
+  },
+  "A API WhatsApp não confirmou a operação": {
+    "en": "WhatsApp API did not confirm the operation",
+    "es": "La API de WhatsApp no confirmó la operación"
+  },
+  "Não foi possível confirmar a operação no WhatsApp": {
+    "en": "Could not confirm the WhatsApp operation",
+    "es": "No se pudo confirmar la operación en WhatsApp"
+  },
+  "A API retornou uma sessão diferente da configurada": {
+    "en": "API returned a different session than configured",
+    "es": "La API devolvió una sesión diferente de la configurada"
+  },
+  "Estado da sessão WhatsApp desconhecido": {
+    "en": "Unknown WhatsApp session state",
+    "es": "Estado de sesión de WhatsApp desconocido"
+  },
+  "A API WhatsApp não retornou uma confirmação válida": {
+    "en": "WhatsApp API did not return a valid confirmation",
+    "es": "La API de WhatsApp no devolvió una confirmación válida"
+  },
+  "Integrador WhatsApp não suportado": {
+    "en": "Unsupported WhatsApp integrator",
+    "es": "Integrador de WhatsApp no compatible"
+  },
+  "Informe todos os campos da integração WhatsApp; ao trocar URL ou sessão, informe o token novamente": {
+    "en": "Complete all WhatsApp fields; enter the token again when changing URL or session",
+    "es": "Complete los campos de WhatsApp; vuelva a indicar el token al cambiar URL o sesión"
+  },
+  "Configuração WhatsApp alterada": {
+    "en": "WhatsApp settings changed",
+    "es": "Configuración de WhatsApp modificada"
+  },
+  "Número WhatsApp não cadastrado": {
+    "en": "WhatsApp number not registered",
+    "es": "Número de WhatsApp no registrado"
+  },
+  "Integração WhatsApp indisponível": {
+    "en": "WhatsApp integration unavailable",
+    "es": "Integración de WhatsApp no disponible"
+  },
+  "Destinatário WhatsApp inválido": {
+    "en": "Invalid WhatsApp recipient",
+    "es": "Destinatario de WhatsApp inválido"
+  },
+  "Aguarde dez segundos antes de verificar novamente": {
+    "en": "Wait ten seconds before checking again",
+    "es": "Espere diez segundos antes de verificar de nuevo"
+  },
+  "Configure e habilite o WhatsApp antes do teste": {
+    "en": "Configure and enable WhatsApp before testing",
+    "es": "Configure y habilite WhatsApp antes de la prueba"
+  },
+  "E-mail sem destinatários ou serviço indisponível": {
+    "en": "Email has no recipients or service is unavailable",
+    "es": "Correo sin destinatarios o servicio no disponible"
+  },
+  "Intervalo de saída da ida": {
+    "en": "Outbound departure window",
+    "es": "Intervalo de salida de ida"
+  },
+  "Intervalo de saída da volta": {
+    "en": "Return departure window",
+    "es": "Intervalo de salida de vuelta"
+  },
+  "Informe uma data válida.": {
+    "en": "Enter a valid date.",
+    "es": "Introduce una fecha válida."
+  },
+  "Escolher data": {
+    "en": "Choose date",
+    "es": "Elegir fecha"
+  },
+  "Fechar calendário": {
+    "en": "Close calendar",
+    "es": "Cerrar calendario"
+  },
+  "Digitar data": {
+    "en": "Type a date",
+    "es": "Escribir fecha"
+  },
+  "Aplicar": {
+    "en": "Apply",
+    "es": "Aplicar"
+  },
+  "Abrir calendário": {
+    "en": "Open calendar",
+    "es": "Abrir calendario"
+  },
+  "Sem limite de duração": {
+    "en": "No duration limit",
+    "es": "Sin límite de duración"
+  },
+  "Sem limite de duração, incluindo conexões.": {
+    "en": "No duration limit, including connections.",
+    "es": "Sin límite de duración, incluidas las conexiones."
+  },
+  "Limitar duração da viagem": {
+    "en": "Limit trip duration",
+    "es": "Limitar duración del viaje"
+  },
+  "Filtros salvos e aplicados aos voos já coletados.": {
+    "en": "Filters saved and applied to collected flights.",
+    "es": "Filtros guardados y aplicados a los vuelos ya consultados."
+  },
+  "Limite de monitoramentos": {
+    "en": "Monitoring limit",
+    "es": "Límite de seguimientos"
+  },
+  "Padrão: 5. Buscas pausadas também contam. Reduzir o limite não remove buscas existentes.": {
+    "en": "Default: 5. Paused searches also count. Lowering the limit does not remove existing searches.",
+    "es": "Predeterminado: 5. Las búsquedas pausadas también cuentan. Reducir el límite no elimina búsquedas existentes."
+  },
+  "Limite de buscas atingido. Encerre um monitoramento ou solicite um ajuste ao administrador.": {
+    "en": "Search limit reached. End a monitoring or ask the administrator to adjust your limit.",
+    "es": "Límite de búsquedas alcanzado. Finaliza un seguimiento o solicita un ajuste al administrador."
+  },
+  "Páginas das buscas": {
+    "en": "Search pages",
+    "es": "Páginas de búsquedas"
+  },
+  "Buscas anteriores": {
+    "en": "Previous searches",
+    "es": "Búsquedas anteriores"
+  },
+  "Próximas buscas": {
+    "en": "Next searches",
+    "es": "Próximas búsquedas"
+  },
+  "Solicite seu cadastro ao administrador.": {
+    "en": "Ask the administrator to create your account.",
+    "es": "Solicita tu registro al administrador."
+  }
+}

@@ -1,0 +1,8 @@
+// Deployment login fixture: public mode hides self-registration without invoking a browser.
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const req=require('node:module').createRequire(path.join(__dirname,'../frontend/package.json')),React=req('react'),ts=req('typescript'),{renderToStaticMarkup}=req('react-dom/server');
+let index=0,registration=true;
+const output={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(__dirname,'../frontend/src/Accounts.tsx'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText,{exports:output,URLSearchParams,location:{hash:''},require:n=>n==='react'?{...React,useEffect(){},useState:initial=>{const i=index++;return [i===2?{user:null,token:'fixture',can_bootstrap:false,registration_open:registration}:typeof initial==='function'?initial():initial,()=>{}];}}:n==='@tanstack/react-query'?{useQueryClient:()=>({})}:n==='./i18n'?{useLanguage:()=> 'pt',getLanguage:()=> 'pt',t:k=>k}:n==='./ui'?{Button:({children,variant,...props})=>React.createElement('button',props,children),Card:({children,...props})=>React.createElement('section',props,children)}:n.startsWith('./')?new Proxy({}, {get:()=>()=>null}):req(n)});
+function render(){index=0;return renderToStaticMarkup(React.createElement(output.AuthGate));}
+let html=render();assert.ok(html.includes('Criar conta'));registration=false;html=render();assert.ok(!html.includes('Criar conta'));assert.ok(html.includes('Solicite seu cadastro ao administrador.'));assert.ok(html.includes('Esqueci minha senha'));
+console.log('Public login: self-registration hidden; recovery and login preserved.');

@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/BesrourMS/Airlines",
+  "commit": "76674119b8285ef38ebfe494e1c10394d1c120a5",
+  "retrieved": "2026-10-16",
+  "license": "Unlicense",
+  "retained_fields": [
+    "code",
+    "name"
+  ],
+  "changes": "Grouped by valid two-character code; original names retained as aliases. Display names LA/G3/AD shortened locally. External logo URLs and fare/carrier attributes not imported.",
+  "records": 1112,
+  "note": "Reference catalog, not authoritative evidence of current airline operation or route availability."
+}
