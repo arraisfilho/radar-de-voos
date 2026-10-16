@@ -14,7 +14,7 @@ def clean(value):
     return ' '.join(str(value).translate(str.maketrans('', '', '*_~`')).split())
 
 
-def money(cents,currency,language):
+def money(cents,currency='BRL',language='pt'):
     amount=f'{cents/100:,.2f}'
     if language in ('pt','es'):amount=amount.replace(',','_').replace('.',',').replace('_','.')
     return ('R$ ' if currency=='BRL' else currency+' ')+amount
