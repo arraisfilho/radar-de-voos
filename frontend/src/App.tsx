@@ -14,15 +14,18 @@ import { TripFlights } from "./TripFlights";
 import { AlertDays, AlertRow } from "./AlertRow";
 import { PriceChartCard, PriceVariations } from "./PriceHistory";
 import { LanguagePicker } from "./LanguagePicker";
+import { AppearancePicker } from "./AppearancePicker";
 import { AppIcon } from "./AppIcon";
 import { Avatar } from "./Avatar";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { ViewSkeleton } from "./Skeleton";
 import { FormSkeleton } from "./FormSkeleton";
 import { usePageTitle } from "./pageTitle";
-import { formatDateTime } from "./format";
+import { formatDateTime, formatMoney } from "./format";
 import { plural } from "./plural";
 import { suggestCurrency } from "./currency";
+import { creationFailure, whatsappNumberBody } from "./contacts";
+import { markAlertsSeen, unseenAlerts, useAlertsSeen } from "./alertsSeen";
 // Also styles the editor page and the filters card, which the app draws before the form's code arrives.
 import "./search-form.css";
 import { useEffect, useState, useMemo, useRef, lazy, Suspense } from "react";
@@ -115,7 +118,7 @@ function blankConfig(): Config {
     target_cents: null,
     min_drop_cents: 5000,
     notify_email: false,
-    notify_whatsapp: false,
+    notify_whatsapp: true,
   };
 }
 export default function App({
@@ -194,7 +197,6 @@ export default function App({
   const drafts = useRef(new Map<string, { version: number; config: Config }>());
   // Toasts that wait for their dialog to leave (Modal.onClosed): the page behind it is hidden until then.
   const deletedNotice = useRef(false);
-  const endedNotice = useRef(false);
   const detail = view === "history";
   const query = useQuery<State>({
     queryKey: ["radar", selectedId, detail, apiView],
@@ -249,6 +251,22 @@ export default function App({
   const lastData = useRef<State | undefined>(undefined);
   if (data) lastData.current = data;
   const shell = data ?? lastData.current;
+  // "Alertas" counts what arrived since the last visit to the alert center on this device.
+  const alertsSeen = useAlertsSeen(shell?.user.id);
+  useEffect(() => {
+    if (shell && (alertsSeen === null || view === "alerts")) markAlertsSeen(shell.user.id, shell.server_time);
+  }, [shell?.user.id, shell?.server_time, view, alertsSeen === null]);
+  const unseen = unseenAlerts(shell?.alert_recent, alertsSeen);
+  const alertsBadge = (className: string) =>
+    unseen > 0 && (
+      <span
+        className={clsx("nav-count is-unseen", className)}
+        title={t("Alertas desde a sua última visita")}
+        aria-label={plural(unseen, "{0} alerta novo", "{0} alertas novos")}
+      >
+        {unseen >= 100 ? "99+" : unseen}
+      </span>
+    );
   // The saved-draft notice belongs to the moment the assistant opens with a
   // previous draft; filling in a new one never adds it (no layout shift).
   const assistantOpening = useRef({ open: false, resumed: false });
@@ -412,11 +430,17 @@ export default function App({
       setBusy(false);
     }
   }
+  /** A WhatsApp number typed in the trip review, saved to the profile; the form then shows it. */
+  async function saveWhatsapp(country: string, phone: string) {
+    if (!data) return;
+    await request("/profile", whatsappNumberBody(data.user, country, phone), "PUT");
+    await queryClient.invalidateQueries({ queryKey: ["radar"] });
+  }
   const askDelete = (target: SearchRecord) => {
     setDeleteError("");
     setDeleteTarget(target);
   };
-  async function save(submitted?: Config, currencyReviewed = false) {
+  async function save(submitted?: Config, currencyReviewed = false, numberSaved = false) {
     const savingDraft = submitted || (modal === "new" ? creationDraft : draft);
     if (!savingDraft) return;
     if (modal !== "new" && search && savingDraft.currency !== search.config.currency && !currencyReviewed) {
@@ -448,12 +472,16 @@ export default function App({
         message:
           modal === "new"
             ? t("Monitoramento criado. Aguardando a primeira atualização.")
-            : reused
+            : modal === "alerts"
+              ? savingDraft.target_cents
+                ? t("Alertas salvos. Avisaremos quando o preço chegar a {0}.", [formatMoney(savingDraft.target_cents, savingDraft.currency)])
+                : t("Alertas salvos.")
+              : reused
               ? t("Filtros salvos e aplicados aos voos já coletados.")
               : t("Busca salva. A próxima coleta usará os novos filtros."),
         error: false,
       });
-    });
+    }, undefined, (message) => setNotice({ message: creationFailure(message, numberSaved), error: true }));
   }
   function newSearch() {
     if (!creationDraft)
@@ -471,11 +499,8 @@ export default function App({
           openSearch(sid, true);
         }
       },
-      value === "archive"
-        ? t("Monitoramento encerrado. Histórico preservado.")
-        : value === "pause"
-          ? t("Monitoramento pausado.")
-          : t("Monitoramento retomado."),
+      // Ending shows its state in the trip header ("Encerrado · Histórico preservado."): no toast repeats it.
+      value === "archive" ? undefined : value === "pause" ? t("Monitoramento pausado.") : t("Monitoramento retomado."),
     );
   const action = (value: string) =>
     search && monitoringAction(search.id, value);
@@ -615,6 +640,21 @@ export default function App({
       {tripTitle(item.config).title}
     </option>
   );
+  // Two trips or more: a selector over the trip header (on phones, the route title itself).
+  const switchable = !!data && !!search && data.searches.length + switchEnded.length > 1;
+  const switchTrip = (id: string) => {
+    setDirection("outbound");
+    navigate({ view, searchId: id, panel: route.panel });
+  };
+  const tripChoices =
+    data && switchEnded.length ? (
+      <>
+        {data.searches.length > 0 && <optgroup label={t("Em acompanhamento")}>{data.searches.map(tripOption)}</optgroup>}
+        <optgroup label={t("Encerradas")}>{switchEnded.map(tripOption)}</optgroup>
+      </>
+    ) : (
+      data?.searches.map(tripOption)
+    );
   usePageTitle(
     (route.editor === "new"
       ? [t("Nova viagem")]
@@ -690,9 +730,7 @@ export default function App({
             >
               <item.icon size={18} aria-hidden="true" />
               <span>{item.label}</span>
-              {item.id === "alerts" && (shell?.alert_total || 0) > 0 && (
-                <span className="nav-count" title={t("Alertas registrados")} aria-label={plural(shell?.alert_total || 0, "{0} alerta registrado", "{0} alertas registrados")}>{shell?.alert_total}</span>
-              )}
+              {item.id === "alerts" && alertsBadge("")}
             </a>
           ))}
         </nav>
@@ -726,6 +764,7 @@ export default function App({
           )}
           <div className="sidebar-meta">
             <LanguagePicker />
+            <AppearancePicker />
             <SystemVersion />
           </div>
           <Button variant="ghost" onClick={() => void onLogout()}>
@@ -918,6 +957,9 @@ export default function App({
                     onManageContacts={() => navigate({ view: "settings" })}
                     whatsappAvailable={data.whatsapp_available}
                     whatsappRecipients={whatsappTargets(data.user)}
+                    onSaveWhatsapp={saveWhatsapp}
+                    defaultCountry={data.user.country}
+                    lowest={modal === "new" ? undefined : { outbound: bestOut?.price_cents, inbound: bestIn?.price_cents }}
                     onSave={save}
                     savedCurrency={modal === "new" ? undefined : search?.config.currency}
                     saving={busy}
@@ -994,26 +1036,11 @@ export default function App({
               </section>
             )}
             {tripPage && search && (<>
-                {data.searches.length + switchEnded.length > 1 && (
+                {switchable && (
                   <label className="trip-switcher">
                     <span>{t("Viagem")}</span>
-                    <select
-                      value={search.id}
-                      onChange={(e) => {
-                        setDirection("outbound");
-                        navigate({ view, searchId: e.target.value, panel: route.panel });
-                      }}
-                    >
-                      {switchEnded.length ? (
-                        <>
-                          {data.searches.length > 0 && (
-                            <optgroup label={t("Em acompanhamento")}>{data.searches.map(tripOption)}</optgroup>
-                          )}
-                          <optgroup label={t("Encerradas")}>{switchEnded.map(tripOption)}</optgroup>
-                        </>
-                      ) : (
-                        data.searches.map(tripOption)
-                      )}
+                    <select value={search.id} onChange={(e) => switchTrip(e.target.value)}>
+                      {tripChoices}
                     </select>
                   </label>
                 )}
@@ -1037,6 +1064,8 @@ export default function App({
                   }}
                   onDelete={() => askDelete(search)}
                   onRestore={() => restoreOrReuse(search)}
+                  listing={view === "searches" && route.panel !== "alerts" && !tripEnded}
+                  switcher={switchable ? { value: search.id, onChange: switchTrip, options: tripChoices } : undefined}
                 />
                 <TripSections
                   searchId={search.id}
@@ -1157,6 +1186,9 @@ export default function App({
                 onConfigureAlerts={configureAlerts}
                 onShowAlerts={() => navigate({ view: "searches", searchId: search.id, panel: "alerts" })}
                 onManageContacts={() => navigate({ view: "settings" })}
+                whatsappAvailable={!!data.whatsapp_available}
+                emailAvailable={data.email_available}
+                whatsappTo={whatsappTargets(data.user)}
                 pendingFilters={previewing && filtersLoaded}
                 filters={
                   // A form that cannot load fails inside its card: the trip page stays.
@@ -1288,8 +1320,7 @@ export default function App({
             )}
             {search && view === "searches" && (
               <footer className="page-footer">
-                <p>{t("Tarifas pesquisadas no Google Voos")}</p>
-                <p>{t("Preços observados, sem garantia de disponibilidade · voos no horário local dos aeroportos")}</p>
+                <p>{t("Horários no fuso local de cada aeroporto.")}</p>
                 {!tripEnded && (
                   <p>
                     {t("Encerramento automático:")} {formatDateTime(search.ends_at)} {t("· fim da última janela de partida.")}
@@ -1341,6 +1372,7 @@ export default function App({
             >
               <item.icon size={24} aria-hidden="true" />
               <span>{item.label}</span>
+              {item.id === "alerts" && alertsBadge("tab-count")}
             </a>
           ))}
       </nav>
@@ -1421,11 +1453,6 @@ export default function App({
           setEndTarget(null);
           setEndError("");
         }}
-        onClosed={() => {
-          if (!endedNotice.current) return;
-          endedNotice.current = false;
-          setNotice({ message: t("Monitoramento encerrado. Histórico preservado."), error: false });
-        }}
         title={t("Encerrar monitoramento?")}
         description={t(
           "O radar deixa de consultar preços e de enviar alertas desta viagem. O histórico de preços e os alertas continuam disponíveis, e você pode retomar o monitoramento enquanto as datas da viagem não passarem.",
@@ -1449,7 +1476,6 @@ export default function App({
               void perform(
                 async () => {
                   await request(`/searches/${target.id}/action`, { action: "archive" });
-                  endedNotice.current = true;
                   setEndTarget(null);
                   openSearch(target.id, true);
                 },

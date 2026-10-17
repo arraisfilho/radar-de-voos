@@ -5,7 +5,7 @@ import { AdminUsers } from "./AdminUsers";
 import { SmtpSettings } from "./SmtpSettings";
 import { CellLabel, EmptyRows, FilterBar, LoadError, Pager, TableSkeleton, selectingText } from "./DataView";
 import "./admin.css";
-import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { clsx } from "clsx";
 import {
@@ -14,6 +14,7 @@ import {
   CircleHelp,
   CirclePause,
   Inbox,
+  Shield,
   Mail,
   MessageCircle,
   RefreshCw,
@@ -24,6 +25,8 @@ import {
 import { t } from "./i18n";
 import { Button, ConfirmDialog, Notice } from "./ui";
 import { AuditPanel } from "./AuditPanel";
+import { clockIn, StatusChip } from "./DeliveryChannels";
+import { InfoTip } from "./InfoTip";
 import { formatDateTime, formatDateTimeCompact, formatNumber, formatRelative, formatTime } from "./format";
 import { plural } from "./plural";
 import { sourceKindLabel, sourceMessage } from "./LiveStatus";
@@ -61,6 +64,10 @@ type Entry = {
   read_at?: number | null;
   receipt_failed_at?: number | null;
   owner_id?: string | null;
+  /** When the sender takes it: later than now while quiet hours hold it. */
+  next_due?: number | null;
+  /** The recipient account's time zone: the end of its quiet hours reads on its clock. */
+  owner_timezone?: string | null;
 };
 type LogPage = {
   items: Entry[];
@@ -68,6 +75,8 @@ type LogPage = {
   page_size: number;
   totals: Record<string, number>;
   receipt_totals?: Record<string, number>;
+  /** Configuration blocks of the last 7 days, whatever the filters. */
+  blocked?: { channel: string; status: string; count: number }[];
 };
 type Policy = {
   days: number;
@@ -153,19 +162,10 @@ const statuses = (): Record<string, string> => ({
   expired: t("Expirado"),
   quiet: t("Silenciado neste horário"),
 });
-/** Pill tone of a delivery status; the text always says the state. */
-function statusTone(status: string) {
-  if (["sent", "confirmed_sent", "delivered", "read"].includes(status)) return "is-active";
-  if (["failed", "delivery_failed"].includes(status)) return "is-danger";
-  if (["uncertain", "waiting_contact", "waiting_service"].includes(status)) return "is-warning";
-  if (["pending", "sending"].includes(status)) return "is-info";
-  return "is-ended";
-}
 const channels = (): Record<string, string> => ({
   all: t("Todos os canais"),
-  email: t("E-mail"),
   whatsapp: "WhatsApp",
-  telegram: "Telegram",
+  email: t("E-mail"),
 });
 const kinds = (): Record<string, string> => ({
   alert: t("Alerta"),
@@ -186,13 +186,28 @@ async function read<T>(path: string, signal?: AbortSignal): Promise<T> {
   }
   return r.json();
 }
-function displayStatus(entry: Entry) {
+function displayStatus(entry: Entry, now = Date.now() / 1000) {
+  // Pending until the end of the recipient's quiet hours.
+  if (entry.status === "pending" && (entry.next_due || 0) > now) return "held";
   if (entry.channel === "whatsapp" && entry.status === "sent" && entry.receipt_status)
     return ({ sent: "confirmed_sent", delivered: "delivered", read: "read", failed: "delivery_failed" } as Record<string, string>)[entry.receipt_status] || entry.status;
   return entry.status;
 }
-function DeliveryStatus({ status }: { status: string }) {
-  return <span className={clsx("status-pill", statusTone(status))}>{statuses()[status] || status}</span>;
+/**
+ * The same chip as the person's alerts; with `exact`, the administration's own wording stays
+ * visible under it (the tooltip reaches neither the keyboard nor touch).
+ */
+function DeliveryStatus({ entry, exact = false }: { entry: Entry; exact?: boolean }) {
+  const status = displayStatus(entry);
+  const text = status === "held" ? t("Retida até {0}", [clockIn(entry.next_due || 0, entry.owner_timezone)]) : statuses()[status] || status;
+  const chip = <StatusChip state={status} detail={text} />;
+  if (!exact) return chip;
+  return (
+    <span className="delivery-state">
+      {chip}
+      <small aria-hidden="true">{text}</small>
+    </span>
+  );
 }
 /** Channel with its icon: never told by color alone. */
 function ChannelName({ channel }: { channel: string }) {
@@ -205,18 +220,96 @@ function ChannelName({ channel }: { channel: string }) {
   );
 }
 
-/** Fare source health for every trip: status, last failure, last success and next attempt. */
-function SourceCard({ fallback, now }: { fallback?: SourceStatus | null; now: number }) {
-  const health = useQuery<{ source?: SourceStatus | null }>({
-    queryKey: ["admin-health"],
+/** The detailed health the administrator receives: the fare source and whether alert links are local. */
+type Health = { source?: SourceStatus | null; alert_links_local?: boolean };
+const healthQuery = {
+  queryKey: ["admin-health"],
+  queryFn: async ({ signal }: { signal: AbortSignal }): Promise<Health> => {
+    // A late worker answers 503 with the same body: the source part still holds.
+    const response = await fetch("/api/health", { cache: "no-store", signal });
+    return response.json();
+  },
+  refetchInterval: 30000,
+  refetchIntervalInBackground: false,
+};
+
+/** The 2FA reminder, once dismissed, stays away for this browser session. */
+const REMINDER_KEY = "radar-2fa-reminder-dismissed";
+let reminderDismissed = false;
+const reminderListeners = new Set<() => void>();
+function dismissReminder() {
+  reminderDismissed = true;
+  try {
+    sessionStorage.setItem(REMINDER_KEY, "1");
+  } catch {
+    /* Kept in memory. */
+  }
+  reminderListeners.forEach((listener) => listener());
+}
+function reminderHidden() {
+  try {
+    return reminderDismissed || sessionStorage.getItem(REMINDER_KEY) === "1";
+  } catch {
+    return reminderDismissed;
+  }
+}
+
+/**
+ * Above the administration: alert links that only open on this computer, and an administrator
+ * account without two-step verification (dismissible for the session). Nothing when all is well.
+ */
+function AdminNotices({ userId, navigate }: { userId: string; navigate?: Navigate }) {
+  const health = useQuery<Health>(healthQuery);
+  const twoFactor = useQuery<{ enabled?: boolean }>({
+    queryKey: ["two-factor", userId],
     queryFn: async ({ signal }) => {
-      // A late worker answers 503 with the same body: the source part still holds.
-      const response = await fetch("/api/health", { cache: "no-store", signal });
+      const response = await fetch("/api/auth/2fa", { cache: "no-store", signal });
+      if (!response.ok) throw Error(t("Não foi possível carregar a verificação em duas etapas."));
       return response.json();
     },
-    refetchInterval: 30000,
-    refetchIntervalInBackground: false,
   });
+  const hidden = useSyncExternalStore(
+    (listener) => {
+      reminderListeners.add(listener);
+      return () => reminderListeners.delete(listener);
+    },
+    reminderHidden,
+    reminderHidden,
+  );
+  const remind = twoFactor.data?.enabled === false && !hidden;
+  if (!health.data?.alert_links_local && !remind) return null;
+  return (
+    <div className="admin-notices">
+      {health.data?.alert_links_local && (
+        <p className="banner warning" role="status">
+          <TriangleAlert size={17} aria-hidden="true" />
+          <span>{t("Os links dos alertas apontam para este computador. Defina RADAR_PUBLIC_URL.")}</span>
+        </p>
+      )}
+      {remind && (
+        <div className="banner warning admin-reminder" role="status">
+          <Shield size={17} aria-hidden="true" />
+          <span>
+            {t("Sua conta de administrador está sem verificação em duas etapas.")}{" "}
+            <a
+              href={routePath({ view: "settings" })}
+              onClick={(event) => navigate && plainClick(event) && navigate({ view: "settings" })}
+            >
+              {t("Ativar no perfil")}
+            </a>
+          </span>
+          <button type="button" className="admin-reminder-dismiss" onClick={dismissReminder}>
+            {t("Agora não")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Fare source health for every trip: status, last failure, last success and next attempt. */
+function SourceCard({ fallback, now }: { fallback?: SourceStatus | null; now: number }) {
+  const health = useQuery<Health>(healthQuery);
   const source = health.data && "source" in health.data ? health.data.source : fallback;
   const status = source?.status;
   const tone = status === "ok" ? "is-active" : status === "degraded" ? "is-warning" : status === "paused" ? "is-danger" : "is-ended";
@@ -342,9 +435,17 @@ function LogDetail({
           <section className="card delivery-summary" aria-labelledby="delivery-subject">
             <div className="delivery-summary-head">
               <h2 id="delivery-subject">{entry.subject}</h2>
-              <DeliveryStatus status={displayStatus(entry)} />
+              <DeliveryStatus entry={entry} />
             </div>
             <dl className="list-group detail-list">
+              <div className="list-row">
+                <dt>{t("Situação")}</dt>
+                <dd>
+                  {displayStatus(entry) === "held"
+                    ? t("Retida até {0}", [clockIn(entry.next_due || 0, entry.owner_timezone)])
+                    : statuses()[displayStatus(entry)] || displayStatus(entry)}
+                </dd>
+              </div>
               <div className="list-row">
                 <dt>{t("Usuário")}</dt>
                 <dd>
@@ -452,12 +553,15 @@ function DeliveryLog({
   navigate,
   source,
   serverNow,
+  available = { email: true, whatsapp: true },
 }: {
   onCleanup: () => void;
   route?: AppRoute;
   navigate?: Navigate;
   source?: SourceStatus | null;
   serverNow: number;
+  /** Channels that can send now: blocks of a channel set up since then need no action. */
+  available?: { email: boolean; whatsapp: boolean };
 }) {
   const [draft, setDraft] = useState(blankFilters),
     [filters, setFilters] = useState(blankFilters),
@@ -515,22 +619,37 @@ function DeliveryLog({
   ].filter(Boolean).length;
   if (selected)
     return <LogDetail id={selected} onClose={() => setSelected(null)} navigate={navigate} />;
-  const attention = data
-    ? (data.totals.failed || 0) +
-      (data.totals.uncertain || 0) +
-      (data.totals.waiting_contact || 0) +
-      (data.totals.waiting_service || 0) +
-      (data.receipt_totals?.failed || 0)
+  // The chips' words (F3): a WhatsApp message reported undelivered counts as a problem, not as sent.
+  const undelivered = data?.receipt_totals?.failed || 0;
+  const problems = data
+    ? ["failed", "uncertain", "expired", "waiting_contact", "waiting_service"].reduce((sum, key) => sum + (data.totals[key] || 0), 0) +
+      undelivered
     : 0;
-  const waiting = data ? (data.totals.pending || 0) + (data.totals.sending || 0) : 0;
+  const sending = data ? (data.totals.pending || 0) + (data.totals.sending || 0) : 0;
+  const counts = data
+    ? [
+        plural((data.totals.sent || 0) - undelivered, "{0} enviado", "{0} enviados"),
+        plural(sending, "{0} enviando", "{0} enviando"),
+        plural(problems, "{0} com problema", "{0} com problema"),
+      ].filter((_, i) => [(data.totals.sent || 0) - undelivered, sending, problems][i] > 0)
+    : [];
+  // Recent configuration blocks still to fix: a channel without service, or people without a contact.
+  const blocks = (data?.blocked || []).filter(
+    (item) => item.status === "waiting_contact" || !available[item.channel as "email" | "whatsapp"],
+  );
   return (
     <div className="admin-stack">
       <SourceCard fallback={source} now={serverNow} />
       <section className="card admin-card" aria-labelledby="deliveries-title">
         <header className="admin-card-heading">
           <div>
-            <h2 id="deliveries-title">{t("Atividade de envio")}</h2>
-            <p>{t("Consulte destinatários, resultados e o conteúdo de cada mensagem.")}</p>
+            <div className="admin-card-title">
+              <h2 id="deliveries-title">{t("Atividade de envio")}</h2>
+              <InfoTip label={t("Sobre a atividade de envio")}>
+                <p>{t("Consulte destinatários, resultados e o conteúdo de cada mensagem.")}</p>
+                <p>{t("A consulta mantém um recorte estável. Use Atualizar para incluir novos envios.")}</p>
+              </InfoTip>
+            </div>
           </div>
           <div className="admin-card-actions">
             <Button variant="ghost" size="small" onClick={onCleanup}>
@@ -623,15 +742,50 @@ function DeliveryLog({
           <TableSkeleton rows={6} />
         ) : (
           <>
+            {blocks.length > 0 && (
+              <p className="banner warning delivery-blocks" role="status">
+                <TriangleAlert size={17} aria-hidden="true" />
+                <span>
+                  {blocks.map((item, i) => (
+                    <span key={item.channel + item.status} className="delivery-block">
+                      {i > 0 && " · "}
+                      {item.status === "waiting_contact"
+                        ? plural(item.count, "{0} bloqueado: sem destinatário", "{0} bloqueados: sem destinatário")
+                        : item.channel === "whatsapp"
+                          ? plural(item.count, "{0} bloqueado: WhatsApp sem serviço", "{0} bloqueados: WhatsApp sem serviço")
+                          : plural(item.count, "{0} bloqueado: e-mail sem serviço", "{0} bloqueados: e-mail sem serviço")}{" "}
+                      —{" "}
+                      {item.status === "waiting_contact" ? (
+                        <button
+                          type="button"
+                          className="link-button"
+                          onClick={() => {
+                            const next = { ...blankFilters, status: "blocked" };
+                            setDraft(next);
+                            setFilters(next);
+                            setPage(0);
+                          }}
+                        >
+                          {t("Ver envios")}
+                        </button>
+                      ) : (
+                        <a
+                          href={routePath({ view: "admin", section: "channels", channel: item.channel })}
+                          onClick={(event) =>
+                            navigate && plainClick(event) && navigate({ view: "admin", section: "channels", channel: item.channel })
+                          }
+                        >
+                          {t("Configurar")}
+                        </a>
+                      )}
+                    </span>
+                  ))}
+                </span>
+              </p>
+            )}
             <p className="admin-summary" role="status">
               <strong>{plural(data.total, "{0} registro", "{0} registros", formatNumber(data.total))}</strong>
-              <span>
-                {[
-                  plural(data.totals.sent || 0, "{0} aceito", "{0} aceitos", formatNumber(data.totals.sent || 0)),
-                  plural(waiting, "{0} pendente", "{0} pendentes", formatNumber(waiting)),
-                  t("{0} para verificar", [formatNumber(attention)]),
-                ].join(" · ")}
-              </span>
+              {counts.length > 0 && <span>{counts.join(" · ")}</span>}
             </p>
             {data.items.length ? (
               <div className="table-frame">
@@ -675,7 +829,7 @@ function DeliveryLog({
                           <ChannelName channel={entry.channel} />
                         </td>
                         <td role="cell" className="cell-status">
-                          <DeliveryStatus status={displayStatus(entry)} />
+                          <DeliveryStatus entry={entry} exact />
                         </td>
                         <td role="cell" className="cell-when cell-field">
                           <CellLabel>{t("Data e hora")}</CellLabel>
@@ -713,9 +867,6 @@ function DeliveryLog({
               label={t("Páginas de envios")}
               summary={t("Consulta atualizada em {0}", [formatDateTimeCompact(anchor)])}
             />
-            <p className="admin-footnote">
-              {t("A consulta mantém um recorte estável. Use Atualizar para incluir novos envios.")}
-            </p>
           </>
         )}
       </section>
@@ -1108,7 +1259,7 @@ export function AdminPanel({
 }) {
   // Hook order matters to the tests: the tab and the channel come first.
   const [localTab, setLocalTab] = useState<Section>("deliveries"),
-    [localChannel, setLocalChannel] = useState("email"),
+    [localChannel, setLocalChannel] = useState("whatsapp"),
     [retentionScope, setRetentionScope] = useState("deliveries");
   const tabList = useRef<HTMLDivElement>(null);
   const tab = route?.section || localTab,
@@ -1159,6 +1310,7 @@ export function AdminPanel({
   const email = emailChannel(mail);
   return (
     <div className={clsx("admin-workspace", task && "is-task")}>
+      {!task && <AdminNotices userId={userId} navigate={navigate} />}
       {!task && (
         <div
           ref={tabList}
@@ -1197,6 +1349,7 @@ export function AdminPanel({
             navigate={navigate}
             source={source}
             serverNow={serverNow}
+            available={{ email: !!mail?.available, whatsapp: whatsappAvailable }}
             onCleanup={() => {
               setRetentionScope("deliveries");
               setTab("retention", false, false);
@@ -1240,7 +1393,6 @@ export function AdminPanel({
               </h2>
               <div className="list-group">
                 {[
-                  { key: "email", label: t("E-mail"), icon: Mail, detail: email.detail, on: email.active },
                   {
                     key: "whatsapp",
                     label: "WhatsApp",
@@ -1248,6 +1400,7 @@ export function AdminPanel({
                     detail: whatsappAvailable ? t("Envios habilitados") : t("Não configurado"),
                     on: whatsappAvailable,
                   },
+                  { key: "email", label: t("E-mail"), icon: Mail, detail: email.detail, on: email.active },
                 ].map((item) => (
                   <a
                     key={item.key}
@@ -1268,39 +1421,13 @@ export function AdminPanel({
                     </span>
                   </a>
                 ))}
-                <div className="list-row channel-link is-disabled" role="link" aria-disabled="true">
-                  <span className="admin-channel-icon" aria-hidden="true">
-                    <Send size={18} />
-                  </span>
-                  <span className="channel-link-text">
-                    <span className="channel-link-name">Telegram</span>
-                    <span className="channel-link-detail">{t("Integração ainda não disponível")}</span>
-                  </span>
-                  <span className="status-pill is-ended">{t("Em breve")}</span>
-                </div>
               </div>
             </nav>
             <div className="channel-detail">
-              {channel === "whatsapp" ? (
-                <WhatsAppPanel request={request} />
-              ) : channel === "telegram" ? (
-                <section className="channel-panel" aria-labelledby="channel-telegram-title">
-                  <header className="channel-panel-heading">
-                    <span className="admin-channel-icon is-large" aria-hidden="true">
-                      <Send size={22} />
-                    </span>
-                    <div>
-                      <h2 id="channel-telegram-title">Telegram</h2>
-                      <p>{t("Integração ainda não disponível. Nenhuma mensagem é enviada por este canal.")}</p>
-                    </div>
-                    <span className="status-pill is-ended">{t("Em breve")}</span>
-                  </header>
-                  <p className="admin-footnote">
-                    {t("As credenciais de envio serão administradas aqui; os contatos dos destinatários ficam no perfil de cada usuário.")}
-                  </p>
-                </section>
-              ) : (
+              {channel === "email" ? (
                 <EmailChannel mail={mail} request={request} onChanged={onChanged} />
+              ) : (
+                <WhatsAppPanel request={request} />
               )}
             </div>
           </div>

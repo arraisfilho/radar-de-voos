@@ -213,8 +213,8 @@ export function AdminMonitorings({
                   <dt>{t("Alertas")}</dt>
                   <dd>
                     {[
-                      config.notify_email ? t("E-mail") : "",
                       config.notify_whatsapp ? "WhatsApp" : "",
+                      config.notify_email ? t("E-mail") : "",
                     ]
                       .filter(Boolean)
                       .join(" · ") || t("Somente no painel")}

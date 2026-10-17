@@ -279,6 +279,9 @@ export function AirportPicker({
           {field === "origin" ? t("Adicionar outra origem") : t("Adicionar outro destino")}
         </button>
       )}
+      {full && (
+        <p className="field-help airport-limit">{t("Máximo de {0} aeroportos.", [LIMIT])}</p>
+      )}
       {adding && values.length > 0 && (
         <button
           className="button button-ghost button-small airport-add"

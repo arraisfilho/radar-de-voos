@@ -79,10 +79,6 @@
     "en": "Monitoring period ended",
     "es": "Plazo finalizado"
   },
-  "Monitoramento encerrado. Histórico preservado.": {
-    "en": "Monitoring ended. History kept.",
-    "es": "Seguimiento finalizado. Historial conservado."
-  },
   "Monitoramento pausado.": {
     "en": "Monitoring paused.",
     "es": "Seguimiento pausado."
@@ -282,10 +278,6 @@
   "Falha na consulta": {
     "en": "Query failed",
     "es": "Consulta fallida"
-  },
-  "Falhou": {
-    "en": "Failed",
-    "es": "Falló"
   },
   "Última atualização:": {
     "en": "Last update:",
@@ -727,18 +719,6 @@
     "en": "How would you like to be notified?",
     "es": "¿Cómo quieres recibirlas?"
   },
-  "Em breve": {
-    "en": "Coming soon",
-    "es": "Próximamente"
-  },
-  "Adicione até quatro e-mails em Meu perfil. Você não precisa configurar um servidor.": {
-    "en": "Add up to four emails in My profile. No server setup needed.",
-    "es": "Añade hasta cuatro correos en Mi perfil. No necesitas configurar un servidor."
-  },
-  "Enviar para: {0}": {
-    "en": "Send to: {0}",
-    "es": "Enviar a: {0}"
-  },
   "Nome e cabine": {
     "en": "Name and cabin",
     "es": "Nombre y cabina"
@@ -927,10 +907,6 @@
     "en": "Best fare matching your preferences. The option may have changed.",
     "es": "Mejor tarifa para tus preferencias. La opción puede haber cambiado."
   },
-  "Dentro do orçamento configurado": {
-    "en": "Within your budget",
-    "es": "Dentro del presupuesto"
-  },
   "A partir de": {
     "en": "From",
     "es": "Desde"
@@ -1067,10 +1043,6 @@
     "en": "Add your email addresses in your profile to receive alerts.",
     "es": "Añade tus correos al perfil para recibir alertas."
   },
-  "Uma primeira coleta cria a referência. Novas quedas elegíveis aparecem aqui.": {
-    "en": "The first check sets a baseline. New qualifying drops appear here.",
-    "es": "La primera consulta establece una referencia. Las nuevas bajadas aparecen aquí."
-  },
   "Uma coleta inicial estabelece a referência. O alerta também pode ocorrer na primeira consulta se já atingir a meta.": {
     "en": "The first check sets a baseline and can alert if your target is already met.",
     "es": "La primera consulta establece la referencia y puede avisar si ya alcanza tu objetivo."
@@ -1078,10 +1050,6 @@
   "Você recebe um aviso quando encontramos um preço dentro da sua meta ou uma queda relevante.": {
     "en": "Get notified when a fare meets your target or drops significantly.",
     "es": "Recibe un aviso cuando el precio alcanza tu objetivo o baja significativamente."
-  },
-  "Avisaremos ao atingir {0} ou cair pelo menos {1}.": {
-    "en": "We will notify you at {0} or a drop of at least {1}.",
-    "es": "Te avisaremos al llegar a {0} o bajar al menos {1}."
   },
   "Economia de": {
     "en": "Save",
@@ -1222,10 +1190,6 @@
   "Adicionar outro e-mail": {
     "en": "Add another email",
     "es": "Añadir otro correo"
-  },
-  "Adicionar e-mails para alertas (opcional)": {
-    "en": "Add alert emails (optional)",
-    "es": "Añadir correos de alertas (opcional)"
   },
   "Remover e-mail {0}": {
     "en": "Remove email {0}",
@@ -1518,10 +1482,6 @@
   "Os dados e a senha SMTP ficam em uma pasta local ignorada pelo Git. Hospedagem permanente e recuperação de acesso serão etapas posteriores.": {
     "en": "Data and SMTP credentials stay in a local folder excluded from Git. Hosting and account recovery are future steps.",
     "es": "Los datos y credenciales SMTP quedan en una carpeta local excluida de Git. El alojamiento y recuperación de acceso son pasos futuros."
-  },
-  "Tarifas pesquisadas no Google Voos": {
-    "en": "Fares searched on Google Flights",
-    "es": "Tarifas consultadas en Google Flights"
   },
   "Preços observados, sem garantia de disponibilidade · horários das coletas em UTC−3": {
     "en": "Observed fares; availability may change · times follow your device",
@@ -2035,10 +1995,6 @@
     "en": "Time zone",
     "es": "Zona horaria"
   },
-  "As oportunidades continuam no painel. Alertas silenciados não são enviados depois. E-mails de segurança continuam ativos.": {
-    "en": "Opportunities remain in the dashboard. Muted alerts are not sent later. Security emails remain active.",
-    "es": "Las oportunidades siguen en el panel. Las alertas silenciadas no se envían después. Los correos de seguridad siguen activos."
-  },
   "Recuperar acesso": {
     "en": "Recover access",
     "es": "Recuperar acceso"
@@ -2046,10 +2002,6 @@
   "Senha atualizada. Entre novamente em seus dispositivos.": {
     "en": "Password updated. Sign in again on your devices.",
     "es": "Contraseña actualizada. Inicia sesión de nuevo en tus dispositivos."
-  },
-  "Se a conta tiver um e-mail cadastrado e o envio estiver disponível, você receberá um link válido por 20 minutos.": {
-    "en": "If the account has a saved email and sending is available, you will receive a link valid for 20 minutes.",
-    "es": "Si la cuenta tiene un correo guardado y el envío está disponible, recibirás un enlace válido por 20 minutos."
   },
   "As senhas não coincidem": {
     "en": "Passwords do not match",
@@ -2062,10 +2014,6 @@
   "Confirmar senha": {
     "en": "Confirm password",
     "es": "Confirmar contraseña"
-  },
-  "O link será enviado ao primeiro e-mail salvo no seu perfil.": {
-    "en": "The link will be sent to the first email saved in your profile.",
-    "es": "El enlace se enviará al primer correo guardado en tu perfil."
   },
   "Salvar nova senha": {
     "en": "Save new password",
@@ -2195,10 +2143,6 @@
     "en": "View results",
     "es": "Ver resultados"
   },
-  "Preços observados, sem garantia de disponibilidade · voos no horário local dos aeroportos": {
-    "en": "Observed fares, availability not guaranteed · flights in local airport time",
-    "es": "Precios observados, disponibilidad no garantizada · vuelos en hora local de los aeropuertos"
-  },
   "Página inicial": {
     "en": "Home",
     "es": "Inicio"
@@ -2243,14 +2187,6 @@
     "en": "Sent by email",
     "es": "Enviados por correo"
   },
-  "Pendentes": {
-    "en": "Pending",
-    "es": "Pendientes"
-  },
-  "Exigem atenção": {
-    "en": "Need attention",
-    "es": "Requieren atención"
-  },
   "Tipo de histórico": {
     "en": "History type",
     "es": "Tipo de historial"
@@ -2294,10 +2230,6 @@
   "Nenhuma variação registrada ainda": {
     "en": "No price changes recorded yet",
     "es": "Aún no hay variaciones registradas"
-  },
-  "Os registros aparecem após as coletas. Uma alta de preço não é um e-mail enviado.": {
-    "en": "Records appear after collections. A price increase does not mean an email was sent.",
-    "es": "Los registros aparecen después de las consultas. Una subida de precio no significa que se envió un correo."
   },
   "Preço subiu": {
     "en": "Price rose",
@@ -2354,10 +2286,6 @@
   "Seu histórico começa com uma viagem": {
     "en": "Your history starts with a trip",
     "es": "Tu historial comienza con un viaje"
-  },
-  "Baixar histórico": {
-    "en": "Download history",
-    "es": "Descargar historial"
   },
   "Qual será sua próxima viagem?": {
     "en": "Where will you travel next?",
@@ -2715,14 +2643,6 @@
     "en": "Delivery channels",
     "es": "Canales de envío"
   },
-  "Integração ainda não disponível. Nenhuma mensagem é enviada por este canal.": {
-    "en": "Integration not available yet. No messages are sent through this channel.",
-    "es": "La integración aún no está disponible. No se envían mensajes por este canal."
-  },
-  "As credenciais de envio serão administradas aqui; os contatos dos destinatários ficam no perfil de cada usuário.": {
-    "en": "Sending credentials will be managed here; recipient contacts remain in each user's profile.",
-    "es": "Las credenciales de envío se administrarán aquí; los contactos de los destinatarios permanecen en el perfil de cada usuario."
-  },
   "E-mail de teste colocado na fila. Consulte a aba Envios.": {
     "en": "Test email queued. Check the Deliveries tab.",
     "es": "Correo de prueba en cola. Consulte la pestaña Envíos."
@@ -2742,10 +2662,6 @@
   "Os registros mudaram. Consulte novamente antes de limpar.": {
     "en": "Records changed. Request a new preview before deleting.",
     "es": "Los registros cambiaron. Consulte de nuevo antes de eliminar."
-  },
-  "Outros telefones": {
-    "en": "Other phone numbers",
-    "es": "Otros teléfonos"
   },
   "Outros números para alertas": {
     "en": "Additional alert numbers",
@@ -3127,10 +3043,6 @@
     "en": "Saving also applies the pending changes to this search.",
     "es": "Al guardar también se aplican los cambios pendientes de esta búsqueda."
   },
-  "Você pode trocar este contato sem mudar seu telefone de acesso. Ative o WhatsApp nos alertas de cada busca.": {
-    "en": "You can change this contact without changing your login phone. Enable WhatsApp in each search's alerts.",
-    "es": "Puede cambiar este contacto sin cambiar el teléfono de acceso. Active WhatsApp en las alertas de cada búsqueda."
-  },
   "Aceito por parte dos destinos": {
     "en": "Accepted for some recipients",
     "es": "Aceptado para parte de los destinatarios"
@@ -3150,18 +3062,6 @@
   "Indisponível": {
     "en": "Unavailable",
     "es": "No disponible"
-  },
-  "WhatsApp para: {0}": {
-    "en": "WhatsApp to: {0}",
-    "es": "WhatsApp para: {0}"
-  },
-  "Cadastre o número WhatsApp em Meu perfil.": {
-    "en": "Add your WhatsApp number in My profile.",
-    "es": "Añada su número de WhatsApp en Mi perfil."
-  },
-  "Você pode selecionar mais de um canal.": {
-    "en": "You can select more than one channel.",
-    "es": "Puede seleccionar más de un canal."
   },
   "Não foi possível carregar a configuração WhatsApp.": {
     "en": "Could not load WhatsApp settings.",
@@ -3499,10 +3399,6 @@
     "en": "This link has expired or is no longer available.",
     "es": "Este enlace ha caducado o ya no está disponible."
   },
-  "Aceito": {
-    "en": "Accepted",
-    "es": "Aceptado"
-  },
   "Não confirmado": {
     "en": "Unconfirmed",
     "es": "Sin confirmar"
@@ -3511,41 +3407,17 @@
     "en": "Partial send",
     "es": "Envío parcial"
   },
-  "Estado indisponível": {
-    "en": "Status unavailable",
-    "es": "Estado no disponible"
-  },
   "Outro canal": {
     "en": "Other channel",
     "es": "Otro canal"
-  },
-  "{0} de {1} envios aceitos": {
-    "en": "{0} of {1} sends accepted",
-    "es": "{0} de {1} envíos aceptados"
-  },
-  "Aceito pelo provedor não confirma entrega ou leitura.": {
-    "en": "Provider acceptance does not confirm delivery or reading.",
-    "es": "La aceptación del proveedor no confirma entrega ni lectura."
-  },
-  "Os detalhes por canal dependem dos registros de envio disponíveis.": {
-    "en": "Channel details depend on the available send records.",
-    "es": "Los detalles por canal dependen de los registros de envío disponibles."
   },
   "Situação por canal": {
     "en": "Status by channel",
     "es": "Estado por canal"
   },
-  "Os avisos permanecem no histórico. Consulte os ícones para ver a situação de cada canal. Aceito não confirma entrega ou leitura.": {
-    "en": "Alerts remain in your history. Check the icons for each channel status. Accepted does not confirm delivery or reading.",
-    "es": "Los avisos permanecen en el historial. Consulta los iconos para ver el estado de cada canal. Aceptado no confirma entrega ni lectura."
-  },
   "Envios completos": {
     "en": "Fully accepted alerts",
     "es": "Avisos totalmente aceptados"
-  },
-  "Envio parcial · registros incompletos": {
-    "en": "Partial send · incomplete records",
-    "es": "Envío parcial · registros incompletos"
   },
   "Não foi possível carregar os monitoramentos.": {
     "en": "Could not load monitorings.",
@@ -3899,17 +3771,9 @@
     "en": "All versions · first price and price changes",
     "es": "Todas las versiones · primer precio y cambios de valor"
   },
-  "Revise os contatos no perfil. Se estiverem corretos, solicite à administração a verificação do canal.": {
-    "en": "Review your profile contacts. If they are correct, ask the administrator to check the channel.",
-    "es": "Revisa los contactos del perfil. Si son correctos, solicita a la administración que revise el canal."
-  },
   "Adicione um e-mail no perfil para receber os próximos alertas.": {
     "en": "Add an email address in your profile to receive future alerts.",
     "es": "Añade un correo en tu perfil para recibir las próximas alertas."
-  },
-  "A administração precisa configurar o serviço de envio.": {
-    "en": "The administrator needs to configure the delivery service.",
-    "es": "La administración debe configurar el servicio de envío."
   },
   "{0} ativa": {
     "en": "{0} active",
@@ -3946,10 +3810,6 @@
   "Gerenciar contatos no perfil": {
     "en": "Manage profile contacts",
     "es": "Gestionar contactos del perfil"
-  },
-  "Canais indisponíveis precisam ser configurados pela administração.": {
-    "en": "Unavailable channels must be configured by the administrator.",
-    "es": "La administración debe configurar los canales no disponibles."
   },
   "Selecione um canal disponível com destinatário cadastrado, ou desative os alertas.": {
     "en": "Select an available channel with a registered recipient, or turn off alerts.",
@@ -4075,14 +3935,6 @@
     "en": "Contacts for future WhatsApp alerts.",
     "es": "Contactos para futuras alertas de WhatsApp."
   },
-  "Alertas registrados": {
-    "en": "Recorded alerts",
-    "es": "Alertas registradas"
-  },
-  "{0} alertas registrados": {
-    "en": "{0} recorded alerts",
-    "es": "{0} alertas registradas"
-  },
   "Suas viagens e oportunidades em um só lugar.": {
     "en": "Your trips and opportunities in one place.",
     "es": "Tus viajes y oportunidades en un solo lugar."
@@ -4194,10 +4046,6 @@
   "Canal indisponível": {
     "en": "Channel unavailable",
     "es": "Canal no disponible"
-  },
-  "Cadastre um contato no perfil para receber os próximos alertas.": {
-    "en": "Add a profile contact to receive future alerts.",
-    "es": "Añade un contacto en tu perfil para recibir futuras alertas."
   },
   "Serviço em uso: conta conectada.": {
     "en": "Service in use: connected account.",
@@ -4607,10 +4455,6 @@
     "en": "Collection paused",
     "es": "Consulta en pausa"
   },
-  "Retome para voltar a acompanhar os preços": {
-    "en": "Resume to follow prices again",
-    "es": "Reanuda para volver a seguir los precios"
-  },
   "Nova tentativa às {0}": {
     "en": "Next attempt at {0}",
     "es": "Nuevo intento a las {0}"
@@ -4683,10 +4527,6 @@
     "en": "Last alert: {0}, {1}",
     "es": "Última alerta: {0}, {1}"
   },
-  "Escalas, duração, horários, companhias e bagagem": {
-    "en": "Stops, duration, times, airlines and baggage",
-    "es": "Escalas, duración, horarios, aerolíneas y equipaje"
-  },
   "{0} opção encontrada": {
     "en": "{0} option found",
     "es": "{0} opción encontrada"
@@ -4711,10 +4551,6 @@
     "en": "Pause monitoring",
     "es": "Pausar el seguimiento"
   },
-  "Retomar monitoramento": {
-    "en": "Resume monitoring",
-    "es": "Reanudar el seguimiento"
-  },
   "Encerrar monitoramento…": {
     "en": "End monitoring…",
     "es": "Finalizar el seguimiento…"
@@ -4722,10 +4558,6 @@
   "Excluir monitoramento…": {
     "en": "Delete monitoring…",
     "es": "Eliminar el seguimiento…"
-  },
-  "Aceitos": {
-    "en": "Accepted",
-    "es": "Aceptados"
   },
   "Situação dos avisos": {
     "en": "Notification status",
@@ -4779,14 +4611,6 @@
     "en": "Alert contacts",
     "es": "Contactos de alerta"
   },
-  "Os alertas usam estes contatos. Em cada viagem, escolha os canais em Configurar alertas.": {
-    "en": "Alerts use these contacts. For each trip, choose the channels in Configure alerts.",
-    "es": "Las alertas usan estos contactos. En cada viaje, elige los canales en Configurar alertas."
-  },
-  "{0} alerta registrado": {
-    "en": "{0} recorded alert",
-    "es": "{0} alerta registrada"
-  },
   "{0} companhia encontrada": {
     "en": "{0} airline found",
     "es": "{0} aerolínea encontrada"
@@ -4826,14 +4650,6 @@
   "Meta e queda mínima": {
     "en": "Target and minimum drop",
     "es": "Objetivo y bajada mínima"
-  },
-  "Nenhum e-mail cadastrado.": {
-    "en": "No email added yet.",
-    "es": "Ningún correo registrado."
-  },
-  "Nenhum WhatsApp cadastrado.": {
-    "en": "No WhatsApp number added yet.",
-    "es": "Ningún WhatsApp registrado."
   },
   "Escalas, duração, companhias e bagagem de cada trecho.": {
     "en": "Stops, duration, airlines and baggage for each leg.",
@@ -5010,10 +4826,6 @@
   "Instável": {
     "en": "Unstable",
     "es": "Inestable"
-  },
-  "Integração ainda não disponível": {
-    "en": "Integration not available yet",
-    "es": "Integración aún no disponible"
   },
   "Nenhum ainda": {
     "en": "None yet",
@@ -5435,26 +5247,6 @@
     "en": "Shorten retention to {0} day?",
     "es": "¿Reducir la retención a {0} día?"
   },
-  "{0} aceito": {
-    "en": "{0} accepted",
-    "es": "{0} aceptado"
-  },
-  "{0} aceitos": {
-    "en": "{0} accepted",
-    "es": "{0} aceptados"
-  },
-  "{0} pendente": {
-    "en": "{0} pending",
-    "es": "{0} pendiente"
-  },
-  "{0} pendentes": {
-    "en": "{0} pending",
-    "es": "{0} pendientes"
-  },
-  "{0} para verificar": {
-    "en": "{0} to review",
-    "es": "{0} por revisar"
-  },
   "{0} registro removido.": {
     "en": "{0} record removed.",
     "es": "{0} registro eliminado."
@@ -5854,5 +5646,297 @@
   "Código do aplicativo indisponível no momento. Use um código de recuperação.": {
     "en": "Authenticator codes are unavailable right now. Use a recovery code.",
     "es": "El código de la aplicación no está disponible en este momento. Usa un código de recuperación."
+  },
+  "Você será avisado por:": {
+    "en": "You'll be notified by:",
+    "es": "Te avisaremos por:"
+  },
+  "Sobre os canais de alerta": {
+    "en": "About alert channels",
+    "es": "Sobre los canales de alerta"
+  },
+  "Marque um ou mais canais. Os destinos vêm de Meu perfil.": {
+    "en": "Turn on one or more channels. Destinations come from My profile.",
+    "es": "Activa uno o más canales. Los destinos vienen de Mi perfil."
+  },
+  "Canal indisponível depende da administração.": {
+    "en": "An unavailable channel depends on the administrator.",
+    "es": "Un canal no disponible depende de la administración."
+  },
+  "Sem número no perfil": {
+    "en": "No number in your profile",
+    "es": "Sin número en tu perfil"
+  },
+  "Sem e-mail no perfil": {
+    "en": "No email in your profile",
+    "es": "Sin correo en tu perfil"
+  },
+  "Número do WhatsApp": {
+    "en": "WhatsApp number",
+    "es": "Número de WhatsApp"
+  },
+  "Salvar no perfil": {
+    "en": "Save to profile",
+    "es": "Guardar en el perfil"
+  },
+  "Sobre os contatos de alerta": {
+    "en": "About alert contacts",
+    "es": "Sobre los contactos de alerta"
+  },
+  "Os alertas vão para estes contatos. Em cada viagem, escolha os canais em Configurar alertas.": {
+    "en": "Alerts go to these contacts. For each trip, choose the channels in Configure alerts.",
+    "es": "Las alertas van a estos contactos. En cada viaje, elige los canales en Configurar alertas."
+  },
+  "Trocar o número do WhatsApp não muda o telefone de acesso.": {
+    "en": "Changing the WhatsApp number does not change your sign-in phone.",
+    "es": "Cambiar el número de WhatsApp no cambia el teléfono de acceso."
+  },
+  "Outros números de WhatsApp": {
+    "en": "Other WhatsApp numbers",
+    "es": "Otros números de WhatsApp"
+  },
+  "Usar fuso deste aparelho ({0})": {
+    "en": "Use this device's time zone ({0})",
+    "es": "Usar la zona horaria de este dispositivo ({0})"
+  },
+  "Enviaremos o link ao primeiro e-mail do seu perfil. Sem e-mail, peça ao administrador para redefinir a senha.": {
+    "en": "We'll send the link to the first email in your profile. Without an email, ask the administrator to reset your password.",
+    "es": "Enviaremos el enlace al primer correo de tu perfil. Sin correo, pide al administrador que restablezca tu contraseña."
+  },
+  "Se a conta tiver e-mail e o envio estiver ativo, você receberá um link válido por 20 minutos.": {
+    "en": "If the account has an email and sending is on, you'll get a link valid for 20 minutes.",
+    "es": "Si la cuenta tiene correo y el envío está activo, recibirás un enlace válido por 20 minutos."
+  },
+  "Adicionar e-mail (opcional)": {
+    "en": "Add email (optional)",
+    "es": "Añadir correo (opcional)"
+  },
+  "Sem e-mail, só o administrador pode redefinir sua senha.": {
+    "en": "Without an email, only the administrator can reset your password.",
+    "es": "Sin correo, solo el administrador puede restablecer tu contraseña."
+  },
+  "As variações aparecem depois das coletas.": {
+    "en": "Changes appear after the price checks.",
+    "es": "Las variaciones aparecen después de las consultas."
+  },
+  "Avisamos quando o preço atinge a meta ou cai pelo menos a queda mínima.": {
+    "en": "We alert you when the price reaches your target or falls by at least the minimum drop.",
+    "es": "Te avisamos cuando el precio alcanza tu objetivo o cae al menos la bajada mínima."
+  },
+  "terminado em {0}": {
+    "en": "ending in {0}",
+    "es": "terminado en {0}"
+  },
+  "Cadastre um número de WhatsApp no perfil para receber alertas.": {
+    "en": "Add a WhatsApp number to your profile to get alerts.",
+    "es": "Agrega un número de WhatsApp a tu perfil para recibir alertas."
+  },
+  "Ainda dentro da meta": {
+    "en": "Still within target",
+    "es": "Sigue dentro del objetivo"
+  },
+  "Falha": {
+    "en": "Failed",
+    "es": "Falló"
+  },
+  "Silenciado": {
+    "en": "Silenced",
+    "es": "Silenciado"
+  },
+  "Envio confirmado": {
+    "en": "Sending confirmed",
+    "es": "Envío confirmado"
+  },
+  "{0} de {1} destinatários": {
+    "en": "{0} of {1} recipients",
+    "es": "{0} de {1} destinatarios"
+  },
+  "Avisos desse horário ficam retidos e saem depois, se o preço ainda valer. E-mails de segurança continuam ativos.": {
+    "en": "Alerts in these hours are held and go out afterwards if the price still applies. Security emails stay on.",
+    "es": "Los avisos de este horario quedan retenidos y salen después, si el precio sigue vigente. Los correos de seguridad siguen activos."
+  },
+  "O número de WhatsApp foi salvo no perfil, mas a viagem não foi criada: {0}": {
+    "en": "The WhatsApp number was saved to your profile, but the trip was not created: {0}",
+    "es": "El número de WhatsApp se guardó en tu perfil, pero el viaje no se creó: {0}"
+  },
+  "Máximo de {0} aeroportos.": {
+    "en": "Up to {0} airports.",
+    "es": "Máximo de {0} aeropuertos."
+  },
+  "Dentro da meta": {
+    "en": "Within target",
+    "es": "Dentro del objetivo"
+  },
+  "Dentro da meta ({0}) · {1} abaixo da meta": {
+    "en": "Within target ({0}) · {1} below it",
+    "es": "Dentro del objetivo ({0}) · {1} por debajo"
+  },
+  "Dentro da meta ({0})": {
+    "en": "Within target ({0})",
+    "es": "Dentro del objetivo ({0})"
+  },
+  "Alertas desde a sua última visita": {
+    "en": "Alerts since your last visit",
+    "es": "Alertas desde tu última visita"
+  },
+  "Alertas salvos. Avisaremos quando o preço chegar a {0}.": {
+    "en": "Alerts saved. We'll let you know when the price reaches {0}.",
+    "es": "Alertas guardadas. Te avisaremos cuando el precio llegue a {0}."
+  },
+  "Alertas salvos.": {
+    "en": "Alerts saved.",
+    "es": "Alertas guardadas."
+  },
+  "Horários no fuso local de cada aeroporto.": {
+    "en": "Times in each airport's local time zone.",
+    "es": "Horarios en la zona local de cada aeropuerto."
+  },
+  "Aparência": {
+    "en": "Appearance",
+    "es": "Apariencia"
+  },
+  "Sistema": {
+    "en": "System",
+    "es": "Sistema"
+  },
+  "Claro": {
+    "en": "Light",
+    "es": "Claro"
+  },
+  "Escuro": {
+    "en": "Dark",
+    "es": "Oscuro"
+  },
+  "Nenhum aviso será gerado.": {
+    "en": "No alerts will be sent.",
+    "es": "No se generará ningún aviso."
+  },
+  "Menor preço agora: {0}": {
+    "en": "Lowest price now: {0}",
+    "es": "Precio más bajo ahora: {0}"
+  },
+  "Em {0} de {1} combinações de datas, a volta é antes da ida.": {
+    "en": "In {0} of {1} date combinations, the return is before the outbound.",
+    "es": "En {0} de {1} combinaciones de fechas, la vuelta es antes de la ida."
+  },
+  "Pausado: nenhum aviso será gerado.": {
+    "en": "Paused: no alerts will be sent.",
+    "es": "En pausa: no se generará ningún aviso."
+  },
+  "A primeira coleta cria a referência de preço.": {
+    "en": "The first check sets the price reference.",
+    "es": "La primera consulta crea la referencia de precio."
+  },
+  "Histórico preservado.": {
+    "en": "History kept.",
+    "es": "Historial conservado."
+  },
+  "{0} alerta novo": {
+    "en": "{0} new alert",
+    "es": "{0} alerta nueva"
+  },
+  "{0} alertas novos": {
+    "en": "{0} new alerts",
+    "es": "{0} alertas nuevas"
+  },
+  "Retida até {0}": {
+    "en": "Held until {0}",
+    "es": "Retenida hasta {0}"
+  },
+  "Os links dos alertas apontam para este computador. Defina RADAR_PUBLIC_URL.": {
+    "en": "Alert links point to this computer. Set RADAR_PUBLIC_URL.",
+    "es": "Los enlaces de las alertas apuntan a este equipo. Define RADAR_PUBLIC_URL."
+  },
+  "Sua conta de administrador está sem verificação em duas etapas.": {
+    "en": "Your administrator account has no two-step verification.",
+    "es": "Tu cuenta de administrador no tiene verificación en dos pasos."
+  },
+  "Ativar no perfil": {
+    "en": "Turn on in profile",
+    "es": "Activar en el perfil"
+  },
+  "Agora não": {
+    "en": "Not now",
+    "es": "Ahora no"
+  },
+  "Sobre a atividade de envio": {
+    "en": "About sending activity",
+    "es": "Sobre la actividad de envío"
+  },
+  "Ver envios": {
+    "en": "View deliveries",
+    "es": "Ver envíos"
+  },
+  "Configurar": {
+    "en": "Set up",
+    "es": "Configurar"
+  },
+  "sai às {0}": {
+    "en": "goes out at {0}",
+    "es": "sale a las {0}"
+  },
+  "Baixar CSV": {
+    "en": "Download CSV",
+    "es": "Descargar CSV"
+  },
+  "JSON": {
+    "en": "JSON",
+    "es": "JSON"
+  },
+  "Trocar de viagem": {
+    "en": "Switch trip",
+    "es": "Cambiar de viaje"
+  },
+  "Sobre o canal WhatsApp": {
+    "en": "About the WhatsApp channel",
+    "es": "Sobre el canal de WhatsApp"
+  },
+  "filtro ativo": {
+    "en": "active filter",
+    "es": "filtro activo"
+  },
+  "filtros ativos": {
+    "en": "active filters",
+    "es": "filtros activos"
+  },
+  "{0} bloqueado: WhatsApp sem serviço": {
+    "en": "{0} blocked: WhatsApp without service",
+    "es": "{0} bloqueado: WhatsApp sin servicio"
+  },
+  "{0} bloqueados: WhatsApp sem serviço": {
+    "en": "{0} blocked: WhatsApp without service",
+    "es": "{0} bloqueados: WhatsApp sin servicio"
+  },
+  "{0} bloqueado: e-mail sem serviço": {
+    "en": "{0} blocked: email without service",
+    "es": "{0} bloqueado: correo sin servicio"
+  },
+  "{0} bloqueados: e-mail sem serviço": {
+    "en": "{0} blocked: email without service",
+    "es": "{0} bloqueados: correo sin servicio"
+  },
+  "{0} bloqueado: sem destinatário": {
+    "en": "{0} blocked: no recipient",
+    "es": "{0} bloqueado: sin destinatario"
+  },
+  "{0} bloqueados: sem destinatário": {
+    "en": "{0} blocked: no recipient",
+    "es": "{0} bloqueados: sin destinatario"
+  },
+  "{0} com problema": {
+    "en": "{0} with a problem",
+    "es": "{0} con problema"
+  },
+  "{0} enviando": {
+    "en": "{0} sending",
+    "es": "{0} enviando"
+  },
+  "{0} enviado": {
+    "en": "{0} sent",
+    "es": "{0} enviado"
+  },
+  "{0} enviados": {
+    "en": "{0} sent",
+    "es": "{0} enviados"
   }
 }

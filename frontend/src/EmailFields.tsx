@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Plus, X } from "lucide-react";
 import { t } from "./i18n";
 import { Button } from "./ui";
@@ -16,8 +16,17 @@ export function EmailFields({
   /** Legend; defaults to "E-mails para receber alertas". */
   label?: ReactNode;
 }) {
+  // "Adicionar" moves the focus to the new field, so typing goes there.
+  const box = useRef<HTMLFieldSetElement>(null),
+    added = useRef(false);
+  useEffect(() => {
+    if (!added.current) return;
+    added.current = false;
+    const fields = box.current?.querySelectorAll<HTMLInputElement>('input[type="email"]');
+    fields?.[fields.length - 1]?.focus();
+  }, [values.length]);
   return (
-    <fieldset className="email-fields">
+    <fieldset className="email-fields" ref={box}>
       <legend>{label ?? t("E-mails para receber alertas")}</legend>
       {!compact && (
         <p className="help">
@@ -50,7 +59,14 @@ export function EmailFields({
         </div>
       ))}
       {values.length < 4 && (
-        <Button type="button" variant="ghost" onClick={() => onChange([...values, ""])}>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => {
+            added.current = true;
+            onChange([...values, ""]);
+          }}
+        >
           <Plus size={16} aria-hidden="true" />
           {values.length ? t("Adicionar outro e-mail") : t("Adicionar e-mail")}
         </Button>

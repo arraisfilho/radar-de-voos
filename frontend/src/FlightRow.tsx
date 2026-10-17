@@ -39,8 +39,8 @@ export function GoogleFlightsLink({ flight, className }: { flight: Flight; class
 }
 
 /**
- * One flight option. Wide screens keep logo, times, price and action on one
- * row; phones stack times, details, then price (left) and action (right).
+ * One flight option. Wide screens keep logo, times, price and action on one row. On phones the
+ * whole row opens the itinerary, where the fare link is: no button repeated on every row.
  */
 export const FlightRow = memo(function FlightRow({ flight }: { flight: Flight }) {
   useLanguage();
@@ -142,6 +142,8 @@ export const FlightRow = memo(function FlightRow({ flight }: { flight: Flight })
                 : t("Taxas de bagagem não adicionadas à pesquisa. Confira a franquia da tarifa na companhia.")}
             </p>
             <p className="help">{t("Preço atualizado às {0}", [formatTime(flight.collected_at)])}</p>
+            {/* On phones the row itself opens these details, and the fare link lives here. */}
+            <GoogleFlightsLink flight={flight} className="flight-details-link" />
           </>
         )}
       </div>

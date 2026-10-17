@@ -127,7 +127,9 @@ export type Snapshot = {
   price: number | null;
   count: number;
 };
-export type ChannelDelivery = {channel:string;counts:Record<string,number>;receipts?:Record<string,number>};
+export type ChannelDelivery = {channel:string;counts:Record<string,number>;receipts?:Record<string,number>;
+  /** When the deliveries held by quiet hours go out (counts.held), and the account's time zone to read it. */
+  held_until?:number;held_zone?:string};
 export type Alert = {
   channels?: ChannelDelivery[];
   id: string;
@@ -140,6 +142,10 @@ export type Alert = {
   payload: {
     title: string;
     kind: string;
+    /** Why the engine alerted: "first", "new_low", "rearmed" or "reminder" (target still met). */
+    reason?: string;
+    /** The trip's target when the engine alerted (alerts from 0.26 on). */
+    target_cents?: number | null;
     flight: Flight;
     previous: number | null;
     saving_cents: number | null;
@@ -173,6 +179,8 @@ export type State = {
   revision?:string;
   quote_expires?:number|null;
   alert_total?:number;
+  /** Creation times of the latest 100 alerts, newest first. */
+  alert_recent?:number[];
   raw_retention_days?:number;
   token: string;
   server_time: number;

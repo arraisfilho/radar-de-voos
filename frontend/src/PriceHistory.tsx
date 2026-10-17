@@ -250,10 +250,16 @@ export function PriceChartCard({ search }: { search: SearchRecord }) {
             {t("por trecho · fuso do dispositivo")}
           </p>
         </div>
-        <a className="button button-outline button-small" href={"/api/export/" + search.id}>
-          <Download size={15} aria-hidden="true" />
-          {t("Baixar histórico")}
-        </a>
+        {/* CSV opens in a spreadsheet (UTF-8, ";", decimal comma); JSON keeps everything collected. */}
+        <div className="history-downloads">
+          <a className="button button-outline button-small" href={"/api/export/" + search.id + "?format=csv"} download>
+            <Download size={15} aria-hidden="true" />
+            {t("Baixar CSV")}
+          </a>
+          <a className="button button-ghost button-small" href={"/api/export/" + search.id} download>
+            {t("JSON")}
+          </a>
+        </div>
       </div>
       <Trend
         key={search.id + ":" + search.version}

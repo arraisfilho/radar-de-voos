@@ -7,6 +7,7 @@ import { formatDateTime } from "./format";
 import { Button, Card, ConfirmDialog, Notice } from "./ui";
 import { PhoneField } from "./PhoneField";
 import { MessageCircle, Save, Send, ShieldCheck, Trash2 } from "lucide-react";
+import { InfoTip } from "./InfoTip";
 type Field = {
   key: string;
   label: string;
@@ -184,9 +185,12 @@ export function WhatsAppPanel({ request }: { request: RequestFn }) {
         <span className="admin-channel-icon is-large" aria-hidden="true">
           <MessageCircle size={22} />
         </span>
-        <div>
+        <div className="channel-panel-title">
           <h2 id={id + "-title"}>WhatsApp</h2>
-          <p>{t("Escolha o integrador e configure a conexão de envio.")}</p>
+          <InfoTip label={t("Sobre o canal WhatsApp")}>
+            <p>{t("Escolha o integrador e configure a conexão de envio.")}</p>
+            <p>{t("Aceitação pelo integrador não confirma entrega ou leitura. Falhas ambíguas não são reenviadas automaticamente.")}</p>
+          </InfoTip>
         </div>
         <span className={data?.available ? "status-pill is-active" : "status-pill is-ended"}>
           {data?.available ? t("Habilitado") : t("Não configurado")}
@@ -417,11 +421,6 @@ export function WhatsAppPanel({ request }: { request: RequestFn }) {
           </div>
         </details>
       </Card>
-      <p className="admin-footnote">
-        {t(
-          "Aceitação pelo integrador não confirma entrega ou leitura. Falhas ambíguas não são reenviadas automaticamente.",
-        )}
-      </p>
       <ConfirmDialog
         open={confirm}
         onOpenChange={(open) => {

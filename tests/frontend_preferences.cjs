@@ -18,6 +18,8 @@ function load(file){if(cache.has(file))return cache.get(file);const out={};cache
  if(name==='./plural')return load('plural.ts');
  if(name==='./navigation')return {routePath:()=> '/perfil',plainClick:()=>false};
  if(name==='./RouteSummary')return {RouteCodes:()=>null,RoutePlaces:()=>null};
+ if(name==='./AlertChannels')return load('AlertChannels.tsx');
+ if(name==='./InfoTip')return load('InfoTip.tsx');
  return fromFrontend(name);
  }});return out;}
 const leg={start:'2090-11-05T22:00',end:'2090-11-06T06:00',arrival_before:null,stops:[0,1,2],max_duration:1440,max_layover:null,airlines:[]};
@@ -42,7 +44,7 @@ assert.ok(alerts.includes('alert-settings-form'));assert.ok(alerts.includes('Env
 console.log('Quick filters and alert settings are isolated; party pricing and saved recipients remain visible.');
 
 const wa=renderToStaticMarkup(React.createElement(SearchForm,{config:{...config,notify_email:false,notify_whatsapp:true},setConfig:()=>{},airports:[],onSave:()=>{},saving:false,alertsOnly:true,whatsappAvailable:true,whatsappRecipients:['+12025550123','+12025550123','+442079460018']}));
-assert.ok(wa.includes('WhatsApp para: +12025550123, +442079460018'));assert.ok(wa.includes('Você pode selecionar mais de um canal.'));assert.ok(!wa.includes('Adicione até quatro e-mails'));assert.ok(wa.includes('type="checkbox"'));assert.ok(!wa.includes('type="radio"'));
+assert.equal((wa.match(/\+1 20· ··· 0123<\/span>/g)||[]).length,2,'Each number once in the row, the first in the line');assert.equal((wa.match(/\+44 20 ···· 0018<\/span>/g)||[]).length,1);assert.ok(wa.includes('terminado em 0018')&&wa.includes('e mais 1'),'Formatted, masked, read as its last digits');assert.ok(wa.includes('Você será avisado por:'));assert.ok(wa.includes('Sobre os canais de alerta'),'The help sits behind an info button');assert.ok(!wa.includes('Telegram'));assert.ok(!wa.includes('Adicione até quatro e-mails'));assert.ok(wa.includes('type="checkbox"'));assert.ok(!wa.includes('type="radio"'));
 
 const unlimited=renderToStaticMarkup(React.createElement(SearchForm,{config:{...config,outbound:{...leg,max_duration:null}},setConfig:()=>{},airports:[],onSave:()=>{},saving:false,general:true,editing:true}));
 assert.ok(unlimited.includes('Sem limite de duração, incluindo conexões.'));assert.ok(!unlimited.includes('Duração máxima da viagem: horas'));

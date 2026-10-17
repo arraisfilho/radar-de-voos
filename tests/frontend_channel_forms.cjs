@@ -27,7 +27,7 @@ function load(file) {
   vm.runInNewContext(code, {exports: out, Intl, require: name =>
     name === 'react' ? hooks : name === './ui' ? ui : name === './i18n' ? i18n : name === '@tanstack/react-query' ? query :
     name === './navigationGuard' ? {useUnsavedChanges: value => { guarded = value; }} :
-    name === './WhatsAppReceipts' ? {WhatsAppReceipts: () => null} : name === './PhoneField' ? {PhoneField: () => null} :
+    name === './WhatsAppReceipts' ? {WhatsAppReceipts: () => null} : name === './PhoneField' ? {PhoneField: () => null} : name === './InfoTip' ? {InfoTip: ({children}) => React.createElement('span', null, children)} :
     name === './format' ? {formatDateTime: String} : req(name)});
   return out;
 }

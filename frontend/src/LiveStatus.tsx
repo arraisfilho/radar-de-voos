@@ -192,7 +192,7 @@ export function LiveStatus({
   const label = error
     ? t("Sem conexão com o servidor")
     : !search.active
-      ? t("Retome para voltar a acompanhar os preços")
+      ? t("Nenhum aviso será gerado.")
       : sourcePaused
         ? source?.retry_at && source.retry_at > serverNow
           ? t("Nova tentativa às {0}", [formatTime(source.retry_at)])

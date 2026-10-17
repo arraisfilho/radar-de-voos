@@ -597,7 +597,18 @@ h3 > svg {
 }
 .timezone-field > .button {
   justify-self: start;
+  max-width: 100%;
   margin-top: 2px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  /* "Usar fuso deste aparelho (America/Argentina/Buenos_Aires)" wraps on a phone. */
+  white-space: normal;
+  text-align: left;
+}
+@media (pointer: coarse) {
+  .timezone-field > .button {
+    min-height: 44px;
+  }
 }
 .timezone-field > .field-error,
 .timezone-field > .field-help {
@@ -949,6 +960,65 @@ h3 > svg {
   line-height: 18px;
   color: var(--muted);
 }
+/* A section title followed by its info button (InfoTip). */
+.list-section-head {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.list-section-head > .list-section-title {
+  padding-right: 2px;
+}
+/* Help on demand (InfoTip): a round info button and its short note. */
+.info-tip {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: -7px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.info-tip[data-state="open"] {
+  color: var(--action);
+}
+.info-tip-content {
+  z-index: 1200;
+  display: grid;
+  gap: 6px;
+  max-width: min(320px, calc(100vw - 24px));
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--material-popover-solid);
+  box-shadow: var(--shadow-popover);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 18px;
+  animation: menu-in var(--dur-fast) var(--ease-emphasized);
+}
+@media (hover: hover) and (pointer: fine) {
+  .info-tip:hover {
+    background: var(--fill-4);
+    color: var(--text);
+  }
+}
+@media (pointer: coarse) {
+  .info-tip {
+    width: 44px;
+    height: 44px;
+    margin: -13px -6px;
+  }
+}
+@media (forced-colors: active) {
+  .info-tip-content {
+    border: 1px solid CanvasText;
+  }
+}
 .list-group {
   overflow: hidden;
   border-radius: var(--radius-md);
@@ -1094,6 +1164,22 @@ button.list-row:active {
   font-weight: 600;
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+/* New alerts since the last visit: white on the accent, 4.5:1 in both appearances. */
+.nav-count.is-unseen {
+  background: var(--action);
+  color: var(--on-accent);
+}
+/* On the tab bar the count sits on the icon's corner. */
+.tab-count {
+  position: absolute;
+  top: 3px;
+  left: calc(50% + 4px);
+  margin: 0;
+  min-width: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+  line-height: 16px;
 }
 
 /* ---------- Banners ---------------------------------------------------------- */
@@ -1971,6 +2057,7 @@ tbody tr:last-child > td {
 }
 .sidebar-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -2092,6 +2179,7 @@ tbody tr:last-child > td {
     backdrop-filter: saturate(180%) blur(20px);
   }
   .mobile-nav a {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2320,6 +2408,10 @@ tbody tr:last-child > td {
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 16px);
   right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 .auth-card {
   width: 100%;
@@ -2511,6 +2603,9 @@ tbody tr:last-child > td {
 }
 .optional-contacts[open] > summary::after {
   transform: rotate(-90deg);
+}
+.optional-contacts > .help {
+  margin: 0 0 10px;
 }
 .email-fields {
   display: grid;

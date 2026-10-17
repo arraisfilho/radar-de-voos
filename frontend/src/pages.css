@@ -458,14 +458,13 @@
   font-weight: 600;
 }
 
-/* Hero: live status and actions, route, search details. */
+/* Hero in about 120 px: route and actions on one row, live status and details on one line. */
 .route-card {
-  padding: 20px 24px 22px;
+  padding: 16px 20px;
 }
 .trip-hero-top {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
@@ -567,7 +566,7 @@
   opacity: .4;
 }
 .trip-hero-route {
-  margin-top: 20px;
+  min-width: 0;
 }
 .trip-hero-heading,
 .trip-hero-name {
@@ -575,12 +574,12 @@
   overflow-wrap: anywhere;
 }
 .trip-hero-name {
-  font-size: 28px;
-  line-height: 34px;
+  font-size: 24px;
+  line-height: 30px;
 }
 .trip-hero-codes {
-  font-size: 40px;
-  line-height: 46px;
+  font-size: 28px;
+  line-height: 34px;
   font-weight: 700;
 }
 /* Codes at both ends of the path, as on a boarding pass, within a readable width. */
@@ -589,25 +588,124 @@
   max-width: 560px;
 }
 .trip-hero-codes .route-plane > svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
 }
 .trip-hero-codes.is-secondary {
-  margin-top: 8px;
-  font-size: 28px;
-  line-height: 34px;
+  font-size: 15px;
+  line-height: 20px;
   font-weight: 600;
 }
 .trip-hero-places {
-  margin-top: 6px;
-  font-size: 15px;
-  line-height: 20px;
+  font-size: 13px;
+  line-height: 18px;
 }
-.trip-hero-chips {
+/* Phones only: the cities on one line, and the route title as the trip selector. */
+.trip-hero-cities,
+.trip-hero-switch,
+.trip-hero-switch-mark {
+  display: none;
+}
+@media (max-width: 479px) {
+  .trip-switcher {
+    display: none;
+  }
+  .trip-hero-route {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    flex: 1;
+  }
+  .trip-hero-route > h1 {
+    grid-column: 1;
+    min-width: 0;
+  }
+  .trip-hero-codes {
+    display: inline-flex;
+    white-space: nowrap;
+  }
+  .trip-hero-codes > .route-path {
+    flex: 0 0 36px;
+  }
+  .trip-hero-codes > .route-code {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .trip-hero-places {
+    display: none;
+  }
+  .trip-hero-cities {
+    display: block;
+    grid-column: 1 / -1;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 18px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .trip-hero-switch-mark {
+    display: block;
+    grid-column: 2;
+    margin-left: 4px;
+    color: var(--action);
+  }
+  /* The invisible select's focus shows on the route it covers. */
+  .trip-hero-route.has-switcher:focus-within {
+    outline: 2px solid var(--focus);
+    outline-offset: 4px;
+    border-radius: var(--radius-sm);
+  }
+  /* The native select covers the title row, invisible: tapping the route opens the trips. */
+  /* Over the whole route column (codes and cities, at least 44 px), never over the action buttons. */
+  .trip-hero-switch {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 44px;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .trip-hero-edit {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+  }
+  .trip-hero-edit-label {
+    display: none;
+  }
+}
+/* Live status, then the search details as plain text separated by dots. */
+.trip-hero-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 18px;
+  align-items: center;
+  gap: 6px 16px;
+  margin-top: 10px;
+}
+.trip-hero-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.trip-hero-facts > li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.trip-hero-facts strong {
+  color: var(--text);
+  font-weight: 600;
 }
 .info-chip {
   display: inline-flex;
@@ -631,7 +729,7 @@
   margin-right: 2px;
 }
 .collection-notice {
-  margin: 18px 0 0;
+  margin: 12px 0 0;
 }
 .collection-notice > div {
   min-width: 0;
@@ -651,35 +749,24 @@
 }
 @media (max-width: 767px) {
   .route-card {
-    padding: 16px 16px 18px;
-  }
-  .trip-hero-route {
-    margin-top: 16px;
+    padding: 14px 16px;
   }
   .trip-hero-name {
-    font-size: 24px;
-    line-height: 30px;
+    font-size: 20px;
+    line-height: 26px;
   }
   .trip-hero-codes {
-    font-size: 32px;
-    line-height: 38px;
-  }
-  .trip-hero-codes.is-secondary {
     font-size: 24px;
     line-height: 30px;
   }
-  .trip-hero-places {
-    font-size: 13px;
-    line-height: 18px;
-  }
-  .trip-hero-chips {
-    margin-top: 14px;
+  .trip-hero-meta {
+    margin-top: 8px;
   }
 }
 
 /* Voos | Histórico | Alertas */
 .monitor-sections {
-  margin: 20px 0;
+  margin: 16px 0;
 }
 .monitor-sections > .segmented {
   display: flex;
@@ -694,7 +781,7 @@
 }
 @media (max-width: 767px) {
   .monitor-sections {
-    margin: 16px 0;
+    margin: 12px 0;
   }
   .monitor-sections > .segmented {
     width: 100%;
@@ -704,23 +791,32 @@
   }
 }
 
-/* Lowest fares: three blocks (2 + 1 on phones). */
-.metrics-grid {
+/* Lowest fares and the trip's alerts in one block: prices on the left, alerts on the right
+   (stacked on phones), about half the height of the two former cards. */
+.trip-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  gap: 16px 24px;
+  margin-bottom: 16px;
+  padding: 16px 20px;
+}
+.trip-summary.is-one-way {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+}
+.trip-prices {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
-  margin-bottom: 16px;
 }
-.metrics-grid.one-way-metrics {
+.trip-summary.is-one-way .trip-prices {
   grid-template-columns: minmax(0, 1fr);
 }
 .metric {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
-  padding: 18px 20px;
 }
 .metric-label {
   display: flex;
@@ -737,8 +833,8 @@
 }
 .metric-value {
   color: var(--ink);
-  font-size: 28px;
-  line-height: 34px;
+  font-size: 24px;
+  line-height: 30px;
   font-weight: 700;
   letter-spacing: -.02em;
   white-space: nowrap;
@@ -753,74 +849,50 @@
 .metric > .status-pill {
   margin-top: 4px;
 }
-.airport-note {
+/* Title and "Configurar alertas" on one row, the summary and the last alert below. */
+.trip-alerts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title action"
+    "summary summary"
+    "last last"
+    "contact contact";
+  align-content: start;
+  align-items: center;
+  gap: 2px 8px;
+  min-width: 0;
+  padding-left: 24px;
+  border-left: 1px solid var(--separator);
+}
+.trip-alerts-title {
+  grid-area: title;
+}
+.trip-alerts-action {
+  grid-area: action;
+  margin-bottom: 4px;
+}
+.trip-alerts-summary {
+  grid-area: summary;
+}
+.trip-alerts-last {
+  grid-area: last;
+}
+.trip-alerts-contact {
+  grid-area: contact;
+}
+.trip-alerts > h2 {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: -4px 0 16px;
+  align-items: center;
+  gap: 6px;
   color: var(--muted);
   font-size: 13px;
   line-height: 18px;
+  font-weight: 600;
 }
-.airport-note > svg {
+.trip-alerts > h2 > svg {
   flex-shrink: 0;
-  margin-top: 1px;
-}
-@media (max-width: 767px) {
-  .metrics-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .metric {
-    padding: 14px 16px;
-  }
-  .metric-value {
-    font-size: 22px;
-    line-height: 28px;
-  }
-  .metric-total {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    column-gap: 12px;
-  }
-  .metric-total > .metric-value {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-  }
-}
-@media (max-width: 359px) {
-  .metrics-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* Trip alerts summary card. */
-.trip-alerts-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-.trip-alerts-icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--surface-tint);
   color: var(--action);
-}
-.trip-alerts-body {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-.trip-alerts-body > h2 {
-  font-size: 17px;
-  line-height: 22px;
 }
 .trip-alerts-summary,
 .trip-alerts-last {
@@ -829,6 +901,7 @@
   line-height: 18px;
 }
 .trip-alerts-summary {
+  color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 .trip-alerts-last > a,
@@ -843,90 +916,128 @@
   font-weight: 400;
 }
 .trip-alerts-contact {
-  margin-top: 6px;
   font-size: 13px;
   line-height: 18px;
 }
 .trip-alerts-contact > svg:first-child {
   flex-shrink: 0;
 }
-@media (max-width: 767px) {
-  .trip-alerts-card {
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 12px 14px;
-  }
-  .trip-alerts-card > .button {
-    grid-column: 1 / -1;
-  }
-}
-
-/* "Filtros da viagem" disclosure; the form inside belongs to SearchForm. */
-.quick-filters-card {
-  margin-bottom: 16px;
-  padding: 0;
-}
-.quick-filters-card > summary {
-  display: flex;
+/* The trip's channels as icons (ChannelSummary compact), names for screen readers and on hover. */
+.channel-icons {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  min-height: 60px;
-  padding: 12px 20px;
-  border-radius: inherit;
-  list-style: none;
+  gap: 4px;
+  vertical-align: -3px;
 }
-.quick-filters-card > summary::-webkit-details-marker {
-  display: none;
-}
-.quick-filters-card > summary > svg {
-  flex-shrink: 0;
+.channel-icon-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface-tint);
   color: var(--action);
 }
-.quick-filters-card > summary::after {
-  content: "";
-  flex-shrink: 0;
-  width: 8px;
-  height: 14px;
-  margin-left: auto;
-  background-color: var(--tertiary);
-  -webkit-mask: var(--icon-chevron) center / contain no-repeat;
-  mask: var(--icon-chevron) center / contain no-repeat;
-  transform: rotate(90deg);
-  transition: transform var(--dur-fast) var(--ease-standard);
-}
-.quick-filters-card[open] > summary::after {
-  transform: rotate(-90deg);
-}
-.quick-filters-card[open] > summary {
-  border-bottom: 1px solid var(--separator);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-}
-.quick-filters-title {
-  display: grid;
-  min-width: 0;
-}
-.quick-filters-title > strong {
-  font-size: 17px;
-  line-height: 22px;
-}
-.quick-filters-title > span {
+.airport-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: -4px 0 16px;
   color: var(--muted);
   font-size: 13px;
   line-height: 18px;
 }
-.quick-filters-body {
-  padding: 16px 20px 20px;
+.airport-note > svg {
+  flex-shrink: 0;
+  margin-top: 1px;
 }
-@media (hover: hover) and (pointer: fine) {
-  .quick-filters-card > summary:hover {
-    background: var(--fill-4);
+@media (max-width: 1023px) {
+  .trip-summary,
+  .trip-summary.is-one-way {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .trip-alerts {
+    padding: 12px 0 0;
+    border-top: 1px solid var(--separator);
+    border-left: 0;
   }
 }
 @media (max-width: 767px) {
-  .quick-filters-card > summary {
-    padding: 12px 16px;
+  .trip-summary {
+    padding: 14px 16px;
+    gap: 12px;
   }
-  .quick-filters-body {
-    padding: 14px 16px 16px;
+  /* Ida, Volta and Soma side by side; the first flight below repeats the date, airline and route. */
+  .trip-prices {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .metric-value {
+    font-size: 17px;
+    line-height: 22px;
+  }
+  .trip-prices .metric-detail {
+    display: none;
+  }
+  .metric-total > .metric-detail {
+    display: block;
+    font-size: 12px;
+    line-height: 16px;
+  }
+  /* Dates show on the leg buttons of the flight list; the last update in each flight's details. */
+  .route-card.is-listing .trip-hero-dates,
+  .route-card.is-listing .live-status-updated {
+    display: none;
+  }
+  /* The heading of the list stays for screen readers; its count line leads. */
+  .results-head h2 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+@media (max-width: 359px) {
+  .trip-prices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (pointer: coarse) {
+  .trip-alerts-action {
+    min-height: 44px;
+  }
+}
+
+/* "Filtros" in the list bar opens the trip filters under it; the form inside belongs to SearchForm. */
+.filters-button {
+  flex-shrink: 0;
+}
+.filters-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--action);
+  color: var(--on-accent);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.filters-panel > summary {
+  display: none;
+}
+.filters-panel[open] {
+  margin-top: 12px;
+  border-top: 1px solid var(--separator);
+}
+.quick-filters-body {
+  padding: 16px 0 4px;
+}
+@media (pointer: coarse) {
+  .filters-button {
+    min-height: 44px;
   }
 }
 
@@ -937,11 +1048,12 @@
 .results-head {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 8px 16px;
 }
 .results-head > div {
+  flex: 1 1 0;
   min-width: 0;
 }
 .results-head p {
@@ -967,10 +1079,14 @@
   gap: 12px;
   margin: 16px 0 4px;
 }
+/* What this search keeps, as text: they are not filters to tap (the filters card is). */
 .criteria-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 2px 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
 }
 .preview-note {
   margin: 12px 0 0;
@@ -1000,7 +1116,11 @@
 }
 @media (max-width: 767px) {
   .results-card {
-    padding: 16px 16px 12px;
+    padding: 14px 16px 12px;
+  }
+  .results-toolbar {
+    margin-top: 10px;
+    gap: 8px;
   }
   .sort-label {
     display: none;
@@ -1172,6 +1292,10 @@
 .flight-details > .help {
   margin-top: 10px;
 }
+/* The fare link inside the details is for phones; wider screens keep it on the row. */
+.flight-details-link {
+  display: none;
+}
 @media (max-width: 767px) {
   .flight-row-main {
     grid-template-columns: 40px minmax(0, 1fr) var(--control-height);
@@ -1195,13 +1319,33 @@
     gap: 8px 12px;
     padding-left: 52px;
   }
+  /* Price and party on one line: the row stays short. */
   .flight-price {
-    justify-items: start;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 8px;
     text-align: left;
   }
   .flight-stale,
   .flight-details {
     margin-left: 0;
+  }
+  /* The whole row is the expand button's target; its link moves into the details. */
+  .flight-row-main {
+    position: relative;
+  }
+  .flight-expand::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+  .flight-foot > .google-flights-link {
+    display: none;
+  }
+  .flight-details-link {
+    display: inline-flex;
+    margin-top: 12px;
   }
 }
 @media (max-width: 359px) {
@@ -1441,102 +1585,45 @@
   }
 }
 
-/* Channel chips: icon, channel and state in words, details on demand. */
+/* Delivery state per channel (DeliveryChannels): icon and short label in the state's color, the
+   detail in the accessible name and the tooltip. Shared with the administration's delivery log. */
 .channel-deliveries {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 6px;
-  min-width: 0;
-}
-.channel-delivery {
-  max-width: 100%;
-  min-width: 0;
-  border-radius: 15px;
-  background: var(--fill-3);
-  color: var(--text);
-  font-size: 13px;
-  line-height: 18px;
-}
-.channel-delivery[open] {
-  border-radius: var(--radius-md);
-}
-.channel-delivery > summary {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  min-height: 30px;
-  padding: 5px 10px;
-  border-radius: inherit;
-  list-style: none;
+  min-width: 0;
 }
-.channel-delivery > summary::-webkit-details-marker {
-  display: none;
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  white-space: nowrap;
 }
-.channel-delivery > summary > svg {
+.status-chip > svg {
   flex-shrink: 0;
 }
-.channel-delivery > summary > svg:last-child {
-  opacity: .7;
-  transition: transform var(--dur-fast) var(--ease-standard);
+.status-chip.tone-green {
+  background: var(--status-green-bg);
+  color: var(--status-green-text);
 }
-.channel-delivery[open] > summary > svg:last-child {
-  transform: rotate(180deg);
+.status-chip.tone-red {
+  background: var(--status-red-bg);
+  color: var(--status-red-text);
 }
-.channel-delivery strong {
-  font-weight: 600;
+.status-chip.tone-amber {
+  background: var(--status-amber-bg);
+  color: var(--status-amber-text);
 }
-.channel-delivery small {
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-.channel-delivery-details {
-  max-width: 320px;
-  padding: 0 12px 10px;
-}
-.channel-delivery-details > * + * {
-  margin-top: 4px;
-}
-.channel-delivery-details ul {
-  padding-left: 18px;
-  list-style: disc;
-}
-.channel-sent,
-.channel-confirmed_sent,
-.channel-delivered,
-.channel-read {
-  background: var(--success-bg);
-  color: var(--success-text);
-}
-.channel-failed,
-.channel-delivery_failed {
-  background: var(--danger-bg);
-  color: var(--danger-text);
-}
-.channel-partial,
-.channel-uncertain,
-.channel-delivery_partial,
-.channel-waiting_contact,
-.channel-waiting_service,
-.channel-waiting_smtp {
-  background: var(--warning-bg);
-  color: var(--warning-text);
-}
-.channel-queued,
-.channel-sending {
-  background: var(--surface-tint);
-  color: var(--primary);
-}
-@media (hover: hover) and (pointer: fine) {
-  .channel-delivery > summary:hover {
-    box-shadow: inset 0 0 0 100vmax var(--fill-4);
-  }
-}
-@media (pointer: coarse) {
-  .channel-delivery > summary {
-    min-height: 44px;
-  }
+.status-chip.tone-gray {
+  background: var(--status-gray-bg);
+  color: var(--status-gray-text);
 }
 
 /* ---------- Alert center ------------------------------------------------------ */
@@ -2056,7 +2143,6 @@
     appearance: auto;
   }
   /* Masked chevron and status dots paint with background-color. */
-  .quick-filters-card > summary::after,
   .live-dot,
   .leg-tag::before {
     forced-color-adjust: none;
@@ -2065,7 +2151,7 @@
   .live-pill,
   .info-chip,
   .summary-tile,
-  .channel-delivery,
+  .status-chip,
   .trend-stable {
     border: 1px solid CanvasText;
   }
@@ -2221,6 +2307,11 @@
 }
 .whatsapp-contact > .phone-field {
   margin-top: 8px;
+}
+.contact-legend-icon {
+  margin-right: 6px;
+  color: var(--action);
+  vertical-align: -3px;
 }
 .quiet-hours-times {
   margin-top: 12px;
@@ -2497,4 +2588,11 @@
     forced-color-adjust: none;
     background-color: CanvasText;
   }
+}
+
+/* Price history downloads: CSV first, JSON beside it. */
+.history-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }

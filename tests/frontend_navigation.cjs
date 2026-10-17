@@ -18,7 +18,10 @@ for(const route of [{view:'home'},{view:'history'},{view:'settings'},{view:'aler
  const url=new URL(routePath(route),'https://fixture.example'),parsed=parseRoute(url.pathname,url.search);
  for(const [key,value] of Object.entries(route))assert.equal(parsed[key],value,routePath(route)+' '+key);
 }
-for(const path of ['/viagens/x/invalid','/admin/anything','/admin/canais/unsupported','/%E0%A4%A'])assert.equal(parseRoute(path).view,'notfound');
+for(const path of ['/viagens/x/invalid','/admin/anything','/%E0%A4%A'])assert.equal(parseRoute(path).view,'notfound');
+// An unknown channel (old Telegram links) opens the channels on WhatsApp, the default.
+for(const path of ['/admin/canais/telegram','/admin/canais/unsupported'])assert.deepEqual({...parseRoute(path)},{view:'admin',section:'channels'});
+assert.equal(routePath({view:'admin',section:'channels'}),'/admin/canais/whatsapp');
 assert.equal(parseRoute('/viagens/nova','?etapa=99').step,2);assert.equal(parseRoute('/viagens/nova','?etapa=bad').step,0);assert.equal(parseRoute('/viagens/nova','?etapa=1.5').step,1);
 const api=nav.useNavigation();window.scrollY=380;
 api.navigate({view:'home',editor:'new'});assert.equal(window.location.pathname,'/viagens/nova');

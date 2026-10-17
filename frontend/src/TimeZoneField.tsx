@@ -6,8 +6,11 @@ export function validTimeZone(value: string): boolean {
   try { new Intl.DateTimeFormat(getLocale(), { timeZone: value }).format(); return !!value.trim(); }
   catch { return false; }
 }
-/** IANA time zone with suggestions, the device zone as a shortcut and the error next to the field. */
-export function TimeZoneField({ value, onChange, disabled = false }: { value: string; onChange: (value: string) => void; disabled?: boolean }) {
+/**
+ * IANA time zone with suggestions, the device zone as a shortcut and the error next to the field.
+ * `suggest` (an account still on the default UTC) names the zone on the shortcut.
+ */
+export function TimeZoneField({ value, onChange, disabled = false, suggest = false }: { value: string; onChange: (value: string) => void; disabled?: boolean; suggest?: boolean }) {
   const id = useId(), device = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   const zones = [...new Set(["UTC", value, device, ...((Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.("timeZone") || [])])];
   // An empty field is caught by `required`; a typed name must exist.
@@ -29,6 +32,6 @@ export function TimeZoneField({ value, onChange, disabled = false }: { value: st
       const input = document.getElementById(id) as HTMLInputElement | null;
       input?.setCustomValidity("");
       onChange(device);
-    }}>{t("Usar fuso do dispositivo")}</Button>
+    }}>{suggest && value === "UTC" && device !== "UTC" ? t("Usar fuso deste aparelho ({0})", [device]) : t("Usar fuso do dispositivo")}</Button>
   </div>;
 }
