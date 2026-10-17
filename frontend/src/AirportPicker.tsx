@@ -22,6 +22,14 @@ function countryName(code: string): string {
   }
 }
 
+/** IATA codes typed or pasted together ("GRU+CGH+VCP", "GRU, CGH"), or null for an ordinary search.
+ * A separator is required: names such as "Rio Sul" stay a normal search. */
+export function parseCodes(text: string): string[] | null {
+  const parts = text.trim().toUpperCase().split(/\s*[+,;/]\s*/).filter(Boolean);
+  if (parts.length < 2 || !parts.every((part) => /^[A-Z]{3}$/.test(part))) return null;
+  return parts.filter((part, i) => parts.indexOf(part) === i);
+}
+
 /** Up to three airports for one side of the trip, searched in the world catalog. */
 export function AirportPicker({
   label,
@@ -53,15 +61,18 @@ export function AirportPicker({
     [loading, setLoading] = useState(false),
     [failure, setFailure] = useState(""),
     // The first option is highlighted on its own, so Enter picks it; arrows or the pointer browse.
-    [browsing, setBrowsing] = useState(false);
+    [browsing, setBrowsing] = useState(false),
+    [batch, setBatch] = useState(false),
+    [batchError, setBatchError] = useState("");
   airports.forEach((a) => cache.set(a.code, a));
   const full = values.length >= LIMIT;
+  const codes = parseCodes(query);
   useEffect(() => {
     setIndex(-1);
     setBrowsing(false);
     setResults([]);
     setFailure("");
-    if (query.trim().length < 2 || full) {
+    if (query.trim().length < 2 || full || parseCodes(query)) {
       setLoading(false);
       return;
     }
@@ -94,7 +105,13 @@ export function AirportPicker({
   const expanded = open && query.trim().length >= 2 && !full;
   const labelId = id + "-label",
     errorId = id + "-error";
-  const status = loading
+  const status = batchError
+    ? batchError
+    : codes
+    ? batch
+      ? t("Buscando no catálogo mundial…")
+      : t("Pressione Enter para adicionar {0}.", [codes.join(", ")])
+    : loading
     ? t("Buscando no catálogo mundial…")
     : failure ||
       (results.length
@@ -120,6 +137,60 @@ export function AirportPicker({
       if (active && active !== document.body) return;
       box.current?.querySelector<HTMLElement>(".airport-add, .airport-chip:last-child button")?.focus();
     });
+  }
+  /** Adds every code of a "GRU+CGH+VCP" entry that the catalog knows, up to the limit. */
+  async function addCodes(list: string[]) {
+    const wanted = list.filter((code) => !values.includes(code));
+    setBatch(true);
+    setBatchError("");
+    try {
+      const found: Airport[] = [],
+        missing: string[] = [];
+      for (const code of wanted) {
+        let airport = cache.get(code);
+        if (!airport) {
+          const r = await fetch("/api/airports?q=" + encodeURIComponent(code));
+          if (!r.ok) throw new Error(t("Não foi possível consultar o catálogo."));
+          const items: Airport[] = await r.json();
+          items.forEach((a) => cache.set(a.code, a));
+          airport = items.find((a) => a.code === code);
+        }
+        if (airport) found.push(airport);
+        else missing.push(code);
+      }
+      const room = Math.max(0, LIMIT - values.length),
+        added = found.slice(0, room),
+        problems = [
+          missing.length ? t("Não encontrado: {0}.", [missing.join(", ")]) : "",
+          found.length > room ? t("Máximo de {0} aeroportos.", [LIMIT]) : "",
+        ].filter(Boolean);
+      if (added.length) {
+        rememberAirports(added);
+        onChange([...values, ...added.map((a) => a.code)]);
+      }
+      if (problems.length) {
+        // The field stays open with the codes that were left out and why.
+        setAdding(added.length < room);
+        setQuery(added.length >= room ? "" : [...found.slice(room).map((a) => a.code), ...missing].join("+"));
+        setOpen(true);
+        setBatchError(problems.join(" "));
+        return;
+      }
+      setQuery("");
+      setOpen(false);
+      setAdding(false);
+      requestAnimationFrame(() => {
+        onSelected?.();
+        const active = document.activeElement;
+        if (active && active !== document.body) return;
+        box.current?.querySelector<HTMLElement>(".airport-add, .airport-chip:last-child button")?.focus();
+      });
+    } catch (e) {
+      setOpen(true);
+      setBatchError(e instanceof Error ? e.message : t("Falha na consulta"));
+    } finally {
+      setBatch(false);
+    }
   }
   /** After a removal the focus goes to the next chip, "Adicionar outro…", the previous chip or the search field. */
   function remove(code: string) {
@@ -191,14 +262,28 @@ export function AirportPicker({
               autoCapitalize="off"
               spellCheck={false}
               disabled={full}
+              readOnly={batch}
               placeholder={full ? t("Limite de 3 aeroportos") : t("Cidade, aeroporto ou código IATA")}
               value={query}
               onFocus={() => setOpen(true)}
               onChange={(e) => {
+                setBatchError("");
                 setQuery(e.target.value);
                 setOpen(true);
               }}
+              onPaste={(e) => {
+                const pasted = parseCodes(e.clipboardData.getData("text"));
+                if (!pasted || batch) return;
+                e.preventDefault();
+                setQuery(pasted.join("+"));
+                void addCodes(pasted);
+              }}
               onKeyDown={(e) => {
+                if (codes && e.key === "Enter") {
+                  e.preventDefault();
+                  if (!batch) void addCodes(codes);
+                  return;
+                }
                 const used = comboboxKeyDown(e, {
                   count: results.length,
                   active: index,
@@ -216,7 +301,7 @@ export function AirportPicker({
                 if (!used && e.key === "Enter") e.preventDefault();
               }}
             />
-            {loading && <LoaderCircle size={17} className="spin" aria-hidden="true" />}
+            {(loading || batch) && <LoaderCircle size={17} className="spin" aria-hidden="true" />}
           </div>
           {expanded && (
             <div className="combo-popup">
@@ -264,7 +349,7 @@ export function AirportPicker({
       )}
       {/* The count and errors are announced from outside the listbox. */}
       <p className="sr-only" role="status">
-        {expanded ? status : ""}
+        {expanded ? status : batchError}
       </p>
       {values.length > 0 && !full && !adding && (
         <button
@@ -280,7 +365,7 @@ export function AirportPicker({
         </button>
       )}
       {full && (
-        <p className="field-help airport-limit">{t("Máximo de {0} aeroportos.", [LIMIT])}</p>
+        <p className="field-help airport-limit">{batchError || t("Máximo de {0} aeroportos.", [LIMIT])}</p>
       )}
       {adding && values.length > 0 && (
         <button

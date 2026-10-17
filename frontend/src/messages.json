@@ -5958,5 +5958,13 @@
   "Estável {0}": {
     "en": "Stable {0}",
     "es": "Estable {0}"
+  },
+  "Pressione Enter para adicionar {0}.": {
+    "en": "Press Enter to add {0}.",
+    "es": "Pulsa Enter para añadir {0}."
+  },
+  "Não encontrado: {0}.": {
+    "en": "Not found: {0}.",
+    "es": "No encontrado: {0}."
   }
 }
