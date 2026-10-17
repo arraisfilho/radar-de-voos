@@ -5943,10 +5943,6 @@
     "en": "Cabin and currency",
     "es": "Cabina y moneda"
   },
-  "Total estimado ida + volta": {
-    "en": "Estimated total outbound + return",
-    "es": "Total estimado ida + vuelta"
-  },
   "em 24 h": {
     "en": "in 24 h",
     "es": "en 24 h"
@@ -5966,5 +5962,17 @@
   "Não encontrado: {0}.": {
     "en": "Not found: {0}.",
     "es": "No encontrado: {0}."
+  },
+  "Total estimado · ida + volta": {
+    "en": "Estimated total · outbound + return",
+    "es": "Total estimado · ida + vuelta"
+  },
+  "Para {0} · soma do menor preço de cada trecho": {
+    "en": "For {0} · sum of the lowest fare on each leg",
+    "es": "Para {0} · suma de la tarifa más baja de cada tramo"
+  },
+  "Estável": {
+    "en": "Stable",
+    "es": "Estable"
   }
 }

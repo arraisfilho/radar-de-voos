@@ -48,7 +48,7 @@ async def lifespan(app):
         await asyncio.to_thread(monitor.stop)
 
 
-app = FastAPI(title="Radar de Voos", version="0.27.0", lifespan=lifespan,
+app = FastAPI(title="Radar de Voos", version="0.27.1", lifespan=lifespan,
               docs_url=None, redoc_url=None)
 
 

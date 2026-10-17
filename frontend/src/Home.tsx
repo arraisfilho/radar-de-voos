@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { clsx } from "clsx";
 import { CalendarDays, ChevronRight, Minus, Plane, Plus, TrendingDown, TrendingUp } from "lucide-react";
 import { Button } from "./ui";
 import { t } from "./i18n";
@@ -67,17 +68,35 @@ export function fareTrend(quote: Quote): { kind: "down" | "up" | "stable"; delta
   return { kind: delta < 0 ? "down" : "up", delta };
 }
 
-function FareTrend({ quote, currency }: { quote: Quote; currency: string }) {
+/** The sum of both legs, compared with the sum of their references when both have one. */
+export function combinedQuote(a: Quote, b: Quote): Quote {
+  const quote: Quote = { price: a.price + b.price, collected: Math.max(a.collected, b.collected) };
+  if (a.ref && b.ref)
+    quote.ref = {
+      price: a.ref.price + b.ref.price,
+      collected: Math.max(a.ref.collected, b.ref.collected),
+      basis: a.ref.basis === "day" && b.ref.basis === "day" ? "day" : "first",
+    };
+  return quote;
+}
+
+/** Compact trends (the legs under a total) drop the period, which the total already states. */
+function FareTrend({ quote, currency, compact = false }: { quote: Quote; currency: string; compact?: boolean }) {
   const trend = fareTrend(quote);
   if (!trend || !quote.ref) return null;
   const period = quote.ref.basis === "day" ? t("em 24 h") : t("desde a primeira coleta");
   const Icon = trend.kind === "down" ? TrendingDown : trend.kind === "up" ? TrendingUp : Minus;
+  const amount = `${trend.kind === "down" ? "−" : "+"}${formatMoney(Math.abs(trend.delta), currency)}`;
   const text =
     trend.kind === "stable"
-      ? t("Estável {0}", [period])
-      : `${trend.kind === "down" ? "−" : "+"}${formatMoney(Math.abs(trend.delta), currency)} ${period}`;
+      ? compact
+        ? t("Estável")
+        : t("Estável {0}", [period])
+      : compact
+        ? amount
+        : `${amount} ${period}`;
   return (
-    <span className={`fare-trend is-${trend.kind}`}>
+    <span className={clsx("fare-trend", `is-${trend.kind}`, compact && "is-compact")}>
       <Icon size={14} aria-hidden="true" />
       {text}
     </span>
@@ -106,7 +125,7 @@ function TripCard({
   const updated = Math.max(0, ...sides.map((side) => search.summary?.[side]?.collected || 0)) || search.last_success;
   const total =
     sides.length === 2 && search.summary?.outbound && search.summary?.inbound
-      ? search.summary.outbound.price + search.summary.inbound.price
+      ? combinedQuote(search.summary.outbound, search.summary.inbound)
       : null;
   const route = ended ? { view: "history" as const, searchId: search.id } : { view: "searches" as const, searchId: search.id };
   return (
@@ -145,27 +164,50 @@ function TripCard({
         <p className="trip-card-note">{t("Monitoramento encerrado. O histórico de preços continua disponível.")}</p>
       ) : (
         <div className="trip-card-fares">
-          <p className="trip-card-label">{t("Menor preço agora")}</p>
-          <dl>
-            {sides.map((side) => {
-              const quote = search.summary?.[side];
-              return (
-                <div key={side}>
-                  <dt>{side === "outbound" ? t("Ida") : t("Volta")}</dt>
-                  <dd>
-                    {quote ? formatMoney(quote.price, config.currency) : "—"}
-                    {quote && <FareTrend quote={quote} currency={config.currency} />}
-                  </dd>
-                </div>
-              );
-            })}
-          </dl>
-          {total !== null && (
-            <p className="trip-card-total">
-              {t("Total estimado ida + volta")} <strong>{formatMoney(total, config.currency)}</strong>
-            </p>
+          {total ? (
+            <>
+              {/* Round trip: the total leads, the legs follow in a compact row. */}
+              <p className="trip-card-label">{t("Total estimado · ida + volta")}</p>
+              <p className="trip-card-amount">
+                {formatMoney(total.price, config.currency)}
+                <FareTrend quote={total} currency={config.currency} />
+              </p>
+              <dl className="trip-card-legs">
+                {sides.map((side) => {
+                  const quote = search.summary![side]!;
+                  return (
+                    <div key={side}>
+                      <dt>{side === "outbound" ? t("Ida") : t("Volta")}</dt>
+                      <dd>
+                        {formatMoney(quote.price, config.currency)}
+                        <FareTrend quote={quote} currency={config.currency} compact />
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
+              <p className="trip-card-party">{t("Para {0} · soma do menor preço de cada trecho", [partyLabel(config)])}</p>
+            </>
+          ) : (
+            <>
+            <p className="trip-card-label">{t("Menor preço agora")}</p>
+            <dl>
+              {sides.map((side) => {
+                const quote = search.summary?.[side];
+                return (
+                  <div key={side}>
+                    <dt>{side === "outbound" ? t("Ida") : t("Volta")}</dt>
+                    <dd>
+                      {quote ? formatMoney(quote.price, config.currency) : "—"}
+                      {quote && <FareTrend quote={quote} currency={config.currency} />}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+            <p className="trip-card-party">{t("Total para {0} · por trecho", [partyLabel(config)])}</p>
+            </>
           )}
-          <p className="trip-card-party">{t("Total para {0} · por trecho", [partyLabel(config)])}</p>
         </div>
       )}
       <div className="trip-card-footer">
