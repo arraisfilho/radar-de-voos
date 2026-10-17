@@ -1,12 +1,16 @@
+import type { ReactNode } from "react";
+import { useUnsavedChanges } from "./navigationGuard";
 import { SystemVersion } from "./SystemVersion";
 import { AdditionalPhones } from "./AdditionalPhones";
-import { useLanguage, getLanguage, t } from "./i18n";
+import { useLanguage, getLanguage, getLocale, t } from "./i18n";
 import { LanguagePicker } from "./LanguagePicker";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plane, Plus, X, LogOut, Shield, Mail, UserRound } from "lucide-react";
 import { Button, Card } from "./ui";
 import { PhoneField } from "./PhoneField";
+import { TimeZoneField } from "./TimeZoneField";
+import { PasswordField } from "./PasswordField";
 import { AuditPanel } from "./AuditPanel";
 import { RecoveryForm } from "./RecoveryForm";
 const Dashboard = lazy(() => import("./App"));
@@ -293,20 +297,16 @@ export function AuthGate() {
               setPhone(p);
             }}
           />
-          <label>
-            {t("Senha")}
-            <input
-              required
-              type="password"
-              minLength={mode === "login" ? 1 : 10}
-              maxLength={200}
-              autoComplete={
-                mode === "login" ? "current-password" : "new-password"
-              }
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
+          <PasswordField
+            key={mode}
+            label={t("Senha")}
+            required
+            minLength={mode === "login" ? 1 : 10}
+            maxLength={200}
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
           {mode !== "login" && (
             <p className="help">{t("Use pelo menos dez caracteres.")}</p>
           )}
@@ -349,11 +349,6 @@ export function AuthGate() {
             {t("Esqueci minha senha")}
           </Button>
         )}
-        <p className="help">
-          {t(
-            "Acessos registrados para segurança e auditoria: IP, navegador e sistema.",
-          )}
-        </p>
         {session?.registration_open !== false ? (
           <div className="auth-switch">
             <span>
@@ -404,22 +399,42 @@ export function Profile({
   onSaved,
   onLogout,
   isBusy = false,
+  preferences,
 }: {
   user: User;
   token: string;
   onSaved: () => Promise<unknown>;
   onLogout: () => Promise<void>;
   isBusy?: boolean;
+  preferences?: ReactNode;
 }) {
   const [draft, setDraft] = useState(() => structuredClone(user)),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
+  const contacts = (value: User) => [
+    value.name,
+    value.emails,
+    value.whatsapp_use_login,
+    value.whatsapp_country,
+    value.whatsapp_phone,
+    value.telegram_username,
+    value.additional_phones || [],
+    value.quiet_hours,
+    value.quiet_start,
+    value.quiet_end,
+    value.timezone,
+  ];
+  useUnsavedChanges(
+    JSON.stringify(contacts(draft)) !== JSON.stringify(contacts(user)),
+  );
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
     setError("");
     setMessage("");
+    try { new Intl.DateTimeFormat(getLocale(), {timeZone: draft.timezone}).format(); }
+    catch { setError(t("Escolha um fuso horário válido da lista.")); return; }
+    setBusy(true);
     try {
       const updated: User = await api(
         "/profile",
@@ -461,12 +476,13 @@ export function Profile({
           {t("Sair da conta")}
         </Button>
       </Card>
-      <Card className="profile-card">
-        <h2>
-          <UserRound size={20} />
-          {t("Meu cadastro")}
-        </h2>
-        <form onSubmit={save}>
+      <form className="profile-form" onSubmit={save}>
+        <Card className="profile-card profile-contacts">
+          <h2>
+            <UserRound size={20} />
+            {t("Meu cadastro")}
+          </h2>
+
           <label>
             {t("Seu nome")}
             <input
@@ -489,7 +505,7 @@ export function Profile({
             />
           </details>
           <details className="profile-section">
-            <summary>{t("WhatsApp e Telegram")}</summary>
+            <summary>{t("WhatsApp")}</summary>
             <fieldset className="whatsapp-contact">
               <legend>{t("Número para WhatsApp")}</legend>
               <label className="check-row">
@@ -528,24 +544,22 @@ export function Profile({
                 )}
               </p>
             </fieldset>
-            <label>
-              {t("Usuário do Telegram (opcional)")}
-              <input
-                value={draft.telegram_username || ""}
-                maxLength={33}
-                placeholder="@seu_usuario"
-                autoComplete="off"
-                onChange={(e) =>
-                  setDraft({ ...draft, telegram_username: e.target.value })
-                }
-              />
-            </label>
-            <p className="help">
-              {t(
-                "Salva seu contato para a futura integração. O envio pelo Telegram ainda não está disponível e exigirá conectar sua conta ao bot do radar.",
-              )}
-            </p>
           </details>
+          <details className="profile-section">
+            <summary>{t("Outros telefones")}</summary>
+            <AdditionalPhones
+              defaultCountry={user.country}
+              values={draft.additional_phones || []}
+              disabled={busy}
+              onChange={(additional_phones) =>
+                setDraft({ ...draft, additional_phones })
+              }
+            />
+          </details>
+        </Card>
+        <Card className="profile-card profile-preferences">
+          <h2>{t("Preferências")}</h2>
+          {preferences}
           <details className="optional-contacts profile-section">
             <summary>{t("Horário silencioso")}</summary>
             <label className="check-row">
@@ -556,10 +570,7 @@ export function Profile({
                   setDraft({
                     ...draft,
                     quiet_hours: e.target.checked,
-                    timezone:
-                      draft.timezone === "UTC"
-                        ? Intl.DateTimeFormat().resolvedOptions().timeZone
-                        : draft.timezone,
+
                   })
                 }
               />
@@ -589,35 +600,15 @@ export function Profile({
                 />
               </label>
             </div>
-            <label>
-              {t("Fuso horário")}
-              <input
-                required
-                maxLength={80}
-                value={draft.timezone}
-                placeholder="America/Sao_Paulo"
-                onChange={(e) =>
-                  setDraft({ ...draft, timezone: e.target.value })
-                }
-              />
-            </label>
+            <TimeZoneField value={draft.timezone} onChange={timezone => setDraft({ ...draft, timezone })} />
             <p className="help">
               {t(
                 "As oportunidades continuam no painel. Alertas silenciados não são enviados depois. E-mails de segurança continuam ativos.",
               )}
             </p>
           </details>
-          <details className="profile-section">
-            <summary>{t("Outros telefones")}</summary>
-            <AdditionalPhones
-              defaultCountry={user.country}
-              values={draft.additional_phones || []}
-              disabled={busy}
-              onChange={(additional_phones) =>
-                setDraft({ ...draft, additional_phones })
-              }
-            />
-          </details>
+        </Card>
+        <div className="profile-form-footer">
           {error && (
             <p className="form-error" role="alert">
               {error}
@@ -631,8 +622,8 @@ export function Profile({
           <Button disabled={busy} type="submit">
             {busy ? t("Salvando…") : t("Salvar meus dados")}
           </Button>
-        </form>
-      </Card>
+        </div>
+      </form>
       <AuditPanel />
     </div>
   );

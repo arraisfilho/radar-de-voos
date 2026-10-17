@@ -112,10 +112,10 @@ def persist_snapshots(c, sid, version, cid, search, results):
         ids=[a for a,d,e in queue];subject=f"Radar de Voos · {search.name}"
         if search.notify_email:
             ready=bool(recipients and mail.available())
-            if ready or search.notify_whatsapp:
+            if search.notify_email:
                 oid=uuid.uuid4().hex
                 c.execute("INSERT INTO outbox(id,search_id,version,created,alert_ids,subject,body,status,next_due,recipients,error) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
-                    (oid,sid,version,time.time(),json.dumps(ids),subject,body,'pending' if ready else 'failed',time.time(),json.dumps(recipients),None if ready else 'E-mail sem destinatários ou serviço indisponível'))
+                    (oid,sid,version,time.time(),json.dumps(ids),subject,body,'pending' if ready else 'waiting_contact' if not recipients else 'waiting_service',time.time(),json.dumps(recipients),None if ready else 'Sem destinatário cadastrado' if not recipients else 'Serviço de envio indisponível'))
                 link(c,oid,ids)
                 c.execute('UPDATE outbox SET body_html=? WHERE id=?',(body_html,oid))
         if search.notify_whatsapp:
@@ -255,8 +255,6 @@ class Monitor:
 
     def send_one(self):
         config = mail.delivery_settings()
-        if not config["enabled"]:
-            return
         with db() as c:
             # Claim atomically so deletion cannot race with an unclaimed send.
             c.execute("BEGIN IMMEDIATE")
@@ -278,6 +276,12 @@ class Monitor:
             # A delayed old fare should not be sent as a current opportunity.
             if time.time()-row["created"] > 1800:
                 c.execute("UPDATE outbox SET status='expired' WHERE id=?", (row["id"],))
+                sync_alerts(c,json.loads(row['alert_ids']))
+                return
+            # Configuration problems are terminal blocks, not transport attempts.
+            blocked = 'waiting_service' if not config['enabled'] else 'waiting_contact' if row['search_id'] and not json.loads(row['recipients'] or '[]') else None
+            if blocked:
+                c.execute('UPDATE outbox SET status=?,error=? WHERE id=?',(blocked,'Serviço de envio indisponível' if blocked=='waiting_service' else 'Sem destinatário cadastrado',row['id']))
                 sync_alerts(c,json.loads(row['alert_ids']))
                 return
             c.execute("UPDATE outbox SET status='sending',attempts=attempts+1,provider=? WHERE id=?", (config.get('provider','smtp'),row["id"]))

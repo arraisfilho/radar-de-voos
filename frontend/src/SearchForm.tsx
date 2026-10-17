@@ -20,6 +20,7 @@ import "./search-form.css";
 import { AirportPicker } from "./AirportPicker";
 import { Button } from "./ui";
 import type { Config, Leg, State } from "./types";
+import { legDates } from "./tripSummary";
 const duration = (n: number) =>
   n < 60
     ? t("{0} min", [n])
@@ -324,40 +325,77 @@ type Props = {
   config: Config;
   setConfig: (v: Config) => void;
   airports: State["airports"];
-  onSave: (submitted?: Config) => void;
+  onSave: (submitted?: Config, currencyReviewed?: boolean) => void;
+  savedCurrency?: string;
   saving: boolean;
   general?: boolean;
   editing?: boolean;
   dirty?: boolean;
   emailRecipients?: string[];
+  emailAvailable?: boolean;
+  onManageContacts?: () => void;
   alertsOnly?: boolean;
   whatsappAvailable?: boolean;
   whatsappRecipients?: string[];
+  journey?: {
+    maxStep?: number;
+    step: number;
+    direction: "outbound" | "inbound";
+    onChange: (step: number, direction: "outbound" | "inbound") => void;
+  };
 };
 export function SearchForm({
   config,
   setConfig,
   airports,
   onSave,
+  savedCurrency,
   saving,
   general = false,
   editing = false,
   dirty = false,
   emailRecipients = [],
+  emailAvailable = true,
+  onManageContacts,
   alertsOnly = false,
   whatsappAvailable = false,
   whatsappRecipients = [],
+  journey,
 }: Props) {
   const baggageId = useId();
+  const errorId = useId();
   const returnTouched = useRef(false);
-  const [direction, setDirection] = useState<"outbound" | "inbound">(
+  const [localDirection, setLocalDirection] = useState<"outbound" | "inbound">(
       "outbound",
     ),
-    [step, setStep] = useState(editing ? 1 : 0),
+    [localStep, setLocalStep] = useState(editing ? 1 : 0),
     [error, setError] = useState(""),
     form = useRef<HTMLFormElement>(null),
     heading = useRef<HTMLHeadingElement>(null);
   const autoAdvanced = useRef(false);
+  const [alertsRequested, setAlertsRequested] = useState(config.notify_email || !!config.notify_whatsapp);
+  const [currencyNeedsReview, setCurrencyNeedsReview] = useState(Boolean(savedCurrency && savedCurrency !== config.currency));
+  const emailReady = emailAvailable && emailRecipients.length > 0;
+  const whatsappReady = whatsappAvailable && whatsappRecipients.length > 0;
+  const maxStep = editing ? 2 : Math.max(journey?.maxStep || 0, journey?.step || 0);
+  function reportProblem(message: string) {
+    setError(message);
+    requestAnimationFrame(() => {
+      const target = !config.origins.length ? '[data-airport-field="origin"] input' : !config.destinations.length ? '[data-airport-field="destination"] input' : '[aria-invalid="true"], input:invalid, [data-form-error]';
+      form.current?.querySelector<HTMLElement>(target)?.focus();
+    });
+  }
+  const direction = journey?.direction || localDirection,
+    step = journey?.step ?? localStep;
+  const go = (nextStep: number, nextDirection = direction) => {
+    if (journey) journey.onChange(nextStep, nextDirection);
+    else {
+      setLocalStep(nextStep);
+      setLocalDirection(nextDirection);
+    }
+  };
+  const setStep = (next: number) => go(next);
+  const setDirection = (next: "outbound" | "inbound") => go(step, next);
   const legDirection = config.inbound ? direction : "outbound";
   const leg =
     (legDirection === "inbound" ? config.inbound : config.outbound) ||
@@ -400,6 +438,7 @@ export function SearchForm({
   function completeOutbound(outbound: Leg) {
     if (
       !general ||
+      maxStep >= 1 ||
       editing ||
       step !== 0 ||
       legDirection !== "outbound" ||
@@ -411,7 +450,7 @@ export function SearchForm({
     const next = { ...config, outbound };
     const problem = validateTrip(true, next);
     if (problem) {
-      setError(problem);
+      reportProblem(problem);
       return;
     }
     if (next.inbound!.start < outbound.start && !returnTouched.current) {
@@ -435,13 +474,14 @@ export function SearchForm({
     if (
       next > step &&
       step === 0 &&
+      maxStep < 1 &&
       !editing &&
       nextTripAction(!!config.inbound, legDirection) === "return"
     ) {
       if (!form.current?.reportValidity()) return;
       const problem = validateTrip(true);
       if (problem) {
-        setError(problem);
+        reportProblem(problem);
         return;
       }
       if (
@@ -471,7 +511,7 @@ export function SearchForm({
       if (!form.current?.reportValidity()) return;
       const problem = validateTrip();
       if (problem) {
-        setError(problem);
+        reportProblem(problem);
         return;
       }
       if (
@@ -485,6 +525,7 @@ export function SearchForm({
     if (
       next > step &&
       step === 1 &&
+      maxStep < 2 &&
       !editing &&
       config.inbound &&
       legDirection === "outbound"
@@ -495,10 +536,12 @@ export function SearchForm({
       return;
     }
     setError("");
-    setStep(next);
-    if (next === 1) setDirection("outbound");
+    go(next, next === 1 ? "outbound" : direction);
     heading.current?.focus();
-    form.current?.closest(".dialog-body")?.scrollTo({ top: 0 });
+    if (journey)
+      requestAnimationFrame(() =>
+        form.current?.scrollIntoView({ block: "start" }),
+      );
   }
   const directionTabs = config.inbound ? (
     <div className="tabs small-tabs" aria-label={t("Trecho a configurar")}>
@@ -647,12 +690,12 @@ export function SearchForm({
       <div
         className={general ? "preference-secondary" : "preference-airline-only"}
       >
+        {general && baggage}
         <AirlinePicker
           key={legDirection}
           values={leg.airlines}
           onChange={(airlines) => patch({ airlines })}
         />
-        {general && baggage}
       </div>
       {general && (
         <details className="advanced-options">
@@ -667,19 +710,19 @@ export function SearchForm({
       {!general && baggage}
     </div>
   );
-  const alerts = (
-    <>
+  const currencySettings = (<section className="currency-settings">
       <label>
         {t("Moeda da pesquisa")}
         <select
           value={config.currency || "BRL"}
-          onChange={(e) =>
+          onChange={(e) => {
+            setCurrencyNeedsReview(true);
             global({
               currency: e.target.value,
               target_cents: null,
               min_drop_cents: 5000,
-            })
-          }
+            });
+          }}
         >
           {currencies.map((code) => (
             <option key={code} value={code}>
@@ -688,14 +731,11 @@ export function SearchForm({
           ))}
         </select>
       </label>
-      <details className="currency-explanation">
-        <summary>{t("Sobre a moeda e os preços")}</summary>{" "}
-        <p className="help">
-          {t(
-            "A sugestão inicial usa região/idioma e fuso do navegador; não é sua localização exata. Escolha outra moeda se preferir. Ao trocar, a meta é limpa e a queda mínima volta a 50 na nova moeda. A compra segue as condições do vendedor.",
-          )}
-        </p>
-      </details>
+      <p className="help">{t("Ao trocar a moeda, a meta é limpa e a queda mínima volta a 50 na nova moeda.")}</p>
+  </section>);
+  const alerts = (
+    <>
+      <p className="help">{t("Valores em {0}. Altere a moeda na etapa Viagem.", [config.currency || "BRL"])}</p>
       <div className="two-fields">
         <label>
           {t("Meta por trecho (")}
@@ -735,31 +775,32 @@ export function SearchForm({
       <p className="help">
         {t("Preço total para {0}, por trecho.", [partyLabel(config)])}
       </p>
+      {currencyNeedsReview && <label className="check-row currency-review"><input type="checkbox" required checked={false} onChange={() => setCurrencyNeedsReview(false)} />{t("Revisei os valores de alerta na nova moeda.")}</label>}
+
 
       <label className="check-row">
         <input
           type="checkbox"
-          checked={config.notify_email || !!config.notify_whatsapp}
-          onChange={(e) =>
-            global(
-              e.target.checked
-                ? { notify_email: true }
-                : { notify_email: false, notify_whatsapp: false },
-            )
-          }
+          checked={alertsRequested || config.notify_email || !!config.notify_whatsapp}
+          onChange={(e) => {
+            setAlertsRequested(e.target.checked);
+            global(e.target.checked
+              ? {notify_email: emailReady, notify_whatsapp: !emailReady && whatsappReady}
+              : {notify_email: false, notify_whatsapp: false});
+          }}
         />
         {t("Enviar alertas")}
       </label>
-      {(config.notify_email || config.notify_whatsapp) && (
+      {(alertsRequested || config.notify_email || config.notify_whatsapp) && (
         <fieldset className="channel-picker">
           <legend>{t("Como você quer receber?")}</legend>
           <div className="channel-options">
             {[
-              { id: "email", label: t("E-mail"), ready: true },
+              { id: "email", label: t("E-mail"), ready: emailReady },
               {
                 id: "whatsapp",
                 label: t("WhatsApp"),
-                ready: whatsappAvailable,
+                ready: whatsappReady,
               },
               { id: "telegram", label: t("Telegram"), ready: false },
             ].map((channel) => (
@@ -771,6 +812,7 @@ export function SearchForm({
               >
                 <input
                   type="checkbox"
+                  aria-invalid={channel.id === "email" && config.notify_email && !emailReady || channel.id === "whatsapp" && config.notify_whatsapp && !whatsappReady || undefined}
                   checked={
                     channel.id === "email"
                       ? config.notify_email
@@ -780,7 +822,8 @@ export function SearchForm({
                   }
                   disabled={
                     !channel.ready &&
-                    !(channel.id === "whatsapp" && config.notify_whatsapp)
+                    !(channel.id === "whatsapp" && config.notify_whatsapp) &&
+                    !(channel.id === "email" && config.notify_email)
                   }
                   onChange={(e) =>
                     global(
@@ -796,7 +839,8 @@ export function SearchForm({
                     <small>
                       {channel.id === "telegram"
                         ? t("Em breve")
-                        : t("Indisponível")}
+                        : channel.id === "email" && !emailRecipients.length || channel.id === "whatsapp" && !whatsappRecipients.length
+                          ? t("Sem destinatário") : t("Indisponível")}
                     </small>
                   )}
                 </span>
@@ -820,6 +864,11 @@ export function SearchForm({
                 : t("Cadastre o número WhatsApp em Meu perfil.")}
             </p>
           )}
+          {(!emailRecipients.length || !whatsappRecipients.length) && <div className="channel-warning">
+            <p>{t("Cadastre os contatos no perfil para habilitar os canais de alerta.")}</p>
+            {onManageContacts && <Button type="button" variant="outline" onClick={onManageContacts}>{t("Gerenciar contatos no perfil")}</Button>}
+          </div>}
+          {(!emailAvailable || !whatsappAvailable) && <p className="help">{t("Canais indisponíveis precisam ser configurados pela administração.")}</p>}
           <p className="help">{t("Você pode selecionar mais de um canal.")}</p>
         </fieldset>
       )}
@@ -829,6 +878,7 @@ export function SearchForm({
     <form
       id={!general && !alertsOnly ? "monitor-filters" : undefined}
       ref={form}
+      aria-describedby={error ? errorId : undefined}
       className={
         "filter-form " +
         (alertsOnly
@@ -843,9 +893,14 @@ export function SearchForm({
           move(step + 1);
           return;
         }
+        if (currencyNeedsReview) {
+          if (general) setStep(2);
+          reportProblem(t("Revise os valores de alerta após trocar a moeda."));
+          return;
+        }
         const problem = validateTrip();
         if (problem) {
-          setError(problem);
+          reportProblem(problem);
           if (general) setStep(0);
           return;
         }
@@ -865,10 +920,15 @@ export function SearchForm({
             return;
           }
         }
+        if ((general || alertsOnly) && (config.notify_email && !emailReady || config.notify_whatsapp && !whatsappReady || alertsRequested && !config.notify_email && !config.notify_whatsapp)) {
+          if (general) setStep(2);
+          reportProblem(t("Selecione um canal disponível com destinatário cadastrado, ou desative os alertas."));
+          return;
+        }
         onSave({
           ...config,
           name: config.name.trim() || suggestedName(config),
-        });
+        }, general && !currencyNeedsReview);
       }}
     >
       {general && !alertsOnly && (
@@ -880,12 +940,12 @@ export function SearchForm({
             {[
               t("Viagem"),
               t("Preferências"),
-              editing ? t("Alertas") : t("Concluir"),
+              t("Revisão e alertas"),
             ].map((name, i) => (
               <li key={name} aria-current={step === i ? "step" : undefined}>
                 <button
                   type="button"
-                  disabled={!editing && i > step}
+                  disabled={!editing && i > Math.max(step, maxStep)}
                   onClick={() => (editing ? setStep(i) : move(i))}
                 >
                   {!editing && (
@@ -897,12 +957,12 @@ export function SearchForm({
             ))}
           </ol>
           {!editing && (
-            <h3 className="wizard-title sr-only" tabIndex={-1} ref={heading}>
+            <h3 className="wizard-title" tabIndex={-1} ref={heading}>
               {
                 [
                   t("Sua próxima viagem"),
                   t("O que faz um voo servir para você?"),
-                  t("Quando devemos avisar?"),
+                  t("Revise sua viagem e escolha os alertas"),
                 ][step]
               }
             </h3>
@@ -914,10 +974,13 @@ export function SearchForm({
           <div className="two-fields airport-fields">
             <AirportPicker
               label={t("Origem")}
+              field="origin"
+              invalid={!!error && !config.origins.length}
+              describedBy={error && !config.origins.length ? errorId : undefined}
               onSelected={() => {
                 const destination =
                   form.current?.querySelector<HTMLInputElement>(
-                    '[data-airport="Destino"] input',
+                    '[data-airport-field="destination"] input',
                   );
                 if (destination) destination.focus();
               }}
@@ -927,6 +990,9 @@ export function SearchForm({
             />
             <AirportPicker
               label={t("Destino")}
+              field="destination"
+              invalid={!!error && !config.destinations.length}
+              describedBy={error && !config.destinations.length ? errorId : undefined}
               onSelected={() =>
                 form.current
                   ?.querySelector<HTMLSelectElement>(".trip-fields select")
@@ -1016,6 +1082,7 @@ export function SearchForm({
               </select>
             </label>
           </div>
+          {currencySettings}
           <details className="infant-options">
             <summary>
               {t("Bebês (opcional)")}
@@ -1079,6 +1146,26 @@ export function SearchForm({
       {!alertsOnly && general && step === 1 && (
         <>
           {directionTabs}
+          {legDirection === "inbound" && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="copy-preferences"
+              onClick={() =>
+                global({
+                  inbound: {
+                    ...leg,
+                    stops: [...config.outbound.stops],
+                    max_duration: config.outbound.max_duration,
+                    max_layover: config.outbound.max_layover,
+                    airlines: [...config.outbound.airlines],
+                  },
+                })
+              }
+            >
+              {t("Usar as preferências da ida")}
+            </Button>
+          )}
           {preferences}
         </>
       )}
@@ -1092,12 +1179,30 @@ export function SearchForm({
               {config.inbound ? t("Ida e volta") : t("Só ida")} ·{" "}
               {partyLabel(config)} ·
               {config.checked_bags
-                ? t("{0} mala(s) na pesquisa", [config.checked_bags])
+                ? t(config.checked_bags === 1 ? "{0} mala na pesquisa" : "{0} malas na pesquisa", [config.checked_bags])
                 : t("Taxas de bagagem não adicionadas")}
             </span>
+            <span>{({economy: t("Econômica"), "premium-economy": t("Econômica premium"), business: t("Executiva"), first: t("Primeira classe")})[config.cabin]}</span>
+            {(["outbound", "inbound"] as const).map((side) => {
+              const selection = config[side];
+              if (!selection) return null;
+              return <section className="review-leg" key={side}>
+                <strong>{side === "outbound" ? t("Ida") : t("Volta")} · {legDates(selection, true)}</strong>
+                <p>{windowStamp(selection.start)} → {windowStamp(selection.end)}</p>
+                <p>{t("Escalas permitidas")}: {selection.stops.map((stops) => stops === 0 ? t("Direto") : stops === 1 ? t("1 escala") : t("2 ou mais")).join(" · ")}</p>
+                <p>{t("Duração máxima da viagem")}: {selection.max_duration == null ? t("Sem limite de duração") : duration(selection.max_duration)}</p>
+                <p>{t("Companhia aérea")}: {selection.airlines.length ? selection.airlines.join(" / ") : t("Todas as companhias")}</p>
+                <p>{t("Máximo por conexão")}: {selection.max_layover == null ? t("Sem limite") : duration(selection.max_layover)}</p>
+                {selection.arrival_before && <p>{t("Chegar até")}: {windowStamp(selection.arrival_before)}</p>}
+                <div className="wizard-actions">
+                  <Button type="button" variant="ghost" onClick={() => go(0, side)}>{t("Editar viagem")}</Button>
+                  <Button type="button" variant="ghost" onClick={() => go(1, side)}>{t("Editar preferências")}</Button>
+                </div>
+              </section>;
+            })}
           </div>
           <label className="monitor-name">
-            {t("Nome do monitoramento (opcional)")}
+            {t("Nome da viagem (opcional)")}
             <input
               maxLength={70}
               value={config.name}
@@ -1138,7 +1243,7 @@ export function SearchForm({
       )}
       {alertsOnly && alerts}
       {error && (
-        <p className="form-error" role="alert">
+        <p id={errorId} className="form-error" role="alert" tabIndex={-1} data-form-error>
           {error}
         </p>
       )}
@@ -1161,7 +1266,7 @@ export function SearchForm({
                   {t("Voltar")}
                 </Button>
               )}
-            <Button type="submit" disabled={saving} className="full">
+            <Button type="submit" size="large" disabled={saving} className="full">
               {saving ? (
                 <LoaderCircle size={17} className="spin" />
               ) : general && !editing && step < 2 ? (
@@ -1178,7 +1283,7 @@ export function SearchForm({
                       legDirection === "outbound"
                       ? t("Continuar para a volta")
                       : t("Continuar")
-                    : t("Salvar busca")
+                    : t("Salvar viagem")
                   : t("Salvar filtros")}
             </Button>
           </div>

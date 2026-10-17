@@ -31,3 +31,26 @@ def list_events(user,all_users=False):
         where='' if all_users and user['role']=='admin' else 'WHERE e.user_id=?'
         args=() if not where else (user['id'],)
         return [dict(r) for r in c.execute('SELECT e.*,a.name AS account_name,a.phone AS login,actor.name AS actor_name FROM access_audit e LEFT JOIN accounts a ON a.id=e.user_id LEFT JOIN accounts actor ON actor.id=e.actor_id '+where+' ORDER BY e.id DESC LIMIT 100',args)]
+
+
+def page_events(user,all_users=False,page=0,q='',event='',start=None,end=None):
+    from .deliveries import days
+    from fastapi import HTTPException
+    if start is not None and end is not None and start>end:
+        raise HTTPException(422,'O início precisa ser anterior ao fim')
+    clauses=[];args=[]
+    if not (all_users and user['role']=='admin'):
+        clauses.append('e.user_id=?');args.append(user['id'])
+    if q:
+        escaped='%'+q.replace('\\','\\\\').replace('%','\\%').replace('_','\\_')+'%'
+        clauses.append("(a.name LIKE ? ESCAPE '\\' OR a.phone LIKE ? ESCAPE '\\')");args.extend([escaped,escaped])
+    if event:clauses.append('e.event=?');args.append(event)
+    for value,operator in [(start,'>='),(end,'<=')]:
+        if value is not None:clauses.append('e.created'+operator+'?');args.append(value)
+    where=' WHERE '+' AND '.join(clauses) if clauses else ''
+    join=' FROM access_audit e LEFT JOIN accounts a ON a.id=e.user_id LEFT JOIN accounts actor ON actor.id=e.actor_id'
+    with db() as c:
+        c.execute('BEGIN')
+        total=c.execute('SELECT COUNT(*)'+join+where,args).fetchone()[0]
+        rows=[dict(r) for r in c.execute('SELECT e.*,a.name AS account_name,a.phone AS login,actor.name AS actor_name'+join+where+' ORDER BY e.id DESC LIMIT 25 OFFSET ?',[*args,page*25])]
+    return {'items':rows,'total':total,'page':page,'page_size':25,'days':days('access'),'max_records':20000}

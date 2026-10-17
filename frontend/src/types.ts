@@ -157,6 +157,7 @@ export type State = {
   history: Snapshot[];
   alerts: Alert[];
   smtp: SMTP | null;
+  mail_provider?: "google" | "smtp" | null;
   user: User;
   email_available: boolean;
   whatsapp_available?: boolean;

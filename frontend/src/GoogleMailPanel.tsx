@@ -185,7 +185,7 @@ export function GoogleMailPanel({
             </h2>
             <p>
               {status.connected && !adding
-                ? t("Seus alertas serão enviados por esta conta.")
+                ? t("Serviço em uso: conta conectada.")
                 : t(
                     "Informe seu e-mail. Nós identificamos o provedor e abrimos o login para você.",
                   )}
@@ -418,7 +418,7 @@ export function GoogleMailPanel({
               )}
             </p>
             <div className="google-mail-actions">
-              <Button type="submit" disabled={busy || savingClient}>
+              <Button type="submit" size="large" disabled={busy || savingClient}>
                 {busy ? (
                   <LoaderCircle size={17} className="spin" />
                 ) : (

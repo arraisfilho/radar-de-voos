@@ -14,6 +14,16 @@ def setup(c):
     if not c.execute("SELECT 1 FROM metadata WHERE key='notification_links_v1'").fetchone():
         c.execute('INSERT OR IGNORE INTO notification_deliveries SELECT o.id,a.id FROM outbox o,json_each(o.alert_ids) j JOIN alerts a ON a.id=j.value')
         c.execute("INSERT INTO metadata VALUES('notification_links_v1','1')")
+    if not c.execute("SELECT 1 FROM metadata WHERE key='delivery_blocked_v1'").fetchone():
+        # Reclassify only known configuration failures with zero transport attempts.
+        # Keep their contents, timestamps and links; blocked rows are never queued again.
+        rows=c.execute("SELECT id,recipients,error FROM outbox WHERE status='failed' AND COALESCE(attempts,0)=0 AND error IN ('E-mail sem destinatários ou serviço indisponível','Número WhatsApp não cadastrado','Integração WhatsApp indisponível')").fetchall()
+        for row in rows:
+            status='waiting_contact' if not json.loads(row['recipients'] or '[]') else 'waiting_service'
+            c.execute('UPDATE outbox SET status=?,completed=COALESCE(completed,created) WHERE id=?',(status,row['id']))
+        ids=[r[0] for r in c.execute("SELECT DISTINCT n.alert_id FROM notification_deliveries n JOIN outbox o ON o.id=n.outbox_id WHERE o.status IN ('waiting_contact','waiting_service')")]
+        sync_alerts(c,ids)
+        c.execute("INSERT INTO metadata VALUES('delivery_blocked_v1','1')")
 
 
 def link(c,oid,ids):
@@ -33,6 +43,8 @@ def sync_alerts(c,ids):
         elif 'sent' in statuses:status='partial'
         elif 'uncertain' in statuses:status='uncertain'
         elif 'failed' in statuses:status='failed'
+        elif 'waiting_contact' in statuses:status='waiting_contact'
+        elif 'waiting_service' in statuses:status='waiting_service'
         else:status=statuses[0]
         c.execute('UPDATE alerts SET status=? WHERE id=?',(status,aid))
 

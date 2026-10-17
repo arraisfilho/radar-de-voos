@@ -2,6 +2,7 @@ import { ArrowRight, Plus, Plane, Pause, Clock } from "lucide-react";
 import { Card, Button } from "./ui";
 import { t, getLocale } from "./i18n";
 import { tripTitle, legDates } from "./tripSummary";
+import { partyLabel } from "./passengers";
 import type { SearchRecord } from "./types";
 const price = (value: number, currency: string) =>
   new Intl.NumberFormat(getLocale(), {
@@ -46,10 +47,8 @@ export function Home({
     <>
       <div className="home-summary">
         <span>
-          {t("{0} ativas · {1} pausadas", [
-            searches.filter((s) => s.active).length,
-            searches.filter((s) => !s.active).length,
-          ])}
+          {t(searches.filter((s) => s.active).length === 1 ? "{0} ativa" : "{0} ativas", [searches.filter((s) => s.active).length])}
+          {" · "}{t(searches.filter((s) => !s.active).length === 1 ? "{0} pausada" : "{0} pausadas", [searches.filter((s) => !s.active).length])}
         </span>
         <span>{t("Selecione uma viagem para ver os voos.")}</span>
       </div>
@@ -68,10 +67,10 @@ export function Home({
                 {search.active ? <Plane size={14} /> : <Pause size={14} />}{" "}
                 {search.active ? t("Ativo") : t("Pausado")}
               </span>
-              <h2>{summary.title}</h2>
               {summary.secondaryRoute && (
-                <p className="home-route">{summary.secondaryRoute}</p>
+                <p className="home-search-name">{summary.title}</p>
               )}
+              <h2>{summary.secondaryRoute || summary.title}</h2>
               <div className="home-dates">
                 <span>
                   <strong>{t("Ida")}</strong> {legDates(search.config.outbound)}
@@ -103,9 +102,11 @@ export function Home({
                             )
                           : "—"}
                       </strong>
+                      <small>{search.summary?.[side]?.collected ? new Date(search.summary[side]!.collected * 1000).toLocaleString(getLocale(), {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"}) : t("Sem coleta")}</small>
                     </span>
                   ))}
               </div>
+              <small className="help">{t("Total para {0} · por trecho", [partyLabel(search.config)])}</small>
               <span className="home-card-action">
                 {search.last_finished
                   ? t("Ver voos")

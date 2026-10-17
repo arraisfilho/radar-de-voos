@@ -102,7 +102,7 @@ class RefinementTests(unittest.TestCase):
         other=TestClient(self.module.app)
         try:
             other.post('/api/auth/register',json={'name':'Other fixture','country':'GB','phone':'02079460018','password':'other-fixture-password'},headers=self.headers)
-            state=other.get('/api/state',params={'search_id':sid,'preview_pool':True}).json();self.assertEqual(state['flights'],[]);self.assertIsNone(state['selected'])
+            response=other.get('/api/state',params={'search_id':sid,'preview_pool':True});self.assertEqual(response.status_code,404);self.assertNotIn('flights',response.json())
         finally:other.close()
         self.assertEqual(self.client.get('/api/state').json()['selected']['config']['outbound']['max_duration'],60)
 

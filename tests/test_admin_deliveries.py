@@ -120,3 +120,53 @@ class AdminDeliveryTests(unittest.TestCase):
             deliveries.setup(c)
         self.assertEqual(deliveries.detail('legacy-search')['owner_id'],self.uid)
         self.assertTrue(deliveries.detail('legacy-reset')['content_protected']);self.assertIsNotNone(deliveries.detail('legacy-search')['completed'])
+
+    def test_configuration_blocks_are_not_transport_failures_or_retried(self):
+        from backend import notifications
+        for oid in ['no-contact','no-service','attempted']:
+            self.insert(oid,status='failed',search=self.sid)
+        with store.db() as c:
+            c.execute("UPDATE outbox SET recipients='[]',error='E-mail sem destinatários ou serviço indisponível' WHERE id='no-contact'")
+            c.execute("UPDATE outbox SET error='E-mail sem destinatários ou serviço indisponível' WHERE id='no-service'")
+            c.execute("UPDATE outbox SET attempts=1,error='E-mail sem destinatários ou serviço indisponível' WHERE id='attempted'")
+            c.execute("DELETE FROM metadata WHERE key='delivery_blocked_v1'")
+            notifications.setup(c)
+        self.assertEqual(deliveries.detail('no-contact')['status'],'waiting_contact')
+        self.assertEqual(deliveries.detail('no-service')['status'],'waiting_service')
+        self.assertEqual(deliveries.detail('attempted')['status'],'failed')
+        self.assertEqual(deliveries.detail('no-contact')['body'],'Fixture message')
+        blocked=self.admin.get('/api/admin/deliveries',params={'status':'blocked'}).json()
+        self.assertEqual({row['id'] for row in blocked['items']},{'no-contact','no-service'})
+        with patch.object(mail,'delivery_settings',return_value={'enabled':True,'provider':'smtp'}),patch.object(mail,'transmit') as transmit:
+            Monitor().send_one();transmit.assert_not_called()
+
+    def test_paged_audit_filters_ownership_and_actual_retention(self):
+        from backend import audit
+        now=time.time()
+        with store.db() as c:
+            c.executemany('INSERT INTO access_audit(user_id,event,created,ip,user_agent,browser,system) VALUES(?,?,?,?,?,?,?)',[(self.uid,'login_failed',now-i,'127.0.0.1','fixture agent','Fixture browser','Fixture OS') for i in range(31)])
+            c.execute('INSERT INTO access_audit(user_id,event,created,ip,user_agent,browser,system) VALUES(?,?,?,?,?,?,?)',(self.aid,'login_failed',now,'127.0.0.1','admin fixture','Fixture browser','Fixture OS'))
+        deliveries.configure_days('access',45)
+        page=self.admin.get('/api/admin/audit',params={'page':0,'event':'login_failed','q':'Other fixture'}).json()
+        self.assertEqual(page['total'],31);self.assertEqual(len(page['items']),25);self.assertEqual(page['days'],45)
+        second=self.admin.get('/api/admin/audit',params={'page':1,'event':'login_failed','q':'Other fixture'}).json()
+        self.assertEqual(len(second['items']),6)
+        self.assertFalse({r['id'] for r in page['items']}&{r['id'] for r in second['items']})
+        own=self.user.get('/api/audit',params={'page':0,'event':'login_failed'}).json()
+        self.assertEqual(own['total'],31);self.assertTrue(all(r['user_id']==self.uid for r in own['items']))
+        self.assertEqual(self.user.get('/api/audit',params={'page':0,'q':'Admin fixture'}).json()['total'],0)
+        self.assertEqual(self.admin.get('/api/admin/audit',params={'page':0,'q':'%'}).json()['total'],0)
+        self.assertEqual(self.admin.get('/api/admin/audit',params={'page':0,'start':now+1,'end':now}).status_code,422)
+        self.assertEqual(self.user.get('/api/admin/audit',params={'page':0}).status_code,403)
+        self.assertEqual(self.anon.get('/api/audit',params={'page':0}).status_code,401)
+        self.assertIsInstance(self.admin.get('/api/admin/audit').json(),list)
+
+    def test_disabled_sender_blocks_queued_message_before_any_attempt(self):
+        self.insert('queued-before-disable',status='pending',owner=self.aid)
+        with patch.object(mail,'delivery_settings',return_value={'enabled':False,'provider':'smtp'}),patch.object(mail,'transmit') as transmit:
+            Monitor().send_one();transmit.assert_not_called()
+        entry=deliveries.detail('queued-before-disable')
+        self.assertEqual(entry['status'],'waiting_service');self.assertEqual(entry['attempts'],0)
+        self.assertIsNotNone(entry['completed'])
+        with patch.object(mail,'delivery_settings',return_value={'enabled':True,'provider':'smtp'}),patch.object(mail,'transmit') as transmit:
+            Monitor().send_one();transmit.assert_not_called()

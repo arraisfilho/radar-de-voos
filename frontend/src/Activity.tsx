@@ -1,3 +1,4 @@
+import { priceChangeLabel } from "./pricePresentation";
 import { DeliveryChannels } from "./DeliveryChannels";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -64,13 +65,14 @@ export function Activity({
       (totals.partial || 0) +
       (totals.uncertain || 0) +
       (totals.waiting_smtp || 0) +
+      (totals.waiting_service || 0) +
       (totals.waiting_contact || 0);
   return (
     <>
       <div className="activity-summary">
         <span>
           <strong>{sent}</strong>
-          {t("Envios completos")}
+          {t("Aceitos pelos provedores")}
         </span>
         <span>
           <strong>{pending}</strong>
@@ -228,12 +230,13 @@ export function Activity({
                       : ""}
                   </span>
                   <span className="activity-price">
-                    {item.previous !== null && (
+                    {item.previous !== null && item.previous > item.price && (
                       <del>{money(item.previous, currency)}</del>
                     )}{" "}
                     <strong>{money(item.price, currency)}</strong>
                   </span>
                 </div>
+                {priceChangeLabel(item.previous, item.price, currency) && <p className="activity-price-change">{priceChangeLabel(item.previous, item.price, currency)}</p>}
                 <div className="activity-item-footer">
                   {observed ? (
                     <span className="delivery-badge">

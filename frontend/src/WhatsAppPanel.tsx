@@ -220,7 +220,7 @@ export function WhatsAppPanel({ request }: { request: RequestFn }) {
             <p className="help">
               <ShieldCheck size={14} />
               {t(
-                "O token fica somente no servidor, em arquivo privado fora do Git.",
+                "Credenciais armazenadas no servidor.",
               )}
             </p>
             <div className="settings-actions">

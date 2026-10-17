@@ -30,7 +30,7 @@ export function SidebarSearches({
   return (
     <div className="sidebar-searches">
       <p className="eyebrow">
-        {t("SUAS BUSCAS")}
+        {t("SUAS VIAGENS")}
         <span>
           {searches.length}/{limit}
         </span>
@@ -115,7 +115,7 @@ export function SidebarSearches({
       )}
       <button className="add-search" onClick={onNew}>
         <Plus size={16} />
-        {t("Nova busca")}
+        {t("Nova viagem")}
       </button>
     </div>
   );

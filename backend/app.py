@@ -37,7 +37,7 @@ async def lifespan(app):
     monitor.stop()
 
 
-app = FastAPI(title="Radar de Voos local", version="0.22.0", lifespan=lifespan,
+app = FastAPI(title="Radar de Voos local", version="0.24.0", lifespan=lifespan,
               docs_url=None, redoc_url=None)
 
 
@@ -137,7 +137,7 @@ def open_offer(request: Request, token: str):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "version": "0.22.0", "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
+    return {"ok": True, "version": "0.24.0", "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
 
 
 @app.get("/api/airports")
@@ -169,6 +169,8 @@ def state(request: Request, search_id: str | None = None, preview_pool: bool = F
         if since==revision:return {'unchanged':True,'revision':revision,'server_time':time.time()}
         searches = [decode_search(r) for r in c.execute("SELECT * FROM searches WHERE archived=0 AND owner_id=? ORDER BY created",(user["id"],)).fetchall()]
         archived = [decode_search(r) for r in c.execute("SELECT * FROM searches WHERE archived=1 AND owner_id=? ORDER BY created DESC",(user["id"],)).fetchall()]
+        if search_id and scope in ('legacy','searches','history') and not any(r['id']==search_id for r in searches+archived):
+            raise HTTPException(404,'Monitoramento não encontrado.')
         chosen = next((r for r in searches+archived if r["id"] == search_id), next(iter(searches+archived if scope=="history" else searches), None)) if scope in ('legacy','searches','history') else None
         if scope=='home':
             for item in searches:
@@ -200,7 +202,7 @@ def state(request: Request, search_id: str | None = None, preview_pool: bool = F
         item["ends_at"] = monitoring_deadline(Search.model_validate(item["config"]))
     for delivery in deliveries:
         delivery["recipients"] = json.loads(delivery["recipients"] or "[]")
-    return {"quote_expires":min((local_instant(f["departure"],f["origin"]).timestamp() for f in flights),default=None),"revision":revision,"alert_total":alert_total,"raw_retention_days":retention.days(),"token": TOKEN, "server_time": time.time(), "searches": searches, "archived": archived, "selected": chosen,
+    return {"quote_expires":min((local_instant(f["departure"],f["origin"]).timestamp() for f in flights),default=None),"revision":revision,"alert_total":alert_total,"raw_retention_days":retention.days(),"mail_provider":mail.delivery_settings()["provider"] if user["role"]=="admin" else None,"token": TOKEN, "server_time": time.time(), "searches": searches, "archived": archived, "selected": chosen,
             "flights": flights, "routes": routes, "history": history, "alerts": alerts, "cycles": cycles,
             "user": user, "smtp": smtp, "email_available": available, "whatsapp_available":whatsapp_available, "google_mail": google, "mail_test_recipient": recipient, "deliveries": deliveries,
             "airports": [airport_record(code) for code in sorted({code for item in searches + archived for key in ("origins", "destinations") for code in item["config"][key]})]}
@@ -415,8 +417,9 @@ def logout(request: Request, response: Response):
 
 
 @app.get("/api/audit")
-def own_audit(request:Request):
-    return audit.list_events(accounts.current_user(request))
+def own_audit(request:Request,page:int|None=Query(None,ge=0,le=1000),q:str=Query('',max_length=120),event:str=Query('',max_length=64),start:float|None=Query(None,ge=0),end:float|None=Query(None,ge=0)):
+    user=accounts.current_user(request)
+    return audit.list_events(user) if page is None else audit.page_events(user,False,page,q,event,start,end)
 
 
 @app.get('/api/admin/users')
@@ -429,6 +432,15 @@ def admin_users(request:Request,q:str=Query('',max_length=120),page:int=Query(0,
 def admin_monitorings(request:Request,uid:str,status:Literal['all','active','paused','ended']='all',page:int=Query(0,ge=0,le=10000)):
     accounts.require_admin(request)
     return admin_accounts.monitorings(uid,status,page)
+
+
+@app.get('/api/admin/users/{uid}')
+def admin_user(request:Request,uid:str):
+    accounts.require_admin(request)
+    with db() as c:
+        user=accounts.public_user(admin_accounts.get(uid,c))
+        user['client_number']=c.execute('SELECT number FROM client_refs WHERE entity_id=?',(uid,)).fetchone()[0]
+    return user
 
 
 @app.get('/api/admin/users/{uid}/monitorings/{sid}')
@@ -505,7 +517,7 @@ def test_whatsapp(request:Request,data:accounts.PhoneContact):
 class DeliveryFilter(BaseModel):
     page: int = Field(default=0,ge=0,le=10000)
     channel: Literal['all','email','whatsapp','telegram'] = 'all'
-    status: Literal['all','sent','pending','failed','closed'] = 'all'
+    status: Literal['all','sent','pending','failed','blocked','closed'] = 'all'
     user: str = Field(default='',max_length=120)
     q: str = Field(default='',max_length=200)
     start: float | None = Field(default=None,ge=0)
@@ -561,8 +573,9 @@ def confirm_delivery_cleanup(request:Request,data:DeliveryCleanup):
 
 
 @app.get("/api/admin/audit")
-def admin_audit(request:Request):
-    return audit.list_events(accounts.require_admin(request),all_users=True)
+def admin_audit(request:Request,page:int|None=Query(None,ge=0,le=1000),q:str=Query('',max_length=120),event:str=Query('',max_length=64),start:float|None=Query(None,ge=0),end:float|None=Query(None,ge=0)):
+    user=accounts.require_admin(request)
+    return audit.list_events(user,all_users=True) if page is None else audit.page_events(user,True,page,q,event,start,end)
 
 
 class LanguagePreference(BaseModel):
@@ -654,6 +667,14 @@ if DIST.exists():
 
 
 @app.get("/")
+@app.get("/viagens")
+@app.get("/viagens/{path:path}")
+@app.get("/historico")
+@app.get("/alertas")
+@app.get("/perfil")
+@app.get("/admin")
+@app.get("/admin/{path:path}")
+@app.get("/404")
 def index(request: Request):
     params=request.query_params
     if "state" in params and ("code" in params or "error" in params):

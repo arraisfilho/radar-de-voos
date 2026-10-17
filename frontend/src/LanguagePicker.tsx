@@ -9,9 +9,9 @@ export function LanguagePicker() {
         value={language}
         onChange={(e) => setLanguage(e.target.value as Language)}
       >
-        <option value="pt">Português</option>
-        <option value="en">English</option>
-        <option value="es">Español</option>
+        <option value="pt">🇧🇷 Português</option>
+        <option value="en">🇺🇸 English</option>
+        <option value="es">🇪🇸 Español</option>
       </select>
     </label>
   );

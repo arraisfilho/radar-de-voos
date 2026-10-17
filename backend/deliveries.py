@@ -7,7 +7,7 @@ import time
 from fastapi import HTTPException
 from .store import db
 
-TERMINAL = ('sent','failed','uncertain','cancelled','expired','quiet')
+TERMINAL = ('sent','failed','uncertain','cancelled','expired','quiet','waiting_contact','waiting_service')
 PAGE_SIZE = 15
 BATCH_SIZE = 2000
 
@@ -34,9 +34,11 @@ def setup(c):
         c.execute('UPDATE outbox SET owner_id=(SELECT owner_id FROM searches WHERE id=outbox.search_id),kind=\'alert\' WHERE search_id IS NOT NULL')
         c.execute("UPDATE outbox SET owner_id=(SELECT user_id FROM password_resets WHERE outbox_id=outbox.id LIMIT 1),kind='recovery' WHERE id IN (SELECT outbox_id FROM password_resets)")
         c.execute("UPDATE outbox SET kind='recovery' WHERE instr(body,'#reset=')>0")
-        c.execute("UPDATE outbox SET completed=COALESCE(sent,created) WHERE status IN ('sent','failed','uncertain','cancelled','expired','quiet')")
+        c.execute("UPDATE outbox SET completed=COALESCE(sent,created) WHERE status IN ('sent','failed','uncertain','cancelled','expired','quiet','waiting_contact','waiting_service')")
         c.execute("INSERT INTO metadata VALUES('delivery_log_v1','1')")
     c.executescript("""
+      DROP TRIGGER IF EXISTS delivery_finished_update;
+      DROP TRIGGER IF EXISTS delivery_finished_insert;
       CREATE INDEX IF NOT EXISTS delivery_time ON outbox(created DESC,id DESC);
       CREATE INDEX IF NOT EXISTS delivery_completed ON outbox(completed);
       CREATE INDEX IF NOT EXISTS delivery_owner ON outbox(owner_id,created DESC);
@@ -47,11 +49,11 @@ def setup(c):
         UPDATE outbox SET owner_id=(SELECT owner_id FROM searches WHERE id=NEW.search_id),kind='alert' WHERE id=NEW.id;
       END;
       CREATE TRIGGER IF NOT EXISTS delivery_finished_update AFTER UPDATE OF status ON outbox
-        WHEN NEW.completed IS NULL AND NEW.status IN ('sent','failed','uncertain','cancelled','expired','quiet') BEGIN
+        WHEN NEW.completed IS NULL AND NEW.status IN ('sent','failed','uncertain','cancelled','expired','quiet','waiting_contact','waiting_service') BEGIN
         UPDATE outbox SET completed=COALESCE(NEW.sent,CAST(strftime('%s','now') AS REAL)) WHERE id=NEW.id;
       END;
       CREATE TRIGGER IF NOT EXISTS delivery_finished_insert AFTER INSERT ON outbox
-        WHEN NEW.completed IS NULL AND NEW.status IN ('sent','failed','uncertain','cancelled','expired','quiet') BEGIN
+        WHEN NEW.completed IS NULL AND NEW.status IN ('sent','failed','uncertain','cancelled','expired','quiet','waiting_contact','waiting_service') BEGIN
         UPDATE outbox SET completed=COALESCE(NEW.sent,NEW.created) WHERE id=NEW.id;
       END;
     """)
@@ -61,7 +63,7 @@ def clauses(filters):
     where = ['1=1']; values = []
     if filters.get('channel','all') != 'all':
         where.append('o.channel=?');values.append(filters['channel'])
-    groups = {'sent':('sent',),'pending':('pending','sending'),'failed':('failed','uncertain'),'closed':('cancelled','expired','quiet')}
+    groups = {'sent':('sent',),'pending':('pending','sending'),'failed':('failed','uncertain','waiting_contact','waiting_service'),'blocked':('waiting_contact','waiting_service'),'closed':('cancelled','expired','quiet','waiting_contact','waiting_service')}
     if filters.get('status','all') in groups:
         group=groups[filters['status']];where.append('o.status IN ('+','.join('?' for _ in group)+')');values.extend(group)
     # Escape LIKE wildcards: searches match literal user input, not SQL patterns.
@@ -116,7 +118,7 @@ def retention_info(scope='deliveries'):
 
 def candidates(c,before,scope='deliveries'):
     if scope=='access':return [r[0] for r in c.execute('SELECT id FROM access_audit WHERE created<? ORDER BY created,id LIMIT ?',(before,BATCH_SIZE+1))]
-    return [r[0] for r in c.execute("SELECT id FROM outbox WHERE completed<? AND status IN ('sent','failed','uncertain','cancelled','expired','quiet') ORDER BY completed,id LIMIT ?",(before,BATCH_SIZE+1))]
+    return [r[0] for r in c.execute("SELECT id FROM outbox WHERE completed<? AND status IN ('sent','failed','uncertain','cancelled','expired','quiet','waiting_contact','waiting_service') ORDER BY completed,id LIMIT ?",(before,BATCH_SIZE+1))]
 
 
 def signature(ids,before,expires,actor,secret,scope='deliveries'):
@@ -129,7 +131,7 @@ def preview(before,actor,secret,scope='deliveries'):
     with db() as c:
         c.execute('BEGIN')
         ids=candidates(c,before,scope)
-        totals=({'access':c.execute('SELECT COUNT(*) FROM access_audit WHERE created<?',(before,)).fetchone()[0]} if scope=='access' else {r['status']:r['n'] for r in c.execute("SELECT status,COUNT(*) n FROM outbox WHERE completed<? AND status IN ('sent','failed','uncertain','cancelled','expired','quiet') GROUP BY status",(before,))})
+        totals=({'access':c.execute('SELECT COUNT(*) FROM access_audit WHERE created<?',(before,)).fetchone()[0]} if scope=='access' else {r['status']:r['n'] for r in c.execute("SELECT status,COUNT(*) n FROM outbox WHERE completed<? AND status IN ('sent','failed','uncertain','cancelled','expired','quiet','waiting_contact','waiting_service') GROUP BY status",(before,))})
     expires=int(time.time()+300)
     return {'count':min(len(ids),BATCH_SIZE),'total':sum(totals.values()),'totals':totals,'has_more':len(ids)>BATCH_SIZE,'before':before,'expires':expires,'proof':signature(ids,before,expires,actor,secret,scope)}
 

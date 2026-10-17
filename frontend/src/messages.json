@@ -3798,5 +3798,525 @@
   "Queda mínima": {
     "en": "Minimum drop",
     "es": "Bajada mínima"
+  },
+  "Filtrar envios": {
+    "en": "Filter messages",
+    "es": "Filtrar envíos"
+  },
+  "Voltar às viagens": {
+    "en": "Back to trips",
+    "es": "Volver a los viajes"
+  },
+  "Seção administrativa": {
+    "en": "Administration section",
+    "es": "Sección administrativa"
+  },
+  "Em uso: {0}/{1}": {
+    "en": "In use: {0}/{1}",
+    "es": "En uso: {0}/{1}"
+  },
+  "Gerenciar": {
+    "en": "Manage",
+    "es": "Gestionar"
+  },
+  "Voltar aos usuários": {
+    "en": "Back to users",
+    "es": "Volver a los usuarios"
+  },
+  "{0} aeroportos encontrados. Selecione uma opção.": {
+    "en": "{0} airports found. Choose an option.",
+    "es": "{0} aeropuertos encontrados. Selecciona una opción."
+  },
+  "Preço estável neste período": {
+    "en": "Price unchanged during this period",
+    "es": "Precio estable durante este período"
+  },
+  "Evolução do preço de ida": {
+    "en": "Outbound price history",
+    "es": "Evolución del precio de ida"
+  },
+  "Monitoramento não encontrado.": {
+    "en": "Monitoring not found.",
+    "es": "Monitoreo no encontrado."
+  },
+  "Monitoramento criado. Aguardando a primeira atualização.": {
+    "en": "Monitoring created. Waiting for the first update.",
+    "es": "Monitoreo creado. Esperando la primera actualización."
+  },
+  "Viagens": {
+    "en": "Trips",
+    "es": "Viajes"
+  },
+  "Não foi possível abrir esta página": {
+    "en": "Unable to open this page",
+    "es": "No se pudo abrir esta página"
+  },
+  "Tente novamente em instantes.": {
+    "en": "Please try again shortly.",
+    "es": "Inténtalo de nuevo en unos instantes."
+  },
+  "Página não encontrada": {
+    "en": "Page not found",
+    "es": "Página no encontrada"
+  },
+  "Seu preenchimento é mantido ao voltar entre as etapas.": {
+    "en": "Your entries are kept when you go back between steps.",
+    "es": "Tus datos se conservan al volver entre los pasos."
+  },
+  "Revise as alterações antes de salvar.": {
+    "en": "Review your changes before saving.",
+    "es": "Revisa los cambios antes de guardar."
+  },
+  "Este endereço não está disponível.": {
+    "en": "This address is unavailable.",
+    "es": "Esta dirección no está disponible."
+  },
+  "Seções do monitoramento": {
+    "en": "Monitoring sections",
+    "es": "Secciones del monitoreo"
+  },
+  "Voos": {
+    "en": "Flights",
+    "es": "Vuelos"
+  },
+  "Nenhum alerta para esta busca.": {
+    "en": "No alerts for this search.",
+    "es": "No hay alertas para esta búsqueda."
+  },
+  "Somente ida ·": {
+    "en": "One way ·",
+    "es": "Solo ida ·"
+  },
+  "Filtros · versão {0}": {
+    "en": "Filters · version {0}",
+    "es": "Filtros · versión {0}"
+  },
+  "Primeiro preço nestes filtros": {
+    "en": "First price with these filters",
+    "es": "Primer precio con estos filtros"
+  },
+  "Esta área é exclusiva de administradores.": {
+    "en": "This area is restricted to administrators.",
+    "es": "Esta área es exclusiva de administradores."
+  },
+  "Descartar alterações?": {
+    "en": "Discard changes?",
+    "es": "¿Descartar los cambios?"
+  },
+  "Há informações não salvas neste formulário.": {
+    "en": "There are unsaved changes in this form.",
+    "es": "Hay información sin guardar en este formulario."
+  },
+  "Continuar editando": {
+    "en": "Keep editing",
+    "es": "Seguir editando"
+  },
+  "Descartar e sair": {
+    "en": "Discard and leave",
+    "es": "Descartar y salir"
+  },
+  "Usar as preferências da ida": {
+    "en": "Use outbound preferences",
+    "es": "Usar las preferencias de ida"
+  },
+  "Escolha um fuso horário válido da lista.": {
+    "en": "Choose a valid time zone from the list.",
+    "es": "Elige una zona horaria válida de la lista."
+  },
+  "Usar fuso do dispositivo": {
+    "en": "Use device time zone",
+    "es": "Usar zona horaria del dispositivo"
+  },
+  "Fuso do dispositivo: {0}": {
+    "en": "Device time zone: {0}",
+    "es": "Zona horaria del dispositivo: {0}"
+  },
+  "{0} escala": {
+    "en": "{0} stop",
+    "es": "{0} escala"
+  },
+  "Pesquisa com taxas estimadas para {0} mala despachada. Franquia e peso a confirmar na companhia.": {
+    "en": "Search includes estimated fees for {0} checked bag. Confirm allowance and weight with the airline.",
+    "es": "La búsqueda incluye tasas estimadas para {0} maleta facturada. Confirma la franquicia y el peso con la aerolínea."
+  },
+  "Pesquisa com taxas estimadas para {0} malas despachadas. Franquia e peso a confirmar na companhia.": {
+    "en": "Search includes estimated fees for {0} checked bags. Confirm allowance and weight with the airline.",
+    "es": "La búsqueda incluye tasas estimadas para {0} maletas facturadas. Confirma la franquicia y el peso con la aerolínea."
+  },
+  "Descartar rascunho?": {
+    "en": "Discard draft?",
+    "es": "¿Descartar borrador?"
+  },
+  "Somente o preenchimento da nova busca será descartado. Suas viagens salvas serão preservadas.": {
+    "en": "Only the new search draft will be discarded. Your saved trips will be preserved.",
+    "es": "Solo se descartará el borrador de la nueva búsqueda. Tus viajes guardados se conservarán."
+  },
+  "Continuar preenchendo": {
+    "en": "Keep editing",
+    "es": "Seguir completando"
+  },
+  "Descartar rascunho": {
+    "en": "Discard draft",
+    "es": "Descartar borrador"
+  },
+  "Rascunho salvo neste navegador. Você pode continuar de onde parou.": {
+    "en": "Draft saved in this browser. You can pick up where you left off.",
+    "es": "Borrador guardado en este navegador. Puedes continuar donde lo dejaste."
+  },
+  "Começar do zero": {
+    "en": "Start over",
+    "es": "Empezar de cero"
+  },
+  "Todas as versões · primeiro preço e mudanças de valor": {
+    "en": "All versions · first price and price changes",
+    "es": "Todas las versiones · primer precio y cambios de valor"
+  },
+  "Revise os contatos no perfil. Se estiverem corretos, solicite à administração a verificação do canal.": {
+    "en": "Review your profile contacts. If they are correct, ask the administrator to check the channel.",
+    "es": "Revisa los contactos del perfil. Si son correctos, solicita a la administración que revise el canal."
+  },
+  "Adicione um e-mail no perfil para receber os próximos alertas.": {
+    "en": "Add an email address in your profile to receive future alerts.",
+    "es": "Añade un correo en tu perfil para recibir las próximas alertas."
+  },
+  "A administração precisa configurar o serviço de envio.": {
+    "en": "The administrator needs to configure the delivery service.",
+    "es": "La administración debe configurar el servicio de envío."
+  },
+  "A conexão Google deste ambiente ainda precisa ser ativada pelo responsável técnico do aplicativo.": {
+    "en": "The application administrator still needs to activate the Google connection in this environment.",
+    "es": "El responsable técnico de la aplicación todavía debe activar la conexión de Google en este entorno."
+  },
+  "{0} ativa": {
+    "en": "{0} active",
+    "es": "{0} activa"
+  },
+  "{0} ativas": {
+    "en": "{0} active",
+    "es": "{0} activas"
+  },
+  "{0} pausada": {
+    "en": "{0} paused",
+    "es": "{0} pausada"
+  },
+  "{0} pausadas": {
+    "en": "{0} paused",
+    "es": "{0} pausadas"
+  },
+  "Sem coleta": {
+    "en": "No collection yet",
+    "es": "Sin recopilación"
+  },
+  "Total para {0} · por trecho": {
+    "en": "Total for {0} · per leg",
+    "es": "Total para {0} · por trayecto"
+  },
+  "Sem destinatário": {
+    "en": "No recipient",
+    "es": "Sin destinatario"
+  },
+  "Cadastre os contatos no perfil para habilitar os canais de alerta.": {
+    "en": "Add profile contacts to enable alert channels.",
+    "es": "Añade contactos al perfil para habilitar los canales de alerta."
+  },
+  "Gerenciar contatos no perfil": {
+    "en": "Manage profile contacts",
+    "es": "Gestionar contactos del perfil"
+  },
+  "Canais indisponíveis precisam ser configurados pela administração.": {
+    "en": "Unavailable channels must be configured by the administrator.",
+    "es": "La administración debe configurar los canales no disponibles."
+  },
+  "Selecione um canal disponível com destinatário cadastrado, ou desative os alertas.": {
+    "en": "Select an available channel with a registered recipient, or turn off alerts.",
+    "es": "Selecciona un canal disponible con destinatario registrado o desactiva las alertas."
+  },
+  "Revisão e alertas": {
+    "en": "Review and alerts",
+    "es": "Revisión y alertas"
+  },
+  "Revise sua viagem e escolha os alertas": {
+    "en": "Review your trip and choose alerts",
+    "es": "Revisa tu viaje y elige las alertas"
+  },
+  "{0} mala na pesquisa": {
+    "en": "{0} bag in the search",
+    "es": "{0} maleta en la búsqueda"
+  },
+  "{0} malas na pesquisa": {
+    "en": "{0} bags in the search",
+    "es": "{0} maletas en la búsqueda"
+  },
+  "Editar viagem": {
+    "en": "Edit trip",
+    "es": "Editar viaje"
+  },
+  "Editar preferências": {
+    "en": "Edit preferences",
+    "es": "Editar preferencias"
+  },
+  "{0} adulto": {
+    "en": "{0} adult",
+    "es": "{0} adulto"
+  },
+  "Nome da viagem (opcional)": {
+    "en": "Trip name (optional)",
+    "es": "Nombre del viaje (opcional)"
+  },
+  "Adicionar outra origem": {
+    "en": "Add another origin",
+    "es": "Añadir otro origen"
+  },
+  "Adicionar outro destino": {
+    "en": "Add another destination",
+    "es": "Añadir otro destino"
+  },
+  "Escolher país": {
+    "en": "Choose country",
+    "es": "Elegir país"
+  },
+  "Buscar país ou DDI": {
+    "en": "Search country or calling code",
+    "es": "Buscar país o prefijo"
+  },
+  "Nome do país ou DDI (+55)": {
+    "en": "Country name or calling code (+55)",
+    "es": "Nombre del país o prefijo (+55)"
+  },
+  "Fechar lista de países": {
+    "en": "Close country list",
+    "es": "Cerrar lista de países"
+  },
+  "{0} países encontrados": {
+    "en": "{0} countries found",
+    "es": "{0} países encontrados"
+  },
+  "Nenhum país encontrado.": {
+    "en": "No countries found.",
+    "es": "No se encontraron países."
+  },
+  "Países e códigos internacionais": {
+    "en": "Countries and calling codes",
+    "es": "Países y prefijos internacionales"
+  },
+  "Mostrar senha": {
+    "en": "Show password",
+    "es": "Mostrar contraseña"
+  },
+  "Ocultar senha": {
+    "en": "Hide password",
+    "es": "Ocultar contraseña"
+  },
+  "{0} país encontrado": {
+    "en": "{0} country found",
+    "es": "{0} país encontrado"
+  },
+  "Aceitos pelos provedores": {
+    "en": "Accepted by providers",
+    "es": "Aceptados por los proveedores"
+  },
+  "Bloqueado: sem destinatário": {
+    "en": "Blocked: no recipient",
+    "es": "Bloqueado: sin destinatario"
+  },
+  "Bloqueado: canal indisponível": {
+    "en": "Blocked: channel unavailable",
+    "es": "Bloqueado: canal no disponible"
+  },
+  "Cadastre um contato para receber os próximos alertas. Este registro não será reenviado.": {
+    "en": "Add a contact to receive future alerts. This record will not be resent.",
+    "es": "Añade un contacto para recibir futuras alertas. Este registro no se reenviará."
+  },
+  "Corrigir contato": {
+    "en": "Update contact",
+    "es": "Corregir contacto"
+  },
+  "Configurar canal": {
+    "en": "Configure channel",
+    "es": "Configurar canal"
+  },
+  "Problemas e bloqueios": {
+    "en": "Problems and blocks",
+    "es": "Problemas y bloqueos"
+  },
+  "Bloqueados por configuração": {
+    "en": "Blocked by configuration",
+    "es": "Bloqueados por configuración"
+  },
+  "A limpeza remove somente os registros selecionados. Os backups são preservados.": {
+    "en": "Cleanup removes only the selected records. Backups are preserved.",
+    "es": "La limpieza elimina solo los registros seleccionados. Se conservan las copias de seguridad."
+  },
+  "Contatos para receber os próximos alertas por WhatsApp.": {
+    "en": "Contacts for future WhatsApp alerts.",
+    "es": "Contactos para futuras alertas de WhatsApp."
+  },
+  "Alertas registrados": {
+    "en": "Recorded alerts",
+    "es": "Alertas registradas"
+  },
+  "{0} alertas registrados": {
+    "en": "{0} recorded alerts",
+    "es": "{0} alertas registradas"
+  },
+  "Suas viagens e oportunidades em um só lugar.": {
+    "en": "Your trips and opportunities in one place.",
+    "es": "Tus viajes y oportunidades en un solo lugar."
+  },
+  "Consulte a atividade e os bloqueios de envio.": {
+    "en": "Review sending activity and blocked messages.",
+    "es": "Consulta la actividad y los bloqueos de envío."
+  },
+  "Configure os canais de envio de alertas.": {
+    "en": "Configure alert delivery channels.",
+    "es": "Configura los canales de envío de alertas."
+  },
+  "Gerencie contas, contatos e limites.": {
+    "en": "Manage accounts, contacts and limits.",
+    "es": "Gestiona cuentas, contactos y límites."
+  },
+  "Consulte os acessos e as alterações de conta.": {
+    "en": "Review access and account changes.",
+    "es": "Consulta los accesos y los cambios de cuenta."
+  },
+  "Gerencie o prazo de armazenamento dos registros.": {
+    "en": "Manage how long records are retained.",
+    "es": "Gestiona el plazo de conservación de los registros."
+  },
+  "Selecione uma viagem para acompanhar.": {
+    "en": "Select a trip to follow.",
+    "es": "Selecciona un viaje para seguir."
+  },
+  "Nova viagem": {
+    "en": "New trip",
+    "es": "Nuevo viaje"
+  },
+  "Salvar viagem": {
+    "en": "Save trip",
+    "es": "Guardar viaje"
+  },
+  "Suas viagens": {
+    "en": "Your trips",
+    "es": "Tus viajes"
+  },
+  "SUAS VIAGENS": {
+    "en": "YOUR TRIPS",
+    "es": "TUS VIAJES"
+  },
+  "Alertas desta viagem": {
+    "en": "Trip alerts",
+    "es": "Alertas de este viaje"
+  },
+  "Detalhes da viagem": {
+    "en": "Trip details",
+    "es": "Detalles del viaje"
+  },
+  "Ações da viagem": {
+    "en": "Trip actions",
+    "es": "Acciones del viaje"
+  },
+  "Selecione uma viagem": {
+    "en": "Select a trip",
+    "es": "Selecciona un viaje"
+  },
+  "Nenhum alerta para esta viagem.": {
+    "en": "No alerts for this trip.",
+    "es": "No hay alertas para este viaje."
+  },
+  "Filtros da viagem": {
+    "en": "Trip filters",
+    "es": "Filtros del viaje"
+  },
+  "Ordenado por menor preço": {
+    "en": "Sorted by lowest price",
+    "es": "Ordenado por menor precio"
+  },
+  "Último alerta desta viagem": {
+    "en": "Latest trip alert",
+    "es": "Última alerta de este viaje"
+  },
+  "Credenciais armazenadas no servidor.": {
+    "en": "Credentials are stored on the server.",
+    "es": "Las credenciales se almacenan en el servidor."
+  },
+  "SMTP fora de uso": {
+    "en": "SMTP not in use",
+    "es": "SMTP fuera de uso"
+  },
+  "Serviço em uso: SMTP": {
+    "en": "Service in use: SMTP",
+    "es": "Servicio en uso: SMTP"
+  },
+  "Habilitar SMTP quando não houver conta conectada": {
+    "en": "Enable SMTP when no account is connected",
+    "es": "Habilitar SMTP cuando no haya una cuenta conectada"
+  },
+  "Testar serviço de e-mail em uso": {
+    "en": "Test the active email service",
+    "es": "Probar el servicio de correo en uso"
+  },
+  "IP e dispositivo são informações declaradas pela conexão. Horários no fuso {0}.": {
+    "en": "IP and device information is reported by the connection. Times use {0}.",
+    "es": "La conexión declara la información de IP y dispositivo. Horarios en la zona {0}."
+  },
+  "Retenção: {0} dias, até {1} registros.": {
+    "en": "Retention: {0} days, up to {1} records.",
+    "es": "Conservación: {0} días, hasta {1} registros."
+  },
+  "Todos os eventos": {
+    "en": "All events",
+    "es": "Todos los eventos"
+  },
+  "Nenhum acesso encontrado para os filtros selecionados.": {
+    "en": "No access records match these filters.",
+    "es": "No se encontraron accesos con estos filtros."
+  },
+  "{0} registros · página {1}": {
+    "en": "{0} records · page {1}",
+    "es": "{0} registros · página {1}"
+  },
+  "Canal indisponível": {
+    "en": "Channel unavailable",
+    "es": "Canal no disponible"
+  },
+  "Cadastre um contato no perfil para receber os próximos alertas.": {
+    "en": "Add a profile contact to receive future alerts.",
+    "es": "Añade un contacto en tu perfil para recibir futuras alertas."
+  },
+  "Serviço em uso: conta conectada.": {
+    "en": "Service in use: connected account.",
+    "es": "Servicio en uso: cuenta conectada."
+  },
+  "Ao trocar a moeda, a meta é limpa e a queda mínima volta a 50 na nova moeda.": {
+    "en": "Changing currency clears the target and resets the minimum drop to 50 in the new currency.",
+    "es": "Al cambiar la moneda, se borra el objetivo y la bajada mínima vuelve a 50 en la nueva moneda."
+  },
+  "Revisei os valores de alerta na nova moeda.": {
+    "en": "I reviewed the alert amounts in the new currency.",
+    "es": "He revisado los importes de alerta en la nueva moneda."
+  },
+  "Valores em {0}. Altere a moeda na etapa Viagem.": {
+    "en": "Amounts in {0}. Change currency in the Trip step.",
+    "es": "Importes en {0}. Cambia la moneda en el paso Viaje."
+  },
+  "Revise os valores de alerta após trocar a moeda.": {
+    "en": "Review alert amounts after changing currency.",
+    "es": "Revisa los importes de alerta después de cambiar la moneda."
+  },
+  "Escolha um fuso horário válido.": {
+    "en": "Choose a valid time zone.",
+    "es": "Elige una zona horaria válida."
+  },
+  "Preço mantido": {
+    "en": "Price unchanged",
+    "es": "Precio sin cambios"
+  },
+  "Economia de {0} ({1}%)": {
+    "en": "Save {0} ({1}%)",
+    "es": "Ahorro de {0} ({1}%)"
+  },
+  "Economia de {0}": {
+    "en": "Save {0}",
+    "es": "Ahorro de {0}"
   }
 }

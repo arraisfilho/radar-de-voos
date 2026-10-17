@@ -28,6 +28,13 @@ class EvolutionTests(unittest.TestCase):
         response=(client or self.client).post('/api/searches',json=config,headers=self.headers)
         self.assertEqual(response.status_code,200,response.text)
         return response.json()['id']
+    def test_explicit_unknown_or_foreign_monitor_does_not_fall_back_to_another_search(self):
+        own=self.search();foreign=self.search(self.other)
+        for scope in ('searches','history','legacy'):
+            for sid in ('missing',foreign):
+                self.assertEqual(self.client.get('/api/state',params={'scope':scope,'search_id':sid}).status_code,404)
+            self.assertEqual(self.client.get('/api/state',params={'scope':scope,'search_id':own}).json()['selected']['id'],own)
+
     def cycle(self,c,sid,started=None):
         return c.execute("INSERT INTO cycles(search_id,version,started,status,total) VALUES(?,1,?,'done',1)",(sid,time.time() if started is None else started)).lastrowid
     def alert(self,c,sid,cid,aid,status='sent',created=None):

@@ -12,7 +12,7 @@ export const partyTotal = (p: Party) =>
   (p.infants_on_lap || 0);
 export const partyLabel = (p: Party) =>
   partyTotal(p) === p.adults
-    ? t("{0} adulto(s)", [p.adults])
+    ? t(p.adults === 1 ? "{0} adulto" : "{0} adultos", [p.adults])
     : t("{0} passageiros", [partyTotal(p)]);
 export const validParty = (p: Party) =>
   partyTotal(p) <= 9 && (p.infants_on_lap || 0) <= p.adults;

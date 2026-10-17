@@ -12,7 +12,7 @@ def feed(user_id,mode,search_id,page,status):
         if mode=='notifications':
             clause=where;values=list(params)
             if status!='all':
-                statuses={'sent':['sent'],'pending':['queued'],'failed':['failed','partial','uncertain','waiting_smtp','waiting_contact']}[status]
+                statuses={'sent':['sent'],'pending':['queued'],'failed':['failed','partial','uncertain','waiting_smtp','waiting_service','waiting_contact']}[status]
                 clause+=' AND a.status IN ('+','.join('?' for _ in statuses)+')';values+=statuses
             rows=[dict(r) for r in c.execute('SELECT a.*,s.config,s.archived FROM alerts a JOIN searches s ON a.search_id=s.id WHERE '+clause+' ORDER BY a.created DESC,a.id DESC LIMIT 31 OFFSET ?',values+[page*30])]
             channels=channel_summaries(c,user_id,[row['id'] for row in rows[:30]])

@@ -83,7 +83,8 @@ def enqueue(c,sid,version,ids,subject,body):
     for phone in phones or [None]:
         oid=uuid.uuid4().hex
         error='Número WhatsApp não cadastrado' if phone is None else 'Integração WhatsApp indisponível' if not available(config) else None
-        c.execute('INSERT INTO outbox(id,search_id,version,created,alert_ids,subject,body,status,next_due,recipients,channel,provider,transport_ref,error) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(oid,sid,version,time.time(),json.dumps(ids),subject,body,'failed' if error else 'pending',time.time(),json.dumps([phone] if phone else []),'whatsapp',config['provider'],reference(config),error))
+        status='waiting_contact' if phone is None else 'waiting_service' if error else 'pending'
+        c.execute('INSERT INTO outbox(id,search_id,version,created,alert_ids,subject,body,status,next_due,recipients,channel,provider,transport_ref,error) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(oid,sid,version,time.time(),json.dumps(ids),subject,body,status,time.time(),json.dumps([phone] if phone else []),'whatsapp',config['provider'],reference(config),error))
         link(c,oid,ids)
 
 

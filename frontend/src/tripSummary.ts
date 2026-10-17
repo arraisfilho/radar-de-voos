@@ -11,6 +11,7 @@ export function tripTitle(c: Config) {
   const prefixes = [
     `${c.origins.join("/")} ${c.inbound ? "↔" : "→"} ${c.destinations.join("/")}`,
     route,
+    `${c.origins.join("/")} → ${c.destinations.join("/")}`,
   ];
   const generated = prefixes.some(
     (p) =>
@@ -37,10 +38,9 @@ export function legDates(leg: Leg, compact = false) {
     if (compact)
       return `${value.slice(8, 10)}/${value.slice(5, 7)}${start.slice(0, 4) !== end.slice(0, 4) ? "/" + value.slice(2, 4) : ""}`;
     return new Date(value + "T12:00").toLocaleDateString(getLocale(), {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
+      day: "numeric", month: "short", year: "numeric",
     });
   };
+  if (!compact && start !== end) return new Intl.DateTimeFormat(getLocale(), {day: "numeric", month: "short", year: "numeric"}).formatRange(new Date(start + "T12:00"), new Date(end + "T12:00"));
   return format(start) + (start !== end ? "–" + format(end) : "");
 }

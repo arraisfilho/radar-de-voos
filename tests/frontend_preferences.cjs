@@ -4,7 +4,8 @@ const fromFrontend=require('node:module').createRequire(path.join(__dirname,'../
 const React=fromFrontend('react'),{renderToStaticMarkup}=fromFrontend('react-dom/server'),ts=fromFrontend('typescript'),cache=new Map();
 function load(file){if(cache.has(file))return cache.get(file);const out={};cache.set(file,out);const code=ts.transpileModule(fs.readFileSync(path.join(__dirname,'../frontend/src/',file),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;vm.runInNewContext(code,{exports:out,require:name=>{
  if(name.endsWith('.css'))return {};
- if(name==='./i18n')return {useLanguage:()=> 'pt',getLocale:()=> 'pt-BR',t:(key,args=[])=>key.replace(/\{(\d+)\}/g,(_,i)=>String(args[Number(i)]))};
+ if(name==='./tripSummary')return {legDates:leg=>leg.start};
+    if(name==='./i18n')return {useLanguage:()=> 'pt',getLocale:()=> 'pt-BR',t:(key,args=[])=>key.replace(/\{(\d+)\}/g,(_,i)=>String(args[Number(i)]))};
  if(name==='./currency')return {currencies:['BRL'],currencyLabel:()=> 'BRL'};
  if(name==='./DatePicker')return {DatePicker:()=>null};
  if(name==='./AirportPicker')return {AirportPicker:()=>null};
@@ -28,11 +29,11 @@ const {AirlinePicker}=load('AirlinePicker.tsx');const selected=renderToStaticMar
 assert.ok(selected.includes('Remover companhia LA'));assert.ok(selected.includes('Remover companhia BA'));assert.ok(selected.includes('A busca usará somente as companhias selecionadas.'));
 console.log('Compact preferences: airline combobox, selected tokens, one-way, duration units, baggage and collapsed advanced fields passed.');
 const trip=renderToStaticMarkup(React.createElement(SearchForm,{config:{...config,children:1,infants_in_seat:0,infants_on_lap:0},setConfig:()=>{},airports:[],onSave:()=>{},saving:false,general:true}));
-assert.ok(trip.indexOf('Adultos') < trip.indexOf('Crianças'));assert.ok(trip.includes('Intervalo de saída da ida'));assert.ok(!trip.includes('Agora escolha a janela'));assert.ok(/<details class="infant-options">/.test(trip));assert.ok(trip.includes('trip-options-row'));assert.ok(trip.includes('Crianças'));assert.ok(trip.includes('Bebês com assento'));assert.ok(trip.includes('Cabine'));assert.ok(!trip.includes('Nome e cabine'));assert.ok(!trip.includes('Nome do monitoramento (opcional)'));
+assert.ok(trip.indexOf('Adultos') < trip.indexOf('Crianças'));assert.ok(trip.includes('Intervalo de saída da ida'));assert.ok(!trip.includes('Agora escolha a janela'));assert.ok(/<details class="infant-options">/.test(trip));assert.ok(trip.includes('trip-options-row'));assert.ok(trip.includes('Crianças'));assert.ok(trip.includes('Bebês com assento'));assert.ok(trip.includes('Cabine'));assert.ok(!trip.includes('Nome e cabine'));assert.ok(!trip.includes('Nome da viagem (opcional)'));
 const quick=renderToStaticMarkup(React.createElement(SearchForm,{config,setConfig:()=>{},airports:[],onSave:()=>{},saving:false}));
 assert.ok(quick.includes('compact-filters'));assert.ok(quick.includes('Horários e conexões'));assert.ok(quick.includes('flight-more-options'));assert.ok(quick.includes('monitor-filters'));assert.ok(!quick.includes('Enviar alertas'));assert.ok(!quick.includes('Moeda da pesquisa'));assert.equal((quick.match(/<legend>Bagagem despachada<\/legend>/g)||[]).length,1);
 const alerts=renderToStaticMarkup(React.createElement(SearchForm,{config:{...config,notify_email:true,adults:2,children:1},setConfig:()=>{},airports:[],emailRecipients:['fixture@example.org'],onSave:()=>{},saving:false,alertsOnly:true}));
-assert.ok(alerts.includes('alert-settings-form'));assert.ok(alerts.includes('Enviar alertas'));assert.ok(alerts.includes('Salvar alertas'));assert.ok(alerts.includes('fixture@example.org'));assert.ok(alerts.includes('3 passageiros'));assert.ok(!alerts.includes('Escalas permitidas'));assert.ok(!alerts.includes('Janela de saída'));assert.ok(!alerts.includes('monitor-filters'));assert.ok(/<details class="currency-explanation">/.test(alerts));
+assert.ok(alerts.includes('alert-settings-form'));assert.ok(alerts.includes('Enviar alertas'));assert.ok(alerts.includes('Salvar alertas'));assert.ok(alerts.includes('fixture@example.org'));assert.ok(alerts.includes('3 passageiros'));assert.ok(!alerts.includes('Escalas permitidas'));assert.ok(!alerts.includes('Janela de saída'));assert.ok(!alerts.includes('monitor-filters'));assert.ok(alerts.includes("Altere a moeda na etapa Viagem")); assert.ok(!alerts.includes("currency-explanation")); assert.ok(trip.includes("Ao trocar a moeda"));
 console.log('Quick filters and alert settings are isolated; party pricing and saved recipients remain visible.');
 
 const wa=renderToStaticMarkup(React.createElement(SearchForm,{config:{...config,notify_email:false,notify_whatsapp:true},setConfig:()=>{},airports:[],onSave:()=>{},saving:false,alertsOnly:true,whatsappAvailable:true,whatsappRecipients:['+12025550123','+12025550123','+442079460018']}));
@@ -40,3 +41,7 @@ assert.ok(wa.includes('WhatsApp para: +12025550123, +442079460018'));assert.ok(w
 
 const unlimited=renderToStaticMarkup(React.createElement(SearchForm,{config:{...config,outbound:{...leg,max_duration:null}},setConfig:()=>{},airports:[],onSave:()=>{},saving:false,general:true,editing:true}));
 assert.ok(unlimited.includes('Sem limite de duração, incluindo conexões.'));assert.ok(!unlimited.includes('Duração máxima da viagem: horas'));
+
+const review=renderToStaticMarkup(React.createElement(SearchForm,{config:{...config,currency:'USD'},savedCurrency:'BRL',setConfig:()=>{},airports:[],onSave:()=>{},saving:false,general:true,editing:true,journey:{step:2,direction:'outbound',onChange:()=>{}}}));
+assert.ok(review.includes('Revisei os valores de alerta na nova moeda.'), 'Reopened currency draft requires reviewing values');
+assert.ok(/type="checkbox" required=""/.test(review), 'Review is required in the values stage');

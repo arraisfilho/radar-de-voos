@@ -10,12 +10,18 @@ export function AirportPicker({
   onChange,
   airports,
   onSelected,
+  field,
+  invalid,
+  describedBy,
 }: {
   label: string;
   values: string[];
   onChange: (v: string[]) => void;
   airports: Airport[];
   onSelected?: () => void;
+  field?: "origin" | "destination";
+  invalid?: boolean;
+  describedBy?: string;
 }) {
   const id = useId(),
     input = useRef<HTMLInputElement>(null);
@@ -70,6 +76,7 @@ export function AirportPicker({
     <div
       className="airport-picker"
       data-airport={label}
+      data-airport-field={field}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false);
       }}
@@ -100,6 +107,8 @@ export function AirportPicker({
             id={id}
             role="combobox"
             aria-autocomplete="list"
+            aria-invalid={invalid || undefined}
+            aria-describedby={describedBy}
             aria-expanded={open && query.trim().length >= 2}
             aria-controls={id + "-list"}
             aria-activedescendant={
@@ -158,8 +167,7 @@ export function AirportPicker({
             requestAnimationFrame(() => input.current?.focus());
           }}
         >
-          {t("+ Adicionar outr")}{" "}
-          {label === t("Origem") ? t("a origem") : t("o destino")}
+          {label === t("Origem") ? t("Adicionar outra origem") : t("Adicionar outro destino")}
         </button>
       )}
       {adding && values.length > 0 && (
@@ -185,7 +193,7 @@ export function AirportPicker({
                   ? t(
                       "Nenhum aeroporto encontrado. Tente o nome local ou código IATA.",
                     )
-                  : t("{0} aeroportos. Use as setas e Enter para selecionar.", [
+                  : t("{0} aeroportos encontrados. Selecione uma opção.", [
                       results.length,
                     ]))}
           </div>

@@ -13,7 +13,8 @@ const labels = (): Record<string, string> => ({
   cancelled: t("Cancelado"),
   expired: t("Expirado"),
   quiet: t("Silenciado neste horário"),
-  waiting_contact: t("Sem e-mail cadastrado"),
+  waiting_contact: t("Sem destinatário"),
+  waiting_service: t("Canal indisponível"),
   waiting_smtp: t("Aguardando serviço de envio"),
   in_app: t("Somente no painel"),
   unknown: t("Estado indisponível"),
@@ -72,6 +73,9 @@ function Channel({ item }: { item: ChannelDelivery }) {
             </li>
           ))}
         </ul>
+        {["failed", "uncertain", "partial"].includes(state) && <p>{t("Revise os contatos no perfil. Se estiverem corretos, solicite à administração a verificação do canal.")}</p>}
+        {state === "waiting_contact" && <p>{t("Cadastre um contato no perfil para receber os próximos alertas.")}</p>}
+        {["waiting_smtp", "waiting_service"].includes(state) && <p>{t("A administração precisa configurar o serviço de envio.")}</p>}
         <p>{t("Aceito pelo provedor não confirma entrega ou leitura.")}</p>
       </div>
     </details>

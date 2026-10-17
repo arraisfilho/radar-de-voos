@@ -1,3 +1,5 @@
+import { TaskPage } from "./TaskPage";
+import type { AppRoute, Navigate } from "./navigation";
 import { WhatsAppPanel } from "./WhatsAppPanel";
 import { AdminUsers } from "./AdminUsers";
 import "./admin.css";
@@ -40,6 +42,7 @@ type Entry = {
   error?: string | null;
   content_protected?: boolean;
   provider_message_id?: string | null;
+  owner_id?: string | null;
 };
 type LogPage = {
   items: Entry[];
@@ -79,7 +82,9 @@ const statuses = (): Record<string, string> => ({
   sent: t("Aceito pelo provedor"),
   pending: t("Na fila"),
   sending: t("Enviando"),
-  failed: t("Envio não confirmado"),
+  failed: t("Falha no envio"),
+  waiting_contact: t("Bloqueado: sem destinatário"),
+  waiting_service: t("Bloqueado: canal indisponível"),
   uncertain: t("Envio requer verificação"),
   cancelled: t("Cancelado"),
   expired: t("Expirado"),
@@ -128,7 +133,7 @@ function tabKeys(e: KeyboardEvent<HTMLDivElement>) {
 function Badge({ status }: { status: string }) {
   return (
     <span
-      className={`delivery-badge ${status === "sent" ? "success" : status === "failed" || status === "uncertain" ? "delivery-warning" : ""}`}
+      className={`delivery-badge ${status === "sent" ? "success" : ["failed", "uncertain", "waiting_contact", "waiting_service"].includes(status) ? "delivery-warning" : ""}`}
     >
       {statuses()[status] || status}
     </span>
@@ -137,9 +142,11 @@ function Badge({ status }: { status: string }) {
 function LogDetail({
   id,
   onClose,
+  navigate,
 }: {
   id: string | null;
   onClose: () => void;
+  navigate?: Navigate;
 }) {
   const query = useQuery<Entry>({
     queryKey: ["admin-delivery", id],
@@ -150,11 +157,8 @@ function LogDetail({
   });
   const entry = query.data;
   return (
-    <Modal
-      open={!!id}
-      onOpenChange={(v) => {
-        if (!v) onClose();
-      }}
+    <TaskPage
+      onBack={onClose}
       title={t("Detalhes do envio")}
       description={t("Conteúdo registrado e resultado da tentativa de envio.")}
       className="delivery-detail"
@@ -213,6 +217,8 @@ function LogDetail({
               <dd>{entry.attempts}</dd>
             </div>
           </dl>
+          {entry.status === "waiting_contact" && <p className="help">{t("Cadastre um contato para receber os próximos alertas. Este registro não será reenviado.")}</p>}
+          {["waiting_contact", "waiting_service"].includes(entry.status) && navigate && <Button variant="outline" onClick={() => entry.status === "waiting_contact" && entry.owner_id ? navigate({view: "admin", section: "users", userAction: "edit", userId: entry.owner_id}) : navigate({view: "admin", section: "channels", channel: entry.channel})}>{entry.status === "waiting_contact" ? t("Corrigir contato") : t("Configurar canal")}</Button>}
           {entry.error && (
             <p className="form-error" role="alert">
               {t(entry.error)}
@@ -240,10 +246,18 @@ function LogDetail({
           </p>
         </>
       )}
-    </Modal>
+    </TaskPage>
   );
 }
-function DeliveryLog({ onCleanup }: { onCleanup: () => void }) {
+function DeliveryLog({
+  onCleanup,
+  route,
+  navigate,
+}: {
+  onCleanup: () => void;
+  route?: AppRoute;
+  navigate?: Navigate;
+}) {
   const [draft, setDraft] = useState({
       channel: "all",
       status: "all",
@@ -255,7 +269,16 @@ function DeliveryLog({ onCleanup }: { onCleanup: () => void }) {
     [filters, setFilters] = useState(draft),
     [page, setPage] = useState(0),
     [anchor, setAnchor] = useState(Date.now() / 1000),
-    [selected, setSelected] = useState<string | null>(null);
+    [localSelected, setLocalSelected] = useState<string | null>(null);
+  const selected = route?.deliveryId || localSelected;
+  const setSelected = (id: string | null) =>
+    navigate
+      ? navigate({
+          view: "admin",
+          section: "deliveries",
+          deliveryId: id || undefined,
+        })
+      : setLocalSelected(id);
   const params = new URLSearchParams({
     channel: filters.channel,
     status: filters.status,
@@ -284,6 +307,8 @@ function DeliveryLog({ onCleanup }: { onCleanup: () => void }) {
     setPage(0);
     setAnchor(Date.now() / 1000);
   };
+  if (selected)
+    return <LogDetail id={selected} onClose={() => setSelected(null)} navigate={navigate} />;
   return (
     <Card className="admin-log">
       <div className="section-heading">
@@ -304,104 +329,122 @@ function DeliveryLog({ onCleanup }: { onCleanup: () => void }) {
           {t("Atualizar")}
         </Button>
       </div>
-      <form
-        className="admin-filters"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setFilters({ ...draft });
-          refresh();
-        }}
-      >
-        <label>
-          {t("Canal")}
-          <select
-            value={draft.channel}
-            onChange={(e) => setDraft({ ...draft, channel: e.target.value })}
-          >
-            {Object.entries(channels()).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
+      <details className="admin-filter-panel">
+        <summary>
+          {t("Filtrar envios")}
+          <span>
+            {[
+              filters.channel !== "all",
+              filters.status !== "all",
+              filters.user,
+              filters.q,
+              filters.start,
+              filters.end,
+            ].filter(Boolean).length || ""}
+          </span>
+        </summary>
+        <form
+          className="admin-filters"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setFilters({ ...draft });
+            refresh();
+            const panel = e.currentTarget.closest("details");
+            if (panel) panel.open = false;
+          }}
+        >
+          <label>
+            {t("Canal")}
+            <select
+              value={draft.channel}
+              onChange={(e) => setDraft({ ...draft, channel: e.target.value })}
+            >
+              {Object.entries(channels()).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            {t("Situação")}
+            <select
+              value={draft.status}
+              onChange={(e) => setDraft({ ...draft, status: e.target.value })}
+            >
+              <option value="all">{t("Todas as situações")}</option>
+              <option value="sent">{t("Aceito pelo provedor")}</option>
+              <option value="pending">{t("Na fila / enviando")}</option>
+              <option value="failed">{t("Problemas e bloqueios")}</option>
+              <option value="blocked">{t("Bloqueados por configuração")}</option>
+              <option value="closed">
+                {t("Cancelado / expirado / silenciado")}
               </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {t("Situação")}
-          <select
-            value={draft.status}
-            onChange={(e) => setDraft({ ...draft, status: e.target.value })}
-          >
-            <option value="all">{t("Todas as situações")}</option>
-            <option value="sent">{t("Aceito pelo provedor")}</option>
-            <option value="pending">{t("Na fila / enviando")}</option>
-            <option value="failed">{t("Erro / verificar")}</option>
-            <option value="closed">
-              {t("Cancelado / expirado / silenciado")}
-            </option>
-          </select>
-        </label>
-        <label>
-          {t("Usuário")}
-          <input
-            type="search"
-            maxLength={120}
-            placeholder={t("Nome ou login")}
-            value={draft.user}
-            onChange={(e) => setDraft({ ...draft, user: e.target.value })}
-          />
-        </label>
-        <label>
-          {t("Mensagem ou destinatário")}
-          <input
-            type="search"
-            maxLength={200}
-            value={draft.q}
-            onChange={(e) => setDraft({ ...draft, q: e.target.value })}
-          />
-        </label>
-        <label>
-          {t("De")}
-          <input
-            type="date"
-            value={draft.start}
-            max={draft.end || undefined}
-            onChange={(e) => setDraft({ ...draft, start: e.target.value })}
-          />
-        </label>
-        <label>
-          {t("Até")}
-          <input
-            type="date"
-            value={draft.end}
-            min={draft.start || undefined}
-            onChange={(e) => setDraft({ ...draft, end: e.target.value })}
-          />
-        </label>
-        <div className="admin-filter-actions">
-          <Button type="submit" disabled={query.isFetching}>
-            {t("Consultar")}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              const empty = {
-                channel: "all",
-                status: "all",
-                user: "",
-                q: "",
-                start: "",
-                end: "",
-              };
-              setDraft(empty);
-              setFilters(empty);
-              refresh();
-            }}
-          >
-            {t("Limpar filtros")}
-          </Button>
-        </div>
-      </form>
+            </select>
+          </label>
+          <label>
+            {t("Usuário")}
+            <input
+              type="search"
+              maxLength={120}
+              placeholder={t("Nome ou login")}
+              value={draft.user}
+              onChange={(e) => setDraft({ ...draft, user: e.target.value })}
+            />
+          </label>
+          <label>
+            {t("Mensagem ou destinatário")}
+            <input
+              type="search"
+              maxLength={200}
+              value={draft.q}
+              onChange={(e) => setDraft({ ...draft, q: e.target.value })}
+            />
+          </label>
+          <label>
+            {t("De")}
+            <input
+              type="date"
+              value={draft.start}
+              max={draft.end || undefined}
+              onChange={(e) => setDraft({ ...draft, start: e.target.value })}
+            />
+          </label>
+          <label>
+            {t("Até")}
+            <input
+              type="date"
+              value={draft.end}
+              min={draft.start || undefined}
+              onChange={(e) => setDraft({ ...draft, end: e.target.value })}
+            />
+          </label>
+          <div className="admin-filter-actions">
+            <Button type="submit" size="large" disabled={query.isFetching}>
+              {t("Consultar")}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                const empty = {
+                  channel: "all",
+                  status: "all",
+                  user: "",
+                  q: "",
+                  start: "",
+                  end: "",
+                };
+                setDraft(empty);
+                setFilters(empty);
+                refresh();
+              }}
+            >
+              {t("Limpar filtros")}
+            </Button>
+          </div>
+        </form>
+      </details>
       {query.isError ? (
         <p role="alert" className="form-error">
           {query.error.message}
@@ -416,7 +459,7 @@ function DeliveryLog({ onCleanup }: { onCleanup: () => void }) {
               {t("{0} aceitos · {1} pendentes · {2} para verificar", [
                 data.totals.sent || 0,
                 (data.totals.pending || 0) + (data.totals.sending || 0),
-                (data.totals.failed || 0) + (data.totals.uncertain || 0),
+                (data.totals.failed || 0) + (data.totals.uncertain || 0) + (data.totals.waiting_contact || 0) + (data.totals.waiting_service || 0),
               ])}
             </span>
           </div>
@@ -510,7 +553,6 @@ function DeliveryLog({ onCleanup }: { onCleanup: () => void }) {
           </p>
         </>
       )}
-      <LogDetail id={selected} onClose={() => setSelected(null)} />
     </Card>
   );
 }
@@ -693,92 +735,95 @@ function Retention({
               query.data.batch_size,
             ])}
           </p>
-          <hr />
-          <h3>{t("Limpeza manual")}</h3>
-          <p>
-            {t(
-              "Exclui definitivamente os logs selecionados de todos os usuários. Não remove contas, preços ou oportunidades.",
-            )}
-          </p>
-          <form
-            className="admin-cleanup-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void preview();
-            }}
-          >
-            <label>
-              {t("O que excluir")}
-              <select
-                value={mode}
-                disabled={busy}
-                onChange={(e) => {
-                  setMode(e.target.value);
-                  resetPlan();
-                }}
-              >
-                <option value="before">{t("Anteriores à data")}</option>
-                <option value="all">
-                  {scope === "deliveries"
-                    ? t("Todos os envios concluídos")
-                    : t("Todos os acessos registrados")}
-                </option>
-              </select>
-            </label>
-            {mode === "before" && (
+          <details className="admin-manual-cleanup">
+            <summary>{t("Limpeza manual")}</summary>
+            <p>
+              {t(
+                "Exclui definitivamente os logs selecionados de todos os usuários. Não remove contas, preços ou oportunidades.",
+              )}
+            </p>
+            <form
+              className="admin-cleanup-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void preview();
+              }}
+            >
               <label>
-                {scope === "deliveries"
-                  ? t("Concluídos antes de")
-                  : t("Registrados antes de")}
-                <input
-                  type="date"
-                  required
+                {t("O que excluir")}
+                <select
+                  value={mode}
                   disabled={busy}
-                  value={value}
-                  max={day(Date.now() / 1000)}
                   onChange={(e) => {
-                    setBefore(e.target.value);
+                    setMode(e.target.value);
                     resetPlan();
                   }}
-                />
+                >
+                  <option value="before">{t("Anteriores à data")}</option>
+                  <option value="all">
+                    {scope === "deliveries"
+                      ? t("Todos os envios concluídos")
+                      : t("Todos os acessos registrados")}
+                  </option>
+                </select>
               </label>
-            )}
-            <Button type="submit" variant="outline" disabled={busy}>
-              {t("Consultar prévia")}
-            </Button>
-          </form>
-          {plan && (
-            <div className="admin-cleanup-preview" role="status">
-              <strong>
-                {t("{0} registros serão excluídos neste lote.", [plan.count])}
-              </strong>
-              <p>
-                {t("Total elegível: {0}.", [plan.total])}{" "}
-                {scope === "deliveries" &&
-                  t("Pendentes e envios em processamento não serão excluídos.")}
-              </p>
-              {plan.count > 0 && (
-                <>
-                  <label className="check-row">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(e) => setChecked(e.target.checked)}
-                    />
-                    {t("Entendo que esta exclusão é definitiva.")}
-                  </label>
-                  <Button
-                    variant="danger"
-                    disabled={!checked || busy}
-                    onClick={() => void purge()}
-                  >
-                    <Trash2 size={16} />
-                    {t("Excluir {0} registros", [plan.count])}
-                  </Button>
-                </>
+              {mode === "before" && (
+                <label>
+                  {scope === "deliveries"
+                    ? t("Concluídos antes de")
+                    : t("Registrados antes de")}
+                  <input
+                    type="date"
+                    required
+                    disabled={busy}
+                    value={value}
+                    max={day(Date.now() / 1000)}
+                    onChange={(e) => {
+                      setBefore(e.target.value);
+                      resetPlan();
+                    }}
+                  />
+                </label>
               )}
-            </div>
-          )}
+              <Button type="submit" variant="outline" disabled={busy}>
+                {t("Consultar prévia")}
+              </Button>
+            </form>
+            {plan && (
+              <div className="admin-cleanup-preview" role="status">
+                <strong>
+                  {t("{0} registros serão excluídos neste lote.", [plan.count])}
+                </strong>
+                <p>
+                  {t("Total elegível: {0}.", [plan.total])}{" "}
+                  {scope === "deliveries" &&
+                    t(
+                      "Pendentes e envios em processamento não serão excluídos.",
+                    )}
+                </p>
+                {plan.count > 0 && (
+                  <>
+                    <label className="check-row">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => setChecked(e.target.checked)}
+                      />
+                      {t("Entendo que esta exclusão é definitiva.")}
+                    </label>
+                    <Button
+                      variant="danger"
+                      disabled={!checked || busy}
+                      onClick={() => void purge()}
+                    >
+                      <Trash2 size={16} />
+                      {t("Excluir {0} registros", [plan.count])}
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+          </details>
         </>
       )}
       {error && (
@@ -793,7 +838,7 @@ function Retention({
       )}
       <p className="help">
         {t(
-          "O espaço liberado é reutilizado pelo SQLite. Esta limpeza não apaga backups nem reduz necessariamente o arquivo imediatamente.",
+          "A limpeza remove somente os registros selecionados. Os backups são preservados.",
         )}
       </p>
     </Card>
@@ -803,14 +848,28 @@ export function AdminPanel({
   children,
   request,
   userId = "",
+  route,
+  navigate,
 }: {
   children: ReactNode;
   request: RequestFn;
   userId?: string;
+  route?: AppRoute;
+  navigate?: Navigate;
 }) {
-  const [tab, setTab] = useState("deliveries"),
-    [channel, setChannel] = useState("email"),
+  const [localTab, setLocalTab] = useState("deliveries"),
+    [localChannel, setLocalChannel] = useState("email"),
     [retentionScope, setRetentionScope] = useState("deliveries");
+  const tab = route?.section || localTab,
+    channel = route?.channel || localChannel;
+  const setTab = (next: string) =>
+    navigate
+      ? navigate({ view: "admin", section: next as AppRoute["section"] })
+      : setLocalTab(next);
+  const setChannel = (next: string) =>
+    navigate
+      ? navigate({ view: "admin", section: "channels", channel: next })
+      : setLocalChannel(next);
   const tabs = [
     ["deliveries", t("Envios")],
     ["channels", t("Canais")],
@@ -820,6 +879,25 @@ export function AdminPanel({
   ];
   return (
     <div className="admin-workspace">
+      {navigate && (
+        <Button
+          variant="ghost"
+          className="admin-exit"
+          onClick={() => navigate({ view: "home" })}
+        >
+          {t("Voltar às viagens")}
+        </Button>
+      )}
+      <label className="admin-section-picker">
+        {t("Seção administrativa")}
+        <select value={tab} onChange={(e) => setTab(e.target.value)}>
+          {tabs.map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
       <div
         className="admin-tabs"
         role="tablist"
@@ -849,13 +927,22 @@ export function AdminPanel({
       >
         {tab === "deliveries" && (
           <DeliveryLog
+            route={route}
+            navigate={navigate}
             onCleanup={() => {
               setRetentionScope("deliveries");
               setTab("retention");
             }}
           />
         )}
-        {tab === "users" && <AdminUsers request={request} userId={userId} />}
+        {tab === "users" && (
+          <AdminUsers
+            request={request}
+            userId={userId}
+            route={route}
+            navigate={navigate}
+          />
+        )}
         {tab === "audit" && (
           <>
             <div className="admin-audit-actions">

@@ -1,5 +1,32 @@
 # Alterações
 
+## 0.24.0
+
+- Seletor de idioma com bandeiras do Brasil, Estados Unidos e Espanha; cartões de viagem com alturas iguais e áreas de datas/preços alinhadas.
+
+- Dimensões compartilhadas de ações e formulários, cabeçalho compacto de viagem e seletor estável entre voos, histórico e alertas.
+- Correções de contenção de botões, barra de alterações acima da navegação móvel e datas completas em painéis estreitos.
+- Legenda do gráfico alinhada às séries, preços mantidos sem falso desconto e economia com precisão adequada.
+- Bloqueios de contato/serviço distinguidos de falhas de transporte, com classificação dos registros legados sem tentativas e atalhos de correção.
+- Auditoria com filtros, paginação, retenção real, estados de consulta e leitura adaptada ao celular.
+- Campos compartilhados de fuso e senha na Administração e recuperação; moeda com aviso visível e revisão dos valores.
+- Organização e vocabulário de viagens unificados, acesso administrativo no menu da conta e identificação do serviço de e-mail em uso.
+
+## 0.23.0
+
+- Tipografia nativa e paleta semântica com modos claro/escuro automáticos pelo sistema, abrangendo login, calendários, gráficos e administração.
+
+- País do telefone pesquisável por nome ou DDI, sem prefixo repetido no número; login com opção de mostrar/ocultar senha.
+
+- Cabeçalho e navegação estáveis entre voos, histórico e alertas da viagem, com intervalos completos de ida/volta.
+- Revisão por trecho com horários e filtros, recuperação de progresso do rascunho e descarte explícito.
+- Disponibilidade e destinatários dos alertas validados na interface; cartões, gráfico, datas de avisos, pluralização e seleção de fuso revisados.
+
+- Criação e edição de monitoramentos em páginas, com etapas no endereço e rascunho de nova busca por conta na sessão do navegador.
+- Navegação móvel simplificada, perfil em largura completa e administração com páginas para cadastros, envios e consulta de monitoramentos.
+- Filtros e limpeza manual recolhidos; histórico adaptável com escala de preços legível e indicação de estabilidade.
+- Proteção de formulários alterados ao navegar e retorno explícito de monitoramentos inexistentes ou pertencentes a outra conta.
+
 ## 0.22.0
 
 - Identificadores numéricos permanentes para clientes e monitoramentos, com migração dos registros existentes.

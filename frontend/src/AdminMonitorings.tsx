@@ -1,3 +1,4 @@
+import { TaskPage } from "./TaskPage";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ChevronLeft, ChevronRight, Eye } from "lucide-react";
@@ -93,14 +94,21 @@ function LegPreferences({ leg, title }: { leg: Leg; title: string }) {
 export function AdminMonitorings({
   user,
   onClose,
+  monitoringId,
+  onSelect,
 }: {
   user: User;
   onClose: () => void;
+  monitoringId?: string;
+  onSelect?: (id?: string) => void;
 }) {
   const [status, setStatus] = useState("all"),
     [page, setPage] = useState(0),
-    [selected, setSelected] = useState<string | null>(null),
+    [localSelected, setLocalSelected] = useState<string | null>(null),
     [flightPage, setFlightPage] = useState(0);
+  const selected = monitoringId || localSelected;
+  const setSelected = (id: string | null) =>
+    onSelect ? onSelect(id || undefined) : setLocalSelected(id);
   const base = "/admin/users/" + encodeURIComponent(user.id) + "/monitorings";
   const list = useQuery<Listing>({
     queryKey: ["admin-monitorings", user.id, status, page],
@@ -129,16 +137,12 @@ export function AdminMonitorings({
     setFlightPage(0);
   }
   return (
-    <Modal
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
+    <TaskPage
+      onBack={selected ? back : onClose}
       title={t("Monitoramentos de {0}", [user.name])}
       description={t("Cliente #{0} · somente leitura", [
         user.client_number || "—",
       ])}
-      wide
       className="admin-monitor-dialog"
     >
       <p className="admin-readonly">
@@ -442,6 +446,6 @@ export function AdminMonitorings({
           )}
         </>
       )}
-    </Modal>
+    </TaskPage>
   );
 }

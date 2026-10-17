@@ -1,0 +1,85 @@
+/* Semantic colors follow the OS. No saved preference overrides the device. */
+:root {
+  --page-gap: 24px;
+  --touch-size: 44px;
+  --control-height: 44px;
+  --control-large: 48px;
+  --panel-radius: 16px;
+  --page-inset: 32px;
+  --bottom-nav-height: 64px;
+
+  color-scheme: light dark;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --page: #f5f5f7;
+  --surface: #ffffff;
+  --surface-soft: #f5f5f7;
+  --surface-raised: #ffffff;
+  --surface-tint: #eaf2ff;
+  --surface-translucent: #fffffff2;
+  --text: #1d1d1f;
+  --ink: #1d1d1f;
+  --muted: #6e6e73;
+  --primary: #0066cc;
+  --action: #0071e3;
+  --action-hover: #0062c4;
+  --on-accent: #ffffff;
+  --border: #d2d2d7;
+  --border-strong: #86868b;
+  --focus: #0071e3;
+  --green: #246c3b;
+  --success-text: #246c3b;
+  --success-bg: #edf7ef;
+  --success-border: #b7d8c0;
+  --warning-text: #805000;
+  --warning-bg: #fff6e5;
+  --warning-border: #d6b972;
+  --danger-text: #b42318;
+  --danger-bg: #fff1f0;
+  --danger-border: #e4b0a9;
+  --purple-text: #70529a;
+  --purple-bg: #f2eef8;
+  --chart-out: #0066cc;
+  --chart-in: #287243;
+  --shadow-color: #00000014;
+  --overlay: #00000066;
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%236e6e73' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page: #161618;
+    --surface: #232325;
+    --surface-soft: #2c2c2e;
+    --surface-raised: #323235;
+    --surface-tint: #182d46;
+    --surface-translucent: #232325f2;
+    --text: #f5f5f7;
+    --ink: #f5f5f7;
+    --muted: #aeaeb2;
+    --primary: #75baff;
+    --action: #0071e3;
+    --action-hover: #0062c4;
+    --on-accent: #ffffff;
+    --border: #414145;
+    --border-strong: #8e8e93;
+    --focus: #75baff;
+    --green: #8dd9a5;
+    --success-text: #8dd9a5;
+    --success-bg: #193424;
+    --success-border: #3f6b4b;
+    --warning-text: #f0c674;
+    --warning-bg: #392d19;
+    --warning-border: #806735;
+    --danger-text: #ffb4a9;
+    --danger-bg: #3c2325;
+    --danger-border: #8e514b;
+    --purple-text: #c9a8ff;
+    --purple-bg: #30263e;
+    --chart-out: #75baff;
+    --chart-in: #8dd9a5;
+    --shadow-color: #00000040;
+    --overlay: #00000099;
+    --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%23aeaeb2' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+}

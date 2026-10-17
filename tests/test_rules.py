@@ -123,7 +123,11 @@ class StorageTests(unittest.TestCase):
             persist_snapshots(c,self.sid,1,self.cid,config(),[self.result()])
             alerts=c.execute("SELECT * FROM alerts").fetchall()
             self.assertEqual(len(alerts),1)
-            self.assertEqual(alerts[0]["status"],"waiting_smtp")
+            self.assertEqual(alerts[0]["status"],"waiting_service")
+            blocked=c.execute("SELECT status,attempts FROM outbox").fetchall()
+            self.assertEqual(len(blocked),1)
+            self.assertEqual(blocked[0]['status'],'waiting_service')
+            self.assertEqual(blocked[0]['attempts'],0)
 
     def test_new_filter_version_does_not_claim_market_drop(self):
         with store.db() as c:

@@ -29,6 +29,26 @@ class AdminMonitoringTests(unittest.TestCase):
         with store.db() as c:return store.add_search(c,self.config,uid or self.uid)
     def accounts(self):return self.admin.get('/api/admin/users').json()['items']
     def list(self,uid=None,**params):return self.admin.get('/api/admin/users/'+(uid or self.uid)+'/monitorings',params=params)
+    def test_direct_admin_user_page_is_authorized_and_contains_only_public_account_fields(self):
+        response=self.admin.get('/api/admin/users/'+self.uid)
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.json()['id'],self.uid)
+        self.assertIsInstance(response.json()['client_number'],int)
+        for field in ('password_hash','password','token','sessions'):
+            self.assertNotIn(field,response.json())
+        self.assertEqual(self.user.get('/api/admin/users/'+self.uid).status_code,403)
+        self.assertEqual(self.anon.get('/api/admin/users/'+self.uid).status_code,401)
+        self.assertEqual(self.admin.get('/api/admin/users/missing').status_code,404)
+
+    def test_client_pages_support_direct_navigation_without_an_api_catchall(self):
+        for path in ('/viagens','/viagens/nova?etapa=1&trecho=volta','/viagens/fixture/editar','/viagens/fixture/historico','/perfil','/historico','/alertas','/admin/usuarios/fixture/editar','/admin/envios/fixture'):
+            response=self.anon.get(path)
+            self.assertEqual(response.status_code,200,path)
+            self.assertIn('text/html',response.headers['content-type'])
+            self.assertEqual(response.headers['cache-control'],'no-cache')
+        self.assertEqual(self.anon.get('/api/nonexistent').status_code,404)
+        self.assertEqual(self.anon.get('/assets/nonexistent.js').status_code,404)
+
     def test_customer_numbers_counts_and_id_search(self):
         one,two,three=[self.add() for _ in range(3)];self.add(self.aid)
         self.user.post('/api/searches/'+two+'/action',json={'action':'pause'},headers=self.headers)
