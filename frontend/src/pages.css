@@ -288,6 +288,38 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+.fare-trend {
+  display: flex;
+  letter-spacing: 0;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.fare-trend.is-down {
+  color: var(--status-green-text);
+}
+.fare-trend.is-up {
+  color: var(--status-red-text);
+}
+.fare-trend.is-stable {
+  color: var(--status-gray-text);
+}
+.trip-card-total {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+.trip-card-total strong {
+  margin-left: 4px;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 .trip-card-party,
 .trip-card-note {
   margin-top: 4px;

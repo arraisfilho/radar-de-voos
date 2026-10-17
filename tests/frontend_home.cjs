@@ -27,3 +27,13 @@ assert.equal((generatedHtml.match(/class="route-code">EZE</g)||[]).length,1);ass
 const named=renderToStaticMarkup(React.createElement(output.Home,{...props,searches:[{...generated,config:{...generated.config,name:'Férias da família'}}]}));assert.ok(named.includes('Férias da família'));assert.equal((named.match(/class="route-code">EZE</g)||[]).length,1);
 const located=renderToStaticMarkup(React.createElement(output.Home,{...props,searches:[trip],airports:[{code:'THE',city:'Teresina',name:'Senador Petrônio Portella Airport',country:'BR',timezone:'America/Fortaleza'},{code:'GRU',city:'São Paulo',name:'Guarulhos International Airport',label:'Guarulhos',country:'BR',timezone:'America/Sao_Paulo'}]}));
 assert.ok(located.includes('Teresina · Senador Petrônio Portella'),'Without a label the Airport suffix is dropped');assert.ok(located.includes('São Paulo · Guarulhos'),'The backend label names the airport');
+const {fareTrend}=output;
+assert.equal(fareTrend({price:100000,collected:2}),null,'No reference, no trend');
+assert.equal(fareTrend({price:100500,collected:2,ref:{price:100000,collected:1}}).kind,'stable','Moves under 1% read as stable');
+assert.equal(fareTrend({price:92000,collected:2,ref:{price:100000,collected:1}}).kind,'down');
+assert.equal(fareTrend({price:108000,collected:2,ref:{price:100000,collected:1}}).kind,'up');
+const priced={...generated,summary:{outbound:{price:100000,collected:190,ref:{price:108000,collected:190-86400,basis:'day'}},inbound:{price:50000,collected:190}}};
+const pricedHtml=renderToStaticMarkup(React.createElement(output.Home,{...props,searches:[priced]}));
+assert.ok(pricedHtml.includes('Total estimado ida + volta'),'Round trips show the sum of both legs');assert.ok(pricedHtml.includes('fare-trend is-down'));assert.ok(pricedHtml.includes('em 24 h'));
+assert.equal((pricedHtml.match(/fare-trend/g)||[]).length,1,'A leg without reference shows no trend');
+console.log('Home fare totals and trends passed.');

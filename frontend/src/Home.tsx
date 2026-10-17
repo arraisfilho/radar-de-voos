@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarDays, ChevronRight, Plane, Plus } from "lucide-react";
+import { CalendarDays, ChevronRight, Minus, Plane, Plus, TrendingDown, TrendingUp } from "lucide-react";
 import { Button } from "./ui";
 import { t } from "./i18n";
 import { tripTitle, legDates } from "./tripSummary";
@@ -57,6 +57,33 @@ function Onboarding({ onNew }: { onNew: () => void }) {
   );
 }
 
+type Quote = { price: number; collected: number; ref?: { price: number; collected: number; basis?: "day" | "first" } };
+
+/** Direction of a fare against its reference; moves under 1% read as stable. */
+export function fareTrend(quote: Quote): { kind: "down" | "up" | "stable"; delta: number } | null {
+  if (!quote.ref) return null;
+  const delta = quote.price - quote.ref.price;
+  if (Math.abs(delta) < Math.max(1, Math.round(quote.ref.price * 0.01))) return { kind: "stable", delta: 0 };
+  return { kind: delta < 0 ? "down" : "up", delta };
+}
+
+function FareTrend({ quote, currency }: { quote: Quote; currency: string }) {
+  const trend = fareTrend(quote);
+  if (!trend || !quote.ref) return null;
+  const period = quote.ref.basis === "day" ? t("em 24 h") : t("desde a primeira coleta");
+  const Icon = trend.kind === "down" ? TrendingDown : trend.kind === "up" ? TrendingUp : Minus;
+  const text =
+    trend.kind === "stable"
+      ? t("Estável {0}", [period])
+      : `${trend.kind === "down" ? "−" : "+"}${formatMoney(Math.abs(trend.delta), currency)} ${period}`;
+  return (
+    <span className={`fare-trend is-${trend.kind}`}>
+      <Icon size={14} aria-hidden="true" />
+      {text}
+    </span>
+  );
+}
+
 /** Boarding-pass card: one stretched link opens the trip. */
 function TripCard({
   search,
@@ -77,6 +104,10 @@ function TripCard({
     headingId = `trip-card-${search.id}`;
   const sides = config.inbound ? (["outbound", "inbound"] as const) : (["outbound"] as const);
   const updated = Math.max(0, ...sides.map((side) => search.summary?.[side]?.collected || 0)) || search.last_success;
+  const total =
+    sides.length === 2 && search.summary?.outbound && search.summary?.inbound
+      ? search.summary.outbound.price + search.summary.inbound.price
+      : null;
   const route = ended ? { view: "history" as const, searchId: search.id } : { view: "searches" as const, searchId: search.id };
   return (
     <article className="home-monitor card card-interactive" aria-labelledby={headingId}>
@@ -116,13 +147,24 @@ function TripCard({
         <div className="trip-card-fares">
           <p className="trip-card-label">{t("Menor preço agora")}</p>
           <dl>
-            {sides.map((side) => (
-              <div key={side}>
-                <dt>{side === "outbound" ? t("Ida") : t("Volta")}</dt>
-                <dd>{search.summary?.[side] ? formatMoney(search.summary[side]!.price, config.currency) : "—"}</dd>
-              </div>
-            ))}
+            {sides.map((side) => {
+              const quote = search.summary?.[side];
+              return (
+                <div key={side}>
+                  <dt>{side === "outbound" ? t("Ida") : t("Volta")}</dt>
+                  <dd>
+                    {quote ? formatMoney(quote.price, config.currency) : "—"}
+                    {quote && <FareTrend quote={quote} currency={config.currency} />}
+                  </dd>
+                </div>
+              );
+            })}
           </dl>
+          {total !== null && (
+            <p className="trip-card-total">
+              {t("Total estimado ida + volta")} <strong>{formatMoney(total, config.currency)}</strong>
+            </p>
+          )}
           <p className="trip-card-party">{t("Total para {0} · por trecho", [partyLabel(config)])}</p>
         </div>
       )}

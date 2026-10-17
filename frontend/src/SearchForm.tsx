@@ -1462,6 +1462,13 @@ export function SearchForm({
             </p>
             {partyError && <FieldError id={errorId + "-party"}>{partyError}</FieldError>}
           </section>
+          <details className="advanced-options trip-options">
+            <summary>
+              <span className="trip-options-title">{t("Cabine e moeda")}</span>
+              <span className="trip-options-value">
+                {cabinName(config.cabin)} · {currency}
+              </span>
+            </summary>
           <div className="trip-options-row">
             <div className="field">
               <label className="field-label" htmlFor={ids.cabin}>
@@ -1516,6 +1523,7 @@ export function SearchForm({
               </p>
             </div>
           </div>
+          </details>
           <div className="dates-field" id={`${uid}-window`}>
             {legTabs}
             <div className="leg-panel" {...panel}>

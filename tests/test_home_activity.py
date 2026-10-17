@@ -53,6 +53,21 @@ class EvolutionTests(unittest.TestCase):
         self.assertEqual({s['id'] for s in home['searches']},{a,b});self.assertIsNone(home['selected']);self.assertEqual(home['flights'],[])
         first=next(s for s in home['searches'] if s['id']==a);self.assertEqual(first['summary']['outbound']['price'],123400);self.assertNotIn('inbound',first['summary'])
         self.assertIsNone(home['smtp']);self.assertIsNone(home['google_mail'])
+    def test_home_summary_compares_with_price_from_a_day_ago(self):
+        sid=self.search();now=time.time()
+        with store.db() as c:
+            cid=self.cycle(c,sid)
+            for age,price in ((3*86400,140000),(30*3600,150000),(3600,130000),(0,123400)):
+                c.execute("INSERT INTO snapshots(search_id,version,cycle_id,direction,collected,complete,price,count) VALUES(?,1,?,'outbound',?,1,?,1)",(sid,cid,now-age,price))
+        quote=next(s for s in self.client.get('/api/state',params={'scope':'home'}).json()['searches'] if s['id']==sid)['summary']['outbound']
+        self.assertEqual(quote['price'],123400);self.assertEqual(quote['ref']['price'],150000);self.assertEqual(quote['ref']['basis'],'day')
+        young=self.search(name='Young')
+        with store.db() as c:
+            cid=self.cycle(c,young)
+            for age,price in ((7200,100000),(0,99000)):
+                c.execute("INSERT INTO snapshots(search_id,version,cycle_id,direction,collected,complete,price,count) VALUES(?,1,?,'outbound',?,1,?,1)",(young,cid,now-age,price))
+        quote=next(s for s in self.client.get('/api/state',params={'scope':'home'}).json()['searches'] if s['id']==young)['summary']['outbound']
+        self.assertEqual(quote['ref']['price'],100000,'A trip younger than a day compares with its first price');self.assertEqual(quote['ref']['basis'],'first')
     def test_conditional_state_is_cheap_and_not_invalidated_by_other_account(self):
         sid=self.search();params={'scope':'searches','search_id':sid,'detail':False}
         before=self.client.get('/api/state',params=params).json();self.assertIn('revision',before)
