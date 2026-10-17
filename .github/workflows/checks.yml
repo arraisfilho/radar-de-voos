@@ -8,8 +8,8 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: pip
@@ -21,8 +21,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -33,7 +33,7 @@ jobs:
   container:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: docker compose config --quiet
       - run: docker compose --env-file deploy/cloud.env.example -f compose.cloud.yaml config --quiet
       - run: docker build -t radar-de-voos:ci .
