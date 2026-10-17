@@ -40,4 +40,4 @@ Oportunidades são avaliadas com os filtros salvos. A referência é o menor pre
 
 A fonte pode não retornar todas as opções existentes. Preço observado, bagagem e disponibilidade exigem confirmação antes da compra. Formato e limites da fonte são dependências externas.
 
-A aplicação usa uma instância e SQLite. Escala horizontal exige coordenação de agendamento, fila externa e persistência apropriada. Telegram, verificação de contatos, MFA administrativo e confirmações de entrega são evoluções pendentes.
+A aplicação usa uma instância e SQLite. Escala horizontal exige coordenação de agendamento, fila externa e persistência apropriada. Telegram, verificação de contatos e confirmações de entrega são evoluções pendentes.

@@ -2271,3 +2271,168 @@
     border: 1px solid CanvasText;
   }
 }
+
+/* ---------- Two-step verification (profile, Segurança; TwoFactorSettings.tsx) ------------ */
+/* A group of its own above the access list, with the section's spacing between them. */
+.two-factor {
+  margin-bottom: 14px;
+}
+.two-factor-heading {
+  min-height: 48px;
+}
+.two-factor-heading > svg {
+  color: var(--action);
+}
+.two-factor-title {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+.two-factor-body {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.two-factor-text {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+.two-factor-text strong {
+  color: var(--text);
+}
+.two-factor-step {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+/* Always dark modules on a light field (theme tokens that ignore the dark
+   appearance), with the quiet zone inside the rounded corners. */
+.two-factor-qr {
+  justify-self: center;
+  width: 196px;
+  height: 196px;
+  max-width: 100%;
+  border-radius: var(--radius-md);
+  background: var(--qr-light);
+  fill: var(--qr-dark);
+  box-shadow: 0 0 0 1px var(--hairline);
+  /* Contrast themes must not repaint it: the code would stop scanning. */
+  forced-color-adjust: none;
+}
+/* The key in groups of four; one click selects all of it to copy by hand. */
+.two-factor-secret {
+  justify-self: start;
+  max-width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  line-height: 24px;
+  word-spacing: .15em;
+  -webkit-user-select: all;
+  user-select: all;
+}
+/* Recovery codes: two columns at most, one on phones. */
+.two-factor-codes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20ch), 1fr));
+  gap: 6px 16px;
+  max-width: 460px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 22px;
+}
+.two-factor-codes > li {
+  white-space: nowrap;
+}
+.two-factor-warning {
+  color: var(--warning-text);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.two-factor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.two-factor-actions.is-end {
+  justify-content: flex-end;
+}
+.two-factor-done {
+  margin-left: auto;
+}
+.two-factor-confirm .code-input {
+  max-width: 220px;
+}
+.two-factor-skeleton {
+  width: min(320px, 70%);
+}
+/* Message regions mounted in every view: no space and no separator until a
+   message arrives, then inside the group with the padding of its rows. */
+.two-factor-messages {
+  background-image: none;
+}
+.two-factor-messages.is-shown {
+  display: grid;
+  gap: 12px;
+  padding: 0 16px 14px;
+}
+/* "Mostrar link de configuração": the otpauth:// address, selectable. */
+.two-factor-link > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--primary);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  list-style: none;
+}
+.two-factor-link > summary::-webkit-details-marker {
+  display: none;
+}
+.two-factor-link > summary::after {
+  content: "";
+  flex-shrink: 0;
+  width: 8px;
+  height: 14px;
+  background-color: currentColor;
+  -webkit-mask: var(--icon-chevron) center / contain no-repeat;
+  mask: var(--icon-chevron) center / contain no-repeat;
+  transform: rotate(90deg);
+  transition: transform var(--dur-fast) var(--ease-standard);
+}
+.two-factor-link[open] > summary::after {
+  transform: rotate(-90deg);
+}
+.two-factor-uri {
+  display: block;
+  margin: 4px 0 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+  resize: none;
+}
+@media (forced-colors: active) {
+  .two-factor-secret,
+  .two-factor-codes {
+    border: 1px solid CanvasText;
+  }
+  .two-factor-link > summary::after {
+    forced-color-adjust: none;
+    background-color: CanvasText;
+  }
+}

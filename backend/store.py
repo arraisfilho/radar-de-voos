@@ -132,6 +132,8 @@ def setup(seed=True):
             c.execute('ALTER TABLE access_audit ADD COLUMN actor_id TEXT REFERENCES accounts(id)')
         from . import audit
         audit.setup(c)
+        from . import two_factor
+        two_factor.setup(c)
         # Login limits count by address and by account key (HMAC of the normalized phone, accounts.login_key).
         if 'account' not in {r[1] for r in c.execute('PRAGMA table_info(login_attempts)')}:
             c.execute('ALTER TABLE login_attempts ADD COLUMN account TEXT')

@@ -89,6 +89,11 @@
   --brand-gradient-start: #40a9ff;
   --brand-gradient-end: #0071e3;
 
+  /* QR code: dark modules on a light field in both appearances, since readers
+     fail on an inverted code. Deliberately absent from the dark palette below. */
+  --qr-light: #ffffff;
+  --qr-dark: #000000;
+
   /* Shadows */
   --shadow-color: #00000014;
   --shadow-xs: 0 1px 2px #0000000d;

@@ -43,7 +43,7 @@ O estado da fonte (`ok`, `degraded` ou `paused`) aparece em `/api/state` e `/api
 
 Transações curtas e WAL permitem leitura durante gravações. O identificador da conta vem da sessão, e operações verificam proprietário ou papel administrativo.
 
-Snapshots guardam a evolução do menor preço; versões separam critérios de comparação. A retenção de respostas brutas preserva as últimas tentativas/respostas válidas e os registros necessários ao histórico. Auditoria e envios possuem políticas de retenção próprias, aplicadas pela manutenção horária do coletor; a auditoria agrega eventos anônimos e sessões repetidos (sessões, só do mesmo navegador) e limita separadamente eventos anônimos, de conta e administrativos ([operação](DEPLOYMENT.md#logs-e-retenção)).
+Snapshots guardam a evolução do menor preço; versões separam critérios de comparação. A retenção de respostas brutas preserva as últimas tentativas/respostas válidas e os registros necessários ao histórico. Auditoria e envios possuem políticas de retenção próprias, aplicadas pela manutenção horária do coletor; a auditoria agrega eventos anônimos, sessões e etapas da verificação em duas etapas repetidos (sessões, só do mesmo navegador) e limita separadamente eventos anônimos, de conta e administrativos ([operação](DEPLOYMENT.md#logs-e-retenção)).
 
 ## Alertas e integrações
 

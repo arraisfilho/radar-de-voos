@@ -1,9 +1,10 @@
-import { useId, useState, type InputHTMLAttributes } from "react";
+import { useId, useState, type InputHTMLAttributes, type Ref } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { t } from "./i18n";
 import "./password-field.css";
 
-export function PasswordField({ label, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & { label: string }) {
+/** `ref` reaches the <input> with the other props (a plain prop since React 19). */
+export function PasswordField({ label, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & { label: string; ref?: Ref<HTMLInputElement> }) {
   const [visible, setVisible] = useState(false);
   const id = useId();
   return <div className="password-field">

@@ -8,7 +8,13 @@ export type Session = {
   registration_open?: boolean;
 };
 
-/** Account requests outside the dashboard; errors come back translated. */
+/** Error of an account request: the translated message and the HTTP status. */
+export type ApiError = Error & { status?: number };
+
+/** HTTP status of a failed account request, when the server answered. */
+export const errorStatus = (error: unknown) => (error as ApiError | null)?.status;
+
+/** Account requests outside the dashboard; errors come back translated, with their status. */
 export async function api(path: string, token: string, body: unknown, method = "POST") {
   const r = await fetch("/api" + path, {
     method,
@@ -21,14 +27,17 @@ export async function api(path: string, token: string, body: unknown, method = "
   });
   const data = await r.json();
   if (!r.ok)
-    throw Error(
-      t(
-        typeof data.detail === "string"
-          ? data.detail
-          : Array.isArray(data.detail)
-            ? data.detail.map((d: { msg: string }) => t(d.msg.replace(/^Value error, /, ""))).join(" · ")
-            : t("Não foi possível concluir a ação"),
+    throw Object.assign(
+      Error(
+        t(
+          typeof data.detail === "string"
+            ? data.detail
+            : Array.isArray(data.detail)
+              ? data.detail.map((d: { msg: string }) => t(d.msg.replace(/^Value error, /, ""))).join(" · ")
+              : t("Não foi possível concluir a ação"),
+        ),
       ),
+      { status: r.status },
     );
   return data;
 }

@@ -2548,6 +2548,43 @@ tbody tr:last-child > td {
    ============================================================================= */
 /* Input text of at least 16 px avoids iOS zoom on focus. */
 @media (max-width: 767px) {
+/* ---------- Two-step verification codes (login and profile) ---------------- */
+/* CodeField.tsx: six digits in one field, evenly spaced. Phones keep the 16 px
+   set below, which avoids the iOS zoom on focus. */
+.code-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.code-input {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .3em;
+  text-align: center;
+}
+/* Recovery codes (xxxx-xxxx-xxxx-xxxx) read best in a fixed-width face. */
+.recovery-input {
+  font-family: var(--font-mono);
+}
+/* The sign-in alert before any message (SignIn.tsx): it stays in the page, so a
+   message is announced when it arrives, and takes no space, like .notice.is-empty. */
+.form-error.is-empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
   :root body input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
   :root body select,
   :root body textarea {
