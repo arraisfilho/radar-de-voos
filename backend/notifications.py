@@ -1,5 +1,14 @@
 """One opportunity can have several independent transport attempts."""
 import json
+import time
+
+# Every state a delivery (an outbox row) takes; 'quiet' only in rows written before quiet hours held messages.
+OUTBOX_STATES = ('pending', 'sending', 'sent', 'failed', 'uncertain', 'cancelled', 'expired', 'quiet', 'waiting_contact', 'waiting_service')
+# Derived for display: 'held' is a pending delivery waiting for the end of the recipient's quiet hours.
+DERIVED_STATES = ('held',)
+# Every state of an alert: how persist_snapshots kept it, or the summary of its deliveries (sync_alerts).
+ALERT_STATES = ('queued', 'sent', 'partial', 'uncertain', 'failed', 'waiting_contact', 'waiting_service', 'waiting_smtp',
+                'in_app', 'cancelled', 'expired', 'quiet')
 
 
 def setup(c):
@@ -53,17 +62,20 @@ def channel_summaries(c, user_id, alert_ids):
     """One grouped query for the visible alerts; no contact or provider diagnostics."""
     if not alert_ids:return {}
     values=list(dict.fromkeys(alert_ids));marks=','.join('?' for _ in values)
-    rows=c.execute('''SELECT n.alert_id,o.channel,o.status,COUNT(*) count
+    # A pending delivery due later is held by quiet hours: 'held', with the time it goes out.
+    rows=c.execute('''SELECT n.alert_id,o.channel,CASE WHEN o.status='pending' AND o.next_due>? THEN 'held' ELSE o.status END shown,
+        COUNT(*) count,MAX(o.next_due) due
       FROM notification_deliveries n
       JOIN alerts a ON a.id=n.alert_id
       JOIN searches s ON s.id=a.search_id
       JOIN outbox o ON o.id=n.outbox_id AND o.search_id=a.search_id
       WHERE s.owner_id=? AND n.alert_id IN ('''+marks+''')
-      GROUP BY n.alert_id,o.channel,o.status ORDER BY o.channel,o.status''',[user_id,*values])
-    grouped={}
+      GROUP BY n.alert_id,o.channel,shown ORDER BY o.channel,shown''',[time.time(),user_id,*values])
+    grouped={};held={}
     for row in rows:
         channels=grouped.setdefault(row['alert_id'],{})
-        channels.setdefault(row['channel'],{})[row['status']]=row['count']
+        channels.setdefault(row['channel'],{})[row['shown']]=row['count']
+        if row['shown']=='held':held[(row['alert_id'],row['channel'])]=row['due']
     receipts={}
     for row in c.execute('''SELECT n.alert_id,o.receipt_status,COUNT(*) count FROM notification_deliveries n
       JOIN alerts a ON a.id=n.alert_id JOIN searches s ON s.id=a.search_id
@@ -71,4 +83,7 @@ def channel_summaries(c, user_id, alert_ids):
       WHERE s.owner_id=? AND n.alert_id IN ('''+marks+''') AND o.channel='whatsapp' AND o.status='sent' AND o.receipt_status IS NOT NULL
       GROUP BY n.alert_id,o.receipt_status''',[user_id,*values]):
         receipts.setdefault(row['alert_id'],{})[row['receipt_status']]=row['count']
-    return {aid:[{'channel':channel,'counts':counts,**({'receipts':receipts.get(aid,{})} if channel=='whatsapp' and aid in receipts else {})} for channel,counts in channels.items()] for aid,channels in grouped.items()}
+    # The time a held delivery goes out reads on the account's clock, as the alert message does.
+    zone=(c.execute('SELECT timezone FROM accounts WHERE id=?',(user_id,)).fetchone() or ['UTC'])[0] if held else None
+    return {aid:[{'channel':channel,'counts':counts,**({'receipts':receipts.get(aid,{})} if channel=='whatsapp' and aid in receipts else {}),
+                  **({'held_until':held[(aid,channel)],'held_zone':zone} if (aid,channel) in held else {})} for channel,counts in channels.items()] for aid,channels in grouped.items()}

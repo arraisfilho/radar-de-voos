@@ -1,6 +1,7 @@
 """HTTP API for flight monitoring and price alerts."""
 import asyncio
 import json
+import logging
 import os
 import secrets
 import sqlite3
@@ -20,13 +21,14 @@ from .airports import airport_record, search_airports
 from .domain import Search, eligible, jobs, validate_future, monitoring_deadline, local_instant
 from .store import db, setup, decode_search, add_search, ping
 from .engine import Monitor
-from . import mail, accounts, google_mail, mail_discovery, audit, logos, recovery, revisions, retention, activity, airlines, deliveries, admin_accounts, whatsapp, whatsapp_receipts, source, two_factor
+from . import mail, accounts, google_mail, mail_discovery, audit, logos, recovery, revisions, retention, activity, airlines, deliveries, admin_accounts, whatsapp, whatsapp_receipts, source, two_factor, offer_links
 from .network import allowed_client, allowed_host, loopback_request, public_mode, public_origin, public_request_allowed
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "frontend" / "dist"
 TOKEN = secrets.token_urlsafe(32)
 monitor = Monitor()
+logger = logging.getLogger("radar.app")
 
 
 @asynccontextmanager
@@ -35,6 +37,9 @@ async def lifespan(app):
     setup(seed=os.environ.get("RADAR_NO_SEED") != "1")
     retention.days()
     deliveries.days()
+    # Sending goes on: the link still works on this computer, and the administrator sees the flag in /api/health.
+    if offer_links.local_origin():
+        logger.warning("Links de alerta apontam para um endereço local; defina RADAR_PUBLIC_URL", extra={"origin": offer_links.origin()})
     monitor.start()
     try:
         yield
@@ -43,7 +48,7 @@ async def lifespan(app):
         await asyncio.to_thread(monitor.stop)
 
 
-app = FastAPI(title="Radar de Voos", version="0.25.0", lifespan=lifespan,
+app = FastAPI(title="Radar de Voos", version="0.26.0", lifespan=lifespan,
               docs_url=None, redoc_url=None)
 
 
@@ -187,6 +192,7 @@ def health(request: Request):
             "whatsapp_sender_alive": workers["whatsapp_sender"]["alive"],
             "email_sender_alive": workers["email_sender"]["alive"],
             "heartbeats": {name: None if w["age"] is None else round(w["age"], 1) for name, w in workers.items()},
+            "alert_links_local": offer_links.local_origin(),
             "source": source.public(timeout=2) if db_ok else None}
     return JSONResponse(body, status_code=200 if ok else 503)
 
@@ -238,6 +244,8 @@ def state(request: Request, search_id: str | None = None, preview_pool: bool = F
                         if direction not in item['summary']:
                             item['summary'][direction]={'price':flight['price_cents'],'collected':flight['collected_at']}
         alert_total=c.execute('SELECT COUNT(*) FROM alerts WHERE search_id IN (SELECT id FROM searches WHERE owner_id=?)',(user['id'],)).fetchone()[0]
+        # Creation times of the latest alerts: the menu badge counts those after the last visit on the device.
+        alert_recent=[r[0] for r in c.execute('SELECT created FROM alerts WHERE search_id IN (SELECT id FROM searches WHERE owner_id=?) ORDER BY created DESC LIMIT 100',(user['id'],))]
         flights,routes,history,alerts,cycles = [],[],[],[],[]
         if chosen:
             row = c.execute("SELECT * FROM searches WHERE id=?", (chosen["id"],)).fetchone()
@@ -256,7 +264,7 @@ def state(request: Request, search_id: str | None = None, preview_pool: bool = F
         item["ends_at"] = monitoring_deadline(Search.model_validate(item["config"]))
     for delivery in deliveries:
         delivery["recipients"] = json.loads(delivery["recipients"] or "[]")
-    return {"quote_expires":min((local_instant(f["departure"],f["origin"]).timestamp() for f in flights),default=None),"revision":revision,"alert_total":alert_total,"raw_retention_days":retention.days(),"mail_provider":mail.delivery_settings()["provider"] if user["role"]=="admin" else None,"token": TOKEN, "server_time": time.time(), "searches": searches, "archived": archived, "selected": chosen,
+    return {"quote_expires":min((local_instant(f["departure"],f["origin"]).timestamp() for f in flights),default=None),"revision":revision,"alert_total":alert_total,"alert_recent":alert_recent,"raw_retention_days":retention.days(),"mail_provider":mail.delivery_settings()["provider"] if user["role"]=="admin" else None,"token": TOKEN, "server_time": time.time(), "searches": searches, "archived": archived, "selected": chosen,
             "flights": flights, "routes": routes, "history": history, "alerts": alerts, "cycles": cycles,
             "user": user, "smtp": smtp, "email_available": available, "whatsapp_available":whatsapp_available, "google_mail": google, "mail_test_recipient": recipient, "deliveries": deliveries,
             "source": collection,
@@ -294,6 +302,11 @@ def update_search(request: Request, sid: str, config: Search):
     with db() as c:
         c.execute("BEGIN IMMEDIATE")
         row = require_search(c,sid,user["id"])
+        # A body without the channel fields (another client, an older page) keeps the saved channels.
+        saved = Search.model_validate_json(row["config"])
+        for key in ("notify_email", "notify_whatsapp"):
+            if key not in config.model_fields_set:
+                setattr(config, key, getattr(saved, key))
         reused = result_cache.carry_forward(c,row,config)
         c.execute("UPDATE searches SET config=?,version=version+1,state=?,next_due=?,progress=0,total=0,error=NULL,error_kind=NULL WHERE id=?",
                   (config.model_dump_json(),"scheduled" if row["active"] else "paused",max(time.time(),(row["last_started"] or 0)+300) if row["active"] else None,sid))
@@ -368,16 +381,24 @@ def search_trend(request:Request,sid:str,version:int|None=None):
 
 
 @app.get("/api/export/{sid}")
-def export(request: Request, sid: str):
+def export(request: Request, sid: str, format: Literal['json','csv'] = 'json'):
+    from . import exports
     user = accounts.current_user(request)
     with db() as c:
-        require_search(c,sid,user["id"],include_archived=True)
+        row = require_search(c,sid,user["id"],include_archived=True)
+    config = Search.model_validate_json(row["config"])
+    name = exports.file_name(config, format, user.get("timezone"))
+    if format == 'csv':
+        with db() as c:
+            rows = c.execute("SELECT version,direction,collected,price,flight FROM snapshots WHERE search_id=? AND complete=1 AND price IS NOT NULL ORDER BY collected,id",(sid,)).fetchall()
+        return Response(exports.history_csv(rows, user.get("timezone")).encode("utf-8"), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition":f'attachment; filename="{name}"',"Cache-Control":"no-store"})
     data = state(request,sid)
     with db() as c:
         data['history']=[dict(r) for r in c.execute("SELECT id,version,cycle_id,direction,collected,complete,price,count,COALESCE(json_extract(flight,'$.currency'),'BRL') AS currency FROM snapshots WHERE search_id=? ORDER BY collected",(sid,))]
     # Exports contain search data only, never CSRF tokens or SMTP configuration.
     return JSONResponse({k:data[k] for k in ("selected","flights","routes","history","alerts","cycles")},
-                        headers={"Content-Disposition":'attachment; filename="radar-voos.json"'})
+                        headers={"Content-Disposition":f'attachment; filename="{name}"'})
 
 
 @app.put("/api/smtp")
@@ -449,7 +470,7 @@ def recovery_confirm(request:Request,data:recovery.RecoveryConfirm):
 
 
 @app.post("/api/auth/register")
-def register(request: Request, response: Response, data: accounts.Registration):
+def register(request: Request, response: Response, data: accounts.SignUp):
     if public_mode():raise HTTPException(403,"Solicite seu cadastro ao administrador.")
     user=accounts.register(data,response)
     audit.record(request,"register_success",user["id"])
@@ -457,7 +478,7 @@ def register(request: Request, response: Response, data: accounts.Registration):
 
 
 @app.post("/api/auth/bootstrap")
-def bootstrap(request: Request, response: Response, data: accounts.Registration):
+def bootstrap(request: Request, response: Response, data: accounts.SignUp):
     if not accounts.can_bootstrap(request):
         raise HTTPException(403,"Configure o primeiro administrador pelo endereço local da aplicação.")
     user=accounts.register(data,response,admin=True)

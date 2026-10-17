@@ -55,6 +55,11 @@ class AdminDeliveryTests(unittest.TestCase):
         self.assertEqual(self.admin.get('/api/admin/deliveries',params={'q':'%'}).json()['total'],0)
         self.assertEqual(self.admin.get('/api/admin/deliveries',params={'start':time.time()+2}).json()['total'],0)
         self.assertEqual(self.admin.get('/api/admin/deliveries',params={'channel':'invalid'}).status_code,422)
+    def test_recent_configuration_blocks_are_counted_for_the_banner(self):
+        self.insert('svc1','waiting_service');self.insert('svc2','waiting_service');self.insert('wa','waiting_contact',channel='whatsapp')
+        self.insert('old','waiting_service',age=8);self.insert('ok','sent')
+        blocked=self.admin.get('/api/admin/deliveries',params={'channel':'whatsapp'}).json()['blocked']
+        self.assertEqual(blocked,[{'channel':'email','status':'waiting_service','count':2},{'channel':'whatsapp','status':'waiting_contact','count':1}],'Last 7 days, whatever the filters')
     def test_detail_includes_plain_content_but_lists_do_not(self):
         self.insert('content',owner=self.uid,body='<script>fixture</script>\nFare fell')
         listing=self.admin.get('/api/admin/deliveries').json();self.assertNotIn('body',listing['items'][0]);self.assertNotIn('error',listing['items'][0])

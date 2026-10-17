@@ -3,13 +3,26 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), path = re
 const req = require('node:module').createRequire(path.join(__dirname, '../frontend/package.json'));
 const postcss = req('postcss'), directory = path.join(__dirname, '../frontend/src');
 const theme = postcss.parse(fs.readFileSync(path.join(directory, 'theme.css'), 'utf8'));
-function palette(dark) {
-  const colors = {};
-  theme.walkRules(':root', rule => {
-    if (rule.parent.type === 'atrule' && (!dark || !rule.parent.params.includes('prefers-color-scheme: dark'))) return;
-    rule.walkDecls(declaration => { colors[declaration.prop] = declaration.value; });
+// Light: the base :root. Dark: the base plus :root[data-theme="dark"] (the appearance picker), which
+// must equal the device's dark block, :root:not([data-theme="light"]) in prefers-color-scheme: dark.
+function rules(selector, media = null) {
+  const found = [];
+  theme.walkRules(rule => {
+    const inside = rule.parent.type === 'atrule' ? rule.parent.params : null;
+    if (rule.selector === selector && inside === media) found.push(Object.fromEntries(rule.nodes.filter(n => n.type === 'decl').map(d => [d.prop, d.value])));
   });
-  return colors;
+  return found;
+}
+function palette(dark) {
+  return {...rules(':root')[0], ...(dark ? rules(':root[data-theme="dark"]')[0] : {})};
+}
+{
+  const chosen = rules(':root[data-theme="dark"]'), device = rules(':root:not([data-theme="light"])', '(prefers-color-scheme: dark)');
+  assert.equal(chosen.length, 1); assert.equal(device.length, 1);
+  assert.deepEqual(chosen[0], device[0], 'The dark appearance and the device dark mode carry the same tokens');
+  assert.deepEqual(rules(':root[data-theme="light"]'), [{'color-scheme': 'light'}], 'Claro keeps the light tokens and says so to the browser');
+  assert.equal(rules(':root', '(prefers-color-scheme: dark)').length, 0, 'No dark block the picker cannot turn off');
+  for (const tone of ['green', 'red', 'amber', 'gray']) for (const part of ['text', 'bg']) assert.ok(`--status-${tone}-${part}` in chosen[0], `Dark --status-${tone}-${part}`);
 }
 function luminance(hex) {
   const channels = hex.slice(1).match(/../g).slice(0, 3).map(value => parseInt(value, 16) / 255).map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
@@ -26,6 +39,12 @@ for (const dark of [false, true]) {
     const a = luminance(colors[foreground]), b = luminance(colors[background]);
     assert.ok((Math.max(a, b) + .05) / (Math.min(a, b) + .05) >= 4.5, `${dark ? 'Dark' : 'Light'} contrast ${foreground} on ${background}`);
   }
+  // Delivery status chips: the label on its soft fill, and on the surfaces where the chip is drawn.
+  for (const tone of ['green', 'red', 'amber', 'gray'])
+    for (const background of [`--status-${tone}-bg`, '--surface', '--page', '--surface-raised']) {
+      const a = luminance(colors[`--status-${tone}-text`]), b = luminance(colors[background]);
+      assert.ok((Math.max(a, b) + .05) / (Math.min(a, b) + .05) >= 4.5, `${dark ? 'Dark' : 'Light'} status ${tone} on ${background}`);
+    }
   for (const plot of ['--chart-out', '--chart-in']) {
     const a = luminance(colors[plot]), b = luminance(colors['--surface']);
     assert.ok((Math.max(a, b) + .05) / (Math.min(a, b) + .05) >= 3, `${plot} must remain visible on the chart`);
@@ -83,6 +102,9 @@ for (const selector of ['.segmented > [aria-pressed="true"]', '.segmented > [ari
   assert.equal(thumb['font-weight'], '600', `${selector}: semibold label`);
 }
 assert.equal(declarations('style.css', '.segmented > button')['font-weight'], '500', 'Unselected segments stay lighter than the selected one');
+assert.deepEqual(declarations('style.css', '.nav-count.is-unseen'), {background: 'var(--action)', color: 'var(--on-accent)'}, 'New alerts badge: white on the accent (4.5:1, checked above)');
+for (const tone of ['green', 'red', 'amber', 'gray'])
+  assert.deepEqual(declarations('pages.css', `.status-chip.tone-${tone}`), {background: `var(--status-${tone}-bg)`, color: `var(--status-${tone}-text)`}, `Status chip ${tone} uses its tokens`);
 for (const [file, selector] of [['style.css', '.status-pill'], ['style.css', '.status-pill.is-paused'], ['style.css', '.status-pill.is-ended'], ['style.css', '.nav-count'], ['pages.css', '.live-pill'], ['search-form.css', '.wizard-step-mark'], ['audit.css', '.audit-count']])
   assert.equal(declarations(file, selector).color, 'var(--muted-on-fill)', `${selector} text on its fill`);
 assert.equal(declarations('pages.css', '.segment-count').color, 'var(--text)');
@@ -106,4 +128,8 @@ for (const file of fs.readdirSync(directory).filter(file => file.endsWith('.css'
 const html = fs.readFileSync(path.join(directory, '../index.html'), 'utf8');
 assert.ok(html.includes('name="color-scheme" content="light dark"'));
 assert.ok(html.includes('media="(prefers-color-scheme: dark)"'));
+// The saved appearance applies before the first paint: an inline script in <head>, ahead of the styles and the app.
+const head = html.slice(0, html.indexOf('</head>'));
+assert.ok(/<script>[^<]*radar-appearance[^<]*data-theme[^<]*<\/script>/.test(head), 'Boot script in the head');
+assert.ok(head.indexOf('radar-appearance') < html.indexOf('/src/main.tsx'));
 console.log('System appearance: light/dark text and chart contrast, semantic colors across all stylesheets and first-paint metadata passed.');

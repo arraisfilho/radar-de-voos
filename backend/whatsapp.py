@@ -127,11 +127,15 @@ def send_one(stop_event=None):
             if row['search_id']:
                 search=c.execute('SELECT * FROM searches WHERE id=?',(row['search_id'],)).fetchone()
                 if not search or not search['active'] or search['archived'] or search['version']!=row['version']:status='cancelled'
-                elif accounts.search_is_quiet(c,row['search_id']):status='quiet'
                 elif json.loads(row['recipients'] or '[]')!=[p for p in json.loads(row['recipients'] or '[]') if p in recipients(c,row['search_id'])]:status='cancelled'
-            if time.time()-row['created']>1800:status='expired'
+            # A message held by quiet hours counts its 30 minutes from their end (next_due).
+            if time.time()-max(row['created'],row['next_due'] or 0)>1800:status='expired'
             if status:
                 c.execute('UPDATE outbox SET status=? WHERE id=?',(status,row['id']));sync_alerts(c,json.loads(row['alert_ids']));return
+            # Quiet hours hold the message, still pending, until they end; the expiry above still applies then.
+            until=accounts.search_quiet_until(c,row['search_id']) if row['search_id'] else None
+            if until:
+                c.execute('UPDATE outbox SET next_due=? WHERE id=?',(until,row['id']));return
             c.execute("UPDATE outbox SET status='sending',attempts=attempts+1 WHERE id=?",(row['id'],))
         try:
             phones=json.loads(row['recipients'] or '[]')

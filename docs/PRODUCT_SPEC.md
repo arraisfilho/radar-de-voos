@@ -30,10 +30,12 @@ Oportunidades são avaliadas com os filtros salvos. A referência é o menor pre
 
 - Meta atingida pode gerar evento na primeira coleta, sem economia anterior inventada.
 - Comparações exigem coleta completa da direção.
-- Eventos iguais são deduplicados, com silêncio mínimo e supressão de oportunidades repetidas.
-- O aviso apresenta trecho/data, preço anterior e atual quando comparáveis, economia e link para conferir a pesquisa. WhatsApp usa texto com negrito; e-mail usa cartões e botões, com alternativa em texto simples.
+- Eventos iguais são deduplicados, com 10 minutos mínimos entre avisos da mesma direção. Depois do primeiro aviso, um novo só sai em nova mínima (preço do último aviso menos a queda mínima) ou quando o preço sai da meta pela queda mínima ou por 2% da meta, o que for maior, e volta a ela com valor diferente do último aviso. Meta mantida sem novidade gera no máximo um lembrete a cada 24 horas.
+- Avisos que cairiam no horário silencioso do perfil ficam retidos, sem registro, e a regra é reavaliada no primeiro ciclo depois dele: se o preço não valer mais, nada é enviado.
+- Renomear a viagem ou trocar os canais mantém o estado dos avisos. Outras edições e uma nova versão da fonte recomeçam a comparação.
+- O aviso apresenta o nome da viagem, o horário da coleta no fuso do perfil, trecho/data, preço anterior e atual quando comparáveis, economia, link para conferir a pesquisa e link para a página da viagem, onde ela pode ser pausada ou editada. WhatsApp usa texto com negrito; e-mail usa cartões e botões, com alternativa em texto simples.
 - Links curtos de pesquisa são públicos, não contêm credenciais e expiram em 30 dias. Excluir o alerta remove o link; o destino é restrito ao Google Voos. Links e formatação nova se aplicam aos alertas gerados após a atualização.
-- O histórico mostra a situação de cada canal com ícone e detalhes expansíveis. Contagens representam registros de envio, sem confirmar entrega ou leitura. Registros removidos pela retenção podem limitar o detalhamento.
+- O histórico mostra a situação de cada canal com o ícone e um rótulo curto colorido: Enviando, Enviado (Entregue ou Lido com confirmação do WhatsApp), Falha, Verificar, Silenciado ou Cancelado. O estado técnico e as contagens ficam no nome acessível e na dica; alertas só do painel não mostram situação de envio. Registros removidos pela retenção podem limitar o detalhamento.
 - E-mail e WhatsApp dependem da configuração administrativa e dos contatos do perfil.
 
 ## Limites e evolução

@@ -3,7 +3,8 @@ import os
 import re
 import secrets
 import time
-from urllib.parse import urlsplit
+from ipaddress import ip_address
+from urllib.parse import quote, urlsplit
 from .network import public_mode, public_origin
 
 
@@ -34,6 +35,21 @@ def origin():
         or any(ord(ch)<32 for ch in value)):
         raise ValueError('RADAR_PUBLIC_URL deve ser uma origem HTTP(S) válida')
     return value
+
+
+def local_origin():
+    """True when alert links point to the loopback: they open only on this computer, never on a phone."""
+    try:host=urlsplit(origin()).hostname or ''
+    except ValueError:return False
+    if host=='localhost' or host.endswith('.localhost'):return True
+    try:return ip_address(host).is_loopback
+    except ValueError:return False
+
+
+def trip_page(sid):
+    # Plain page link (pause and edit stay behind the session); no link at all with an invalid origin.
+    try:return origin()+'/viagens/'+quote(sid,safe='')
+    except ValueError:return ''
 
 
 def create(c,aid,target):

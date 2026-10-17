@@ -44,11 +44,20 @@ export function AlertRow({
       ? t("Preço subiu")
       : t("Preço caiu")
     : kind === "target"
-      ? t("Meta atingida")
+      ? item.payload?.reason === "reminder"
+        ? t("Ainda dentro da meta")
+        : t("Meta atingida")
       : t("Queda de preço");
-  const change = priceChangeLabel(item.previous, item.price, currency);
-  // A goal met without an earlier price to compare says why it alerted.
-  const budget = !observed && kind === "target" && !change ? t("Dentro do orçamento configurado") : "";
+  // A goal met says how far below the target it is; "Preço subiu" belongs to the price changes only.
+  const target = item.payload?.target_cents;
+  const change =
+    kind !== "target"
+      ? priceChangeLabel(item.previous, item.price, currency)
+      : target == null
+        ? t("Dentro da meta")
+        : target > item.price
+          ? t("Dentro da meta ({0}) · {1} abaixo da meta", [formatMoney(target, currency), formatMoney(target - item.price, currency)])
+          : t("Dentro da meta ({0})", [formatMoney(target, currency)]);
   const trip = [
     tripName,
     item.direction === "outbound" ? t("Ida") : t("Volta"),
@@ -89,7 +98,7 @@ export function AlertRow({
             {formatMoney(item.previous, currency)}
           </del>
         )}
-        {(change || budget) && <small>{change || budget}</small>}
+        {change && <small>{change}</small>}
       </p>
       <div className="alert-row-foot">
         {observed ? (

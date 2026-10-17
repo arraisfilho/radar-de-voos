@@ -106,7 +106,7 @@ class ResponseTests(unittest.TestCase):
                 c.execute("INSERT INTO snapshots(search_id,version,cycle_id,direction,collected,complete,price,count) VALUES(?,1,?,'outbound',?,1,?,1)", (sid, cid, time.time()-index, 100000+index))
         response = self.user.get('/api/export/'+sid)
         self.assertEqual(response.headers['content-encoding'], 'gzip')
-        self.assertEqual(response.headers['content-disposition'], 'attachment; filename="radar-voos.json"')
+        self.assertRegex(response.headers['content-disposition'], r'^attachment; filename="radar-[A-Z+]+-[A-Z+]+-\d{4}-\d{2}-\d{2}\.json"$')
         self.assertEqual(len(response.json()['history']), 40)
 
     def test_signed_webhook_and_offer_redirect_are_unaffected(self):

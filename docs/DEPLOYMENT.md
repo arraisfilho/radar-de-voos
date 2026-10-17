@@ -78,6 +78,10 @@ Com `ok: false`, o comando termina com `HTTP Error 503`. `ok` exige:
 - `collector_alive`, `email_sender_alive` e `whatsapp_sender_alive`;
 - `heartbeats`: segundos desde a última volta de cada trabalhador, até 120 para o coletor e 300 para os envios.
 
+`alert_links_local` não altera `ok`: com `true`, os links de alerta apontam para o loopback (127.0.0.1, localhost ou ::1) e só abrem no próprio servidor. Defina `RADAR_PUBLIC_URL`.
+
+O `index.html` da interface tem um script inline que aplica a aparência escolhida (Sistema, Claro ou Escuro) antes da primeira pintura. Uma CSP com `script-src` na interface precisa liberar esse script por hash ou nonce.
+
 `source` mostra o estado da fonte de tarifas (`ok`, `degraded` ou `paused`) e não altera `ok`: reiniciar o container não desfaz um bloqueio da fonte. O `HEALTHCHECK` da imagem consulta `ok`, `collector_alive` e `whatsapp_sender_alive`.
 
 Depois valide login, criação de monitoramento, coleta e recebimento de um alerta. O endpoint de saúde não comprova entrega de mensagens.

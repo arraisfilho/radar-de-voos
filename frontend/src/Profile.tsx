@@ -1,17 +1,20 @@
 import { Component, lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { LogOut, RotateCw, Shield, Smartphone } from "lucide-react";
+import { LogOut, Mail, MessageCircle, RotateCw, Shield, Smartphone } from "lucide-react";
 import { useUnsavedChanges } from "./navigationGuard";
 import { AdditionalPhones } from "./AdditionalPhones";
 import { EmailFields } from "./EmailFields";
 import { LanguagePicker } from "./LanguagePicker";
+import { AppearancePicker } from "./AppearancePicker";
 import { PhoneField } from "./PhoneField";
 import { TimeZoneField, validTimeZone } from "./TimeZoneField";
 import { AuditPanel } from "./AuditPanel";
 import { SystemVersion } from "./SystemVersion";
 import { Avatar } from "./Avatar";
+import { InfoTip } from "./InfoTip";
 import { Button, Notice } from "./ui";
 import { getLanguage, t } from "./i18n";
 import { plainClick, routePath } from "./navigation";
+import { contactsBody } from "./contacts";
 import type { User } from "./types";
 // Two-step verification is for administrators: its code and the QR code library
 // come in a chunk of their own, never downloaded by other accounts. A lazy
@@ -98,19 +101,7 @@ async function saveProfile(token: string, draft: User): Promise<User> {
       "x-radar-token": token,
       "x-radar-language": getLanguage(),
     },
-    body: JSON.stringify({
-      additional_phones: draft.additional_phones || [],
-      timezone: draft.timezone,
-      quiet_hours: draft.quiet_hours,
-      quiet_start: draft.quiet_start,
-      quiet_end: draft.quiet_end,
-      name: draft.name,
-      telegram_username: draft.telegram_username,
-      emails: draft.emails,
-      whatsapp_use_login: draft.whatsapp_use_login,
-      whatsapp_country: draft.whatsapp_country,
-      whatsapp_phone: draft.whatsapp_phone,
-    }),
+    body: JSON.stringify(contactsBody(draft)),
   });
   const data = await response.json();
   if (!response.ok)
@@ -129,6 +120,7 @@ function Group({
   title,
   className,
   footer,
+  help,
   dirty,
   busy,
   children,
@@ -136,13 +128,22 @@ function Group({
   title: string;
   className: string;
   footer?: string;
+  /** Help behind an info button next to the title, instead of text under the block. */
+  help?: { label: string; content: ReactNode };
   dirty?: boolean;
   busy: boolean;
   children: ReactNode;
 }) {
   return (
     <section className={`list-section ${className}`}>
-      <h2 className="list-section-title">{title}</h2>
+      {help ? (
+        <div className="list-section-head">
+          <h2 className="list-section-title">{title}</h2>
+          <InfoTip label={help.label}>{help.content}</InfoTip>
+        </div>
+      ) : (
+        <h2 className="list-section-title">{title}</h2>
+      )}
       <div className="list-group">{children}</div>
       {footer && <p className="list-section-footer">{footer}</p>}
       {dirty && (
@@ -245,24 +246,23 @@ export function Profile({
         <Group
           title={t("Contatos de alerta")}
           className="profile-contacts"
-          footer={t("Os alertas usam estes contatos. Em cada viagem, escolha os canais em Configurar alertas.")}
+          help={{
+            label: t("Sobre os contatos de alerta"),
+            content: (
+              <>
+                <p>{t("Os alertas vão para estes contatos. Em cada viagem, escolha os canais em Configurar alertas.")}</p>
+                <p>{t("Trocar o número do WhatsApp não muda o telefone de acesso.")}</p>
+              </>
+            ),
+          }}
           dirty={changed("contacts")}
           busy={busy}
         >
-          <div className="form-block">
-            <EmailFields
-              compact
-              label={
-                <>
-                  {t("E-mails de alerta")} <span className="form-block-count">{draft.emails.length}/4</span>
-                </>
-              }
-              values={draft.emails}
-              onChange={(emails) => setDraft({ ...draft, emails })}
-            />
-          </div>
           <fieldset className="form-block whatsapp-contact">
-            <legend>{t("WhatsApp")}</legend>
+            <legend>
+              <MessageCircle className="contact-legend-icon" size={16} aria-hidden="true" />
+              {t("WhatsApp")}
+            </legend>
             <label className="switch-row">
               <span>{t("Usar meu telefone de acesso")}</span>
               <input
@@ -289,17 +289,13 @@ export function Profile({
                 onChange={(country, value) => setDraft({ ...draft, whatsapp_country: country, whatsapp_phone: value })}
               />
             )}
-            <p className="help">
-              {t(
-                "Você pode trocar este contato sem mudar seu telefone de acesso. Ative o WhatsApp nos alertas de cada busca.",
-              )}
-            </p>
           </fieldset>
           <div className="form-block">
             <AdditionalPhones
+              compact
               label={
                 <>
-                  {t("Outros telefones")}{" "}
+                  {t("Outros números de WhatsApp")}{" "}
                   <span className="form-block-count">{(draft.additional_phones || []).length}/4</span>
                 </>
               }
@@ -309,18 +305,34 @@ export function Profile({
               onChange={(additional_phones) => setDraft({ ...draft, additional_phones })}
             />
           </div>
+          <div className="form-block">
+            <EmailFields
+              compact
+              label={
+                <>
+                  <Mail className="contact-legend-icon" size={16} aria-hidden="true" />
+                  {t("E-mails de alerta")} <span className="form-block-count">{draft.emails.length}/4</span>
+                </>
+              }
+              values={draft.emails}
+              onChange={(emails) => setDraft({ ...draft, emails })}
+            />
+          </div>
         </Group>
         <Group
           title={t("Preferências")}
           className="profile-preferences"
           footer={t(
-            "As oportunidades continuam no painel. Alertas silenciados não são enviados depois. E-mails de segurança continuam ativos.",
+            "Avisos desse horário ficam retidos e saem depois, se o preço ainda valer. E-mails de segurança continuam ativos.",
           )}
           dirty={changed("preferences")}
           busy={busy}
         >
           <div className="list-row">
             <LanguagePicker labeled />
+          </div>
+          <div className="list-row">
+            <AppearancePicker labeled />
           </div>
           <div className="form-block quiet-hours">
             <label className="switch-row">
@@ -350,7 +362,12 @@ export function Profile({
             )}
           </div>
           <div className="form-block">
-            <TimeZoneField value={draft.timezone} onChange={(timezone) => setDraft({ ...draft, timezone })} />
+            {/* An account still on the default UTC: the device shortcut names the zone it would set. */}
+            <TimeZoneField
+              value={draft.timezone}
+              suggest={user.timezone === "UTC"}
+              onChange={(timezone) => setDraft({ ...draft, timezone })}
+            />
           </div>
         </Group>
       </form>

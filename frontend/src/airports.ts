@@ -70,3 +70,9 @@ export function placeLabel(codes: string[], airports: Airport[]): string {
   if (known.length === 1 && codes.length === 1) return airportLabel(known[0]);
   return [...new Set(known.map((airport) => airport.city.trim() || airport.code))].join(", ");
 }
+
+/** The cities of a trip side, without airport names ("São Paulo", "São Paulo, Campinas"); codes when unknown. */
+export function cityLabel(codes: string[], airports: Airport[]): string {
+  const cities = codes.map((code) => findAirport(code, airports)?.city.trim() || code);
+  return [...new Set(cities)].join(", ");
+}

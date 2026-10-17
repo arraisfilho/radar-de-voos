@@ -433,19 +433,6 @@ export function AdminUsers({
               <section className="list-section">
                 <h2 className="list-section-title">{t("Contatos de alerta")}</h2>
                 <div className="list-group">
-                  <div className="form-block">
-                    <EmailFields
-                      compact
-                      label={
-                        <>
-                          {t("E-mails de alerta")}{" "}
-                          <span className="form-block-count">{draft.emails.length}/4</span>
-                        </>
-                      }
-                      values={draft.emails}
-                      onChange={(emails) => setDraft({ ...draft, emails })}
-                    />
-                  </div>
                   <div className="form-block whatsapp-contact">
                     <label className="switch-row">
                       <span>{t("Usar o telefone de acesso no WhatsApp")}</span>
@@ -481,6 +468,19 @@ export function AdminUsers({
                       values={draft.additional_phones}
                       disabled={busy}
                       onChange={(additional_phones) => setDraft({ ...draft, additional_phones })}
+                    />
+                  </div>
+                  <div className="form-block">
+                    <EmailFields
+                      compact
+                      label={
+                        <>
+                          {t("E-mails de alerta")}{" "}
+                          <span className="form-block-count">{draft.emails.length}/4</span>
+                        </>
+                      }
+                      values={draft.emails}
+                      onChange={(emails) => setDraft({ ...draft, emails })}
                     />
                   </div>
                 </div>

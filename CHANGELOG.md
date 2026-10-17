@@ -1,5 +1,53 @@
 # Alterações
 
+## 0.26.0
+
+### Added
+- Seletor de aparência (Sistema, Claro, Escuro) no menu, no Perfil e no login; a escolha fica salva no aparelho e vale desde o carregamento.
+- Linha "Você será avisado por" na revisão da viagem, mostrando os canais e destinos escolhidos.
+- Campo de WhatsApp na revisão da viagem para quem ainda não tem número; o número é salvo no perfil ao criar a viagem.
+- Nome da viagem, horário da cotação e link da viagem nas mensagens de WhatsApp e e-mail.
+- Menor preço atual exibido sob a meta ao configurar alertas.
+- Botão "Retomar" no cabeçalho da viagem pausada.
+- Aviso quando datas de volta ficam antes da ida e mensagem ao atingir o máximo de 3 aeroportos.
+- Exportação do histórico da viagem em CSV, que abre no Excel com acentos e separador `;`.
+- Faixa de bloqueios em Administração › Envios, com a causa e o atalho para resolver.
+- Aviso na administração quando os links dos alertas apontam para o próprio computador, indicando `RADAR_PUBLIC_URL`.
+- Verificação em duas etapas para o administrador, com aplicativo autenticador, códigos de recuperação e script local para desativar.
+- Lembrete para o administrador sem verificação em duas etapas.
+
+### Changed
+- Viagens novas vêm com WhatsApp ligado e e-mail desligado; viagens existentes mantêm seus canais.
+- WhatsApp aparece antes do e-mail em todas as telas, e cada canal ocupa uma linha com a ajuda num ícone de informação.
+- Status de envio passou a ícone do canal com rótulo colorido (Enviando, Enviado, Entregue, Lido, Falha, Verificar, Silenciado, Cancelado); a administração mantém o detalhe técnico.
+- Preço que continua na meta deixou de gerar aviso a cada 2 h: novo aviso só em nova mínima ou na volta à meta, e no máximo um lembrete por dia ("Ainda dentro da meta").
+- Avisos do horário silencioso ficam retidos e saem quando a janela termina, se o preço ainda valer; desligar o horário libera os retidos.
+- Editar só o nome ou os canais da viagem não reenvia o aviso; mudar a busca, a meta ou a queda mínima recomeça a contagem.
+- Página da viagem mais compacta, com menor preço e alertas num bloco e filtros num botão; no celular o primeiro voo aparece sem rolar.
+- Selo de Alertas conta só os avisos ainda não vistos neste aparelho.
+- Data de volta não escolhida passa a ficar depois da ida.
+- Quadros vazios e frases fixas saíram de Alertas e da Administração; a ajuda ficou em ícones de informação.
+- Cadastro grava o fuso do aparelho, e o Perfil oferece usar o fuso do aparelho quando a conta está em UTC.
+- Interface redesenhada com componentes compartilhados, compatível com Safari/iOS 15.4, Chrome/Edge 100 e Firefox 100.
+- Inglês, espanhol e o editor de viagem carregam sob demanda, reduzindo o JavaScript da primeira página de 755 kB para 421 kB.
+- Papéis na tabela de usuários aparecem como Admin ou Cliente.
+- Limites de login por conta e por IP, auditoria agregada com cotas e registro das mudanças de configuração.
+- Coleta pausa toda a fonte ou uma busca quando o Google Voos falha, em vez de repetir consultas.
+- Logs em JSON, respostas comprimidas e cache dos arquivos estáticos.
+- Reinício do serviço aguarda até 30 s pela coleta e pelos envios em andamento.
+- GitHub Actions passou a usar Node.js 24.
+
+### Fixed
+- Alerta dentro da meta deixou de aparecer como "Preço subiu".
+- Encerrar uma viagem deixou de mostrar o aviso duas vezes.
+- Reinício durante a coleta deixou de registrar falha de rota.
+- Mensagem sobre o cliente Google ausente passou a indicar a configuração do cliente Desktop ou SMTP.
+- Selo de Alertas passou a ter contraste legível.
+
+### Removed
+- Opção "Telegram — Em breve" das telas do usuário e da administração.
+- Textos "Aceito pelo provedor" e legendas de estados nas telas do usuário.
+
 ## 0.25.0
 
 - Confirmações de envio, entrega e leitura do WhatsApp por webhook assinado, com configuração administrativa e associação por mensagem e integração.

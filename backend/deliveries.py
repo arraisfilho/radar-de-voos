@@ -97,13 +97,15 @@ def list_items(filters,page=0):
         c.execute('BEGIN')
         totals={r['status']:r['n'] for r in c.execute('SELECT o.status,COUNT(*) n'+join+' GROUP BY o.status',values)}
         receipt_totals={r['receipt_status']:r['n'] for r in c.execute('SELECT o.receipt_status,COUNT(*) n'+join+" AND o.channel='whatsapp' AND o.receipt_status IS NOT NULL GROUP BY o.receipt_status",values)}
-        rows=c.execute('SELECT o.id,o.created,o.completed,o.sent,o.status,o.channel,o.kind,o.provider,o.subject,o.recipients,o.attempts,o.provider_message_id,o.receipt_status,o.receipt_sent_at,o.delivered_at,o.read_at,o.receipt_failed_at,o.receipt_received_at,a.name account_name,a.phone login,o.owner_id'+join+' ORDER BY o.created DESC,o.id DESC LIMIT ? OFFSET ?',values+[PAGE_SIZE,page*PAGE_SIZE]).fetchall()
-    return {'items':[public(r) for r in rows],'page':page,'page_size':PAGE_SIZE,'total':sum(totals.values()),'totals':totals,'receipt_totals':receipt_totals}
+        # Configuration blocks of the last 7 days, whatever the filters: the banner above the log.
+        blocked=[dict(r) for r in c.execute("SELECT channel,status,COUNT(*) count FROM outbox WHERE status IN ('waiting_contact','waiting_service') AND created>=? GROUP BY channel,status ORDER BY channel,status",(time.time()-7*86400,))]
+        rows=c.execute('SELECT o.id,o.created,o.completed,o.sent,o.status,o.next_due,o.channel,o.kind,o.provider,o.subject,o.recipients,o.attempts,o.provider_message_id,o.receipt_status,o.receipt_sent_at,o.delivered_at,o.read_at,o.receipt_failed_at,o.receipt_received_at,a.name account_name,a.phone login,o.owner_id,a.timezone owner_timezone'+join+' ORDER BY o.created DESC,o.id DESC LIMIT ? OFFSET ?',values+[PAGE_SIZE,page*PAGE_SIZE]).fetchall()
+    return {'items':[public(r) for r in rows],'page':page,'page_size':PAGE_SIZE,'total':sum(totals.values()),'totals':totals,'receipt_totals':receipt_totals,'blocked':blocked}
 
 
 def detail(delivery_id):
     with db() as c:
-        row=c.execute('SELECT o.*,a.name account_name,a.phone login FROM outbox o LEFT JOIN accounts a ON a.id=o.owner_id WHERE o.id=?',(delivery_id,)).fetchone()
+        row=c.execute('SELECT o.*,a.name account_name,a.phone login,a.timezone owner_timezone FROM outbox o LEFT JOIN accounts a ON a.id=o.owner_id WHERE o.id=?',(delivery_id,)).fetchone()
     if not row:raise HTTPException(404,'Registro de envio não encontrado')
     item=public(row)
     # Old reset requests may no longer have a corresponding password_resets row.

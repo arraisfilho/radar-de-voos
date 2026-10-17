@@ -53,11 +53,11 @@
   margin: 0 0 20px;
 }
 .search-page .list-group,
-.quick-filters-card .list-group {
+.filters-panel .list-group {
   background: var(--group-bg);
   box-shadow: none;
 }
-.quick-filters-card {
+.filters-panel {
   --group-bg: var(--surface-soft);
 }
 .search-page .route-plane {
@@ -263,7 +263,7 @@
   box-shadow: 0 0 0 1px var(--danger);
 }
 .search-page .list-group.is-invalid,
-.quick-filters-card .list-group.is-invalid {
+.filters-panel .list-group.is-invalid {
   box-shadow: 0 0 0 1px var(--danger);
 }
 .field-error > span {
@@ -926,6 +926,27 @@
   -moz-appearance: textfield;
   appearance: textfield;
 }
+/* Return dates before the outbound ones (not blocking: each leg is searched on its own). */
+.return-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 13px;
+  line-height: 18px;
+}
+.return-warning > svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.lowest-now {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
 .currency-review {
   display: grid;
   gap: 2px;
@@ -938,6 +959,7 @@
   font-size: 14px;
 }
 .channel-row {
+  flex-wrap: wrap;
   gap: 12px;
   min-height: 60px;
 }
@@ -951,14 +973,18 @@
   background: var(--surface-tint);
   color: var(--action);
 }
+/* Name and destination are the switch's label: the whole text column toggles it. */
 .channel-text {
   display: grid;
   flex: 1;
+  align-content: center;
   justify-items: start;
   gap: 2px;
   min-width: 0;
+  min-height: 44px;
+  cursor: pointer;
 }
-.channel-text > label {
+.channel-name {
   font-size: 15px;
   line-height: 20px;
   font-weight: 500;
@@ -967,6 +993,7 @@
   color: var(--muted);
   font-size: 13px;
   line-height: 18px;
+  font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 .channel-row.is-invalid .channel-text > small {
@@ -976,12 +1003,70 @@
   background: var(--fill-3);
   color: var(--muted);
 }
-.channel-row.is-disabled .channel-text > label {
-  color: var(--muted);
+.channel-row.is-disabled .channel-text {
   cursor: default;
 }
-.channel-action {
-  margin-top: 6px;
+.channel-row.is-disabled .channel-name {
+  color: var(--muted);
+}
+/* A link to the profile or the WhatsApp number, under the channel's text. */
+.channel-extra {
+  flex-basis: 100%;
+  min-width: 0;
+  padding-left: 44px;
+}
+.channels-rows {
+  display: grid;
+  gap: 6px;
+}
+/* "Você será avisado por:" and where each channel sends. */
+.channel-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 2px 16px 4px;
+  font-size: 15px;
+  line-height: 20px;
+}
+.channel-summary-label {
+  color: var(--muted);
+}
+.channel-target {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.channel-target > svg {
+  flex-shrink: 0;
+  color: var(--action);
+}
+.whatsapp-inline {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+.whatsapp-inline > .phone-field {
+  width: 100%;
+}
+.whatsapp-inline > .field-error {
+  margin: 0;
+}
+@media (pointer: coarse) {
+  .channel-action,
+  .whatsapp-inline > .button {
+    min-height: 44px;
+  }
+}
+/* Phones: the number field takes the row's full width. */
+@media (max-width: 479px) {
+  .channel-extra {
+    padding-left: 0;
+  }
 }
 
 /* ---------- Action bar ---------------------------------------------------------- */

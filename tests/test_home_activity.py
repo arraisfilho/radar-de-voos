@@ -93,6 +93,60 @@ class EvolutionTests(unittest.TestCase):
         filtered=self.client.get('/api/activity',params={'status':'pending','search_id':b}).json();self.assertEqual([item['id'] for item in filtered['items']],['pending']);self.assertTrue(filtered['items'][0]['archived'])
         failed=self.client.get('/api/activity',params={'status':'failed','search_id':b}).json();self.assertEqual([item['id'] for item in failed['items']],['missing'])
         self.assertEqual(self.client.get('/api/activity',params={'search_id':other}).json()['items'],[])
+    def test_expired_and_undelivered_alerts_count_as_problems(self):
+        sid=self.search()
+        with store.db() as c:
+            for aid,status in (('ok','sent'),('late','expired'),('lost','sent')):self.alert(c,sid,self.cycle(c,sid),aid,status)
+            for oid,aid,receipt in (('o-ok','ok','read'),('o-lost','lost','failed')):
+                c.execute("INSERT INTO outbox(id,search_id,version,created,alert_ids,subject,body,status,next_due,recipients,channel,receipt_status) VALUES(?,?,1,?,?,'s','b','sent',0,'[]','whatsapp',?)",(oid,sid,time.time(),json.dumps([aid]),receipt))
+                c.execute('INSERT INTO notification_deliveries VALUES(?,?)',(oid,aid))
+        response=self.client.get('/api/activity').json()
+        self.assertEqual((response['totals']['sent'],response['totals']['delivery_failed'],response['totals']['expired']),(2,1,1))
+        ids=lambda status:sorted(item['id'] for item in self.client.get('/api/activity',params={'status':status}).json()['items'])
+        self.assertEqual(ids('failed'),['late','lost']);self.assertEqual(ids('sent'),['ok'])
+    def test_held_deliveries_show_when_they_go_out_and_follow_the_profile(self):
+        sid=self.search();later=time.time()+3600
+        with store.db() as c:
+            self.alert(c,sid,self.cycle(c,sid),'held','queued')
+            c.execute("INSERT INTO outbox(id,search_id,version,created,alert_ids,subject,body,status,next_due,recipients,channel) VALUES('h',?,1,?,'[\"held\"]','s','b','pending',?,'[]','whatsapp')",(sid,time.time(),later))
+            c.execute("INSERT INTO notification_deliveries VALUES('h','held')")
+        response=self.client.get('/api/activity').json();item=response['items'][0]
+        self.assertEqual(item['channels'],[{'channel':'whatsapp','counts':{'held':1},'held_until':later,'held_zone':'UTC'}])
+        # Not "Enviando": the tile and the filter leave it out, as its chip reads "Silenciado".
+        self.assertEqual((response['totals']['queued'],response['totals']['held']),(1,1))
+        self.assertEqual(self.client.get('/api/activity',params={'status':'pending'}).json()['items'],[])
+        # Turning quiet hours off releases it at once.
+        user=self.client.get('/api/auth/session').json()['user']
+        self.assertEqual(self.client.put('/api/profile',json=user|{'quiet_hours':False},headers=self.headers).status_code,200)
+        with store.db() as c:self.assertLessEqual(c.execute("SELECT next_due FROM outbox WHERE id='h'").fetchone()[0],time.time())
+        self.assertEqual(self.client.get('/api/activity').json()['items'][0]['channels'],[{'channel':'whatsapp','counts':{'pending':1}}])
+        released=self.client.get('/api/activity').json()
+        self.assertNotIn('held',released['totals']);self.assertEqual([i['id'] for i in self.client.get('/api/activity',params={'status':'pending'}).json()['items']],['held'])
+    def test_csv_cells_never_start_a_formula(self):
+        from backend.exports import safe
+        for value in ('=1+1',' =1+1','\n=1','\t=1','  +SUM(A1)','-2','@cmd','\r@x'):
+            self.assertTrue(safe(value).startswith("'"),repr(value))
+        for value in ('LATAM','1948,00','2090-11-05 12:00','Ida',None,''):
+            self.assertFalse(safe(value).startswith("'"),repr(value))
+    def test_history_exports_csv_for_spreadsheets_and_named_json(self):
+        sid=self.search()
+        with store.db() as c:
+            cid=self.cycle(c,sid)
+            for direction,price,airline in (('outbound',194800,'=HYPERLINK(1)'),('inbound',99005,'LATAM')):
+                flight={'origin':'THE','destination':'GRU','departure':'2090-11-05T12:00','airlines':[airline],'currency':'BRL'}
+                c.execute("INSERT INTO snapshots(search_id,version,cycle_id,direction,collected,complete,price,flight,count) VALUES(?,1,?,?,?,1,?,?,1)",(sid,cid,direction,1790000000,price,json.dumps(flight)))
+            c.execute("INSERT INTO snapshots(search_id,version,cycle_id,direction,collected,complete,price,flight,count) VALUES(?,1,?,'outbound',1790000100,0,NULL,NULL,0)",(sid,cid))
+        response=self.client.get('/api/export/'+sid,params={'format':'csv'})
+        self.assertEqual(response.status_code,200);self.assertTrue(response.headers['content-type'].startswith('text/csv'))
+        self.assertRegex(response.headers['content-disposition'],r'attachment; filename="radar-THE-GRU-\d{4}-\d{2}-\d{2}\.csv"')
+        self.assertTrue(response.content.startswith(b'\xef\xbb\xbf'),'UTF-8 BOM for Excel')
+        lines=response.content.decode('utf-8-sig').splitlines()
+        self.assertEqual(lines[0],'Coletado em;Trecho;Origem;Destino;Partida;Companhia;Preço;Moeda;Versão dos filtros')
+        self.assertEqual(len(lines),3,'Only complete collections with a price')
+        self.assertIn(";'=HYPERLINK(1);1948,00;BRL;1",lines[1],'A formula stays text; decimal comma')
+        self.assertIn('Volta;THE;GRU;2090-11-05 12:00;LATAM;990,05;BRL;1',lines[2])
+        self.assertRegex(self.client.get('/api/export/'+sid).headers['content-disposition'],r'filename="radar-THE-GRU-[\d-]+\.json"')
+        self.assertEqual(self.other.get('/api/export/'+sid,params={'format':'csv'}).status_code,404)
     def test_channel_summaries_are_grouped_private_and_shared_with_monitor(self):
         from backend.notifications import link
         sid=self.search();private=self.search(self.other)

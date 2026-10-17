@@ -92,6 +92,7 @@ const stubs = {
   './AdditionalPhones': {AdditionalPhones: () => null},
   './TimeZoneField': {TimeZoneField: () => null, validTimeZone: () => true},
   './LanguagePicker': {LanguagePicker: () => null},
+  './AppearancePicker': {AppearancePicker: () => null},
   './SystemVersion': {SystemVersion: () => null},
   './AppIcon': {AppIcon: () => null},
   './Avatar': {Avatar: () => null},

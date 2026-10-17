@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage, useLanguageReady, t } from "./i18n";
 import { api, type Session } from "./authApi";
 import { LanguagePicker } from "./LanguagePicker";
+import { AppearancePicker } from "./AppearancePicker";
 import { Button } from "./ui";
 import { SystemVersion } from "./SystemVersion";
 import { AppIcon } from "./AppIcon";
@@ -24,6 +25,7 @@ function EntryStatus({ error, onRetry }: { error?: string; onRetry?: () => void 
     <main className="auth-page">
       <div className="auth-toolbar">
         <LanguagePicker />
+        <AppearancePicker />
       </div>
       <section className="auth-card card" aria-busy={!error}>
         <div className="auth-intro">

@@ -18,12 +18,15 @@ export function PhoneField({
   value,
   onChange,
   disabled = false,
+  required = true,
 }: {
   label: string;
   country: string;
   value: string;
   onChange: (country: string, value: string) => void;
   disabled?: boolean;
+  /** False where an empty number is a valid choice (the WhatsApp number in the trip review). */
+  required?: boolean;
 }) {
   const id = useId(),
     input = useRef<HTMLInputElement>(null),
@@ -64,7 +67,7 @@ export function PhoneField({
             onBlur={() => setTouched(true)}
             autoComplete="tel-national"
             inputMode="tel"
-            required
+            required={required}
             disabled={disabled}
             value={display}
             placeholder={example || t("Código de área e número")}

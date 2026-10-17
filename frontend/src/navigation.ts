@@ -107,12 +107,9 @@ export function parseRoute(path: string, query = ""): AppRoute {
     if (!section) return { view: "notfound" };
     const base: AppRoute = { view: "admin", section };
     if (p.length === 2) return base;
-    if (
-      section === "channels" &&
-      p.length === 3 &&
-      ["email", "whatsapp", "telegram"].includes(p[2])
-    )
-      return { ...base, channel: p[2] };
+    // An unknown channel (Telegram links from before) opens the channels on WhatsApp.
+    if (section === "channels" && p.length === 3)
+      return ["email", "whatsapp"].includes(p[2]) ? { ...base, channel: p[2] } : base;
     if (section === "deliveries" && p.length === 3)
       return { ...base, deliveryId: p[2] };
     if (section === "users") {
@@ -136,7 +133,7 @@ export function routePath(r: AppRoute): string {
   if (r.view === "admin") {
     const section = r.section || "deliveries";
     path = "/admin/" + sectionPaths[section];
-    if (section === "channels") path += "/" + (r.channel || "email");
+    if (section === "channels") path += "/" + (r.channel || "whatsapp");
     if (section === "deliveries" && r.deliveryId)
       path += "/" + id(r.deliveryId);
     if (section === "users") {

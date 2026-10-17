@@ -35,6 +35,8 @@ const {TripFlights}=isolated('TripFlights.tsx'),findType=(node,type)=>{if(Array.
 const tripProps={search,config,user,flights:[],direction:'outbound',onDirection(){},visibleCount:40,onShowMore(){},previewing:false,previewCompatible:true,serverNow:10,pendingFilters:false,filters:React.createElement('form',{id:'monitor-filters'}),onConfigureAlerts(){},onShowAlerts(){},onManageContacts(){}};
 const cardBody=tree=>renderToStaticMarkup(tree).match(/<div class="quick-filters-body">(.*?)<\/div><\/details>/)[1];
 let card=TripFlights(tripProps);assert.equal(cardBody(card),'','The closed card has no form');
+assert.ok(!renderToStaticMarkup(card).includes('filters-count'),'No filter on: no count');
+assert.ok(/class="filters-count">2<span class="sr-only"> filtros ativos/.test(renderToStaticMarkup(TripFlights({...tripProps,config:{...config,outbound:{...leg,stops:[0],airlines:['LA']}}}))),'Two filters on: 2');
 findType(card,'details').props.onToggle({currentTarget:{open:true}});card=TripFlights(tripProps);assert.equal(cardBody(card),'<form id="monitor-filters"></form>','Opening the card mounts the filters');
 findType(card,'details').props.onToggle({currentTarget:{open:false}});card=TripFlights(tripProps);assert.equal(cardBody(card),'<form id="monitor-filters"></form>','Closing it keeps them, and their state');
 // The app's card, open before the form's code is in: the compact skeleton stays in the card body, inside a boundary of its own.
@@ -60,17 +62,26 @@ html=render({view:'history',searchId:search.id});assert.ok(html.includes('Preço
 html=render({view:'admin',section:'deliveries',deliveryId:'message-1'});assert.ok(html.includes('view-skeleton'));assert.ok(html.includes('class="sidebar"'),'The shell stays mounted while a view loads');await new Promise(resolve=>setImmediate(resolve));
 html=render({view:'admin',section:'deliveries',deliveryId:'message-1'});assert.ok(html.includes('task-page delivery-detail'));assert.ok(html.includes('Fixture body'));assert.ok(!html.includes('role="dialog"'));assert.ok(!html.slice(html.indexOf('<main'),html.indexOf('</main>')).includes('Nova viagem'));
 html=render({view:'searches',searchId:search.id});
+// Lowest fares and the trip's alerts share one block, ahead of the filters and the flights.
+const summary=(html.match(/<section class="card trip-summary[^"]*"[\s\S]*?<\/section>/)||[''])[0];
+assert.ok(summary.includes('Menor ida')&&summary.includes('Alertas desta viagem')&&summary.includes('Configurar alertas'),'One block for fares and alerts');
+assert.ok(!html.includes('metrics-grid')&&!html.includes('trip-alerts-card')&&!html.includes('filters-card'));
+assert.ok(!summary.includes('Avisaremos')&&!summary.includes('A primeira coleta'),'Target and minimum drop are said once; no phrase after the first collection');
+assert.ok(!/<\/span>\s*·\s*Sem meta/.test(summary)&&summary.includes('Sem meta de preço · Queda mínima'),'No loose dot after the channel icons');
+// "Filtros" sits in the list bar and drives the panel under it.
+const bar=(html.match(/<div class="results-head">[\s\S]*?<\/div><details/)||[''])[0];
+assert.ok(/<button[^>]*class="[^"]*filters-button[^"]*"[^>]*aria-expanded="false"[^>]*aria-controls="trip-filters-panel"/.test(bar),'Filtros in the list bar');
 const status=html.match(/<div class="route-live">[\s\S]*?<\/div>/)[0];
 assert.ok(status.includes('Última atualização:'));assert.ok(!status.includes('<button'));assert.ok(!status.includes('chevron-right'));assert.ok(!html.includes('Acompanhamento ao vivo'));assert.ok(!html.includes('inline-status'));
 // The trip filters mount when their card first opens: closed and without pending changes, there is no form (nor its skeleton) yet.
 assert.ok(html.includes('<div class="quick-filters-body"></div>'),'A closed filters card starts empty');assert.ok(!html.includes('id="monitor-filters"'));
 // Pending changes mount the form in the closed card, as the pending bar submits it and its validation opens the card.
 html=withChangedTrip(()=>render({view:'searches',searchId:search.id}));
-assert.ok(/<details class="filters-card quick-filters-card card"><summary>[\s\S]*?<\/summary><div class="quick-filters-body"><form id="monitor-filters"/.test(html),'Pending changes keep the form in the closed card');assert.ok(html.includes('form="monitor-filters"'),'The pending bar submits that form');
+assert.ok(/<details id="trip-filters-panel" class="filters-panel"><summary>[\s\S]*?<\/summary><div class="quick-filters-body"><form id="monitor-filters"/.test(html),'Pending changes keep the form in the closed panel');assert.ok(html.includes('form="monitor-filters"'),'The pending bar submits that form');
 // The profile loads on demand (phone fields): the skeleton stays inside <main> first, then the form.
 html=render({view:'settings'});assert.ok(html.includes('view-skeleton'));assert.ok(html.includes('class="sidebar"'));await new Promise(resolve=>setImmediate(resolve));
 html=render({view:'settings'});const profileForm=html.match(/<form class="profile-form"[\s\S]*?<\/form>/)[0];
-assert.equal((profileForm.match(/<form/g)||[]).length,1);assert.ok(profileForm.includes('profile-contacts'));assert.ok(profileForm.includes('profile-preferences'));assert.ok(profileForm.includes('E-mails de alerta'));assert.ok(profileForm.includes('Outros telefones'));assert.ok(profileForm.includes('Horário silencioso'));assert.ok(!profileForm.includes('type="submit"'),'Nothing to save before a change');assert.ok(!profileForm.includes('Sair da conta'));assert.ok(!html.includes('account-preferences card'));
+assert.equal((profileForm.match(/<form/g)||[]).length,1);assert.ok(profileForm.includes('profile-contacts'));assert.ok(profileForm.includes('profile-preferences'));assert.ok(profileForm.includes('E-mails de alerta'));assert.ok(profileForm.includes('Outros números de WhatsApp'));assert.ok(profileForm.includes('Horário silencioso'));assert.ok(!profileForm.includes('type="submit"'),'Nothing to save before a change');assert.ok(!profileForm.includes('Sair da conta'));assert.ok(!html.includes('account-preferences card'));
 assert.ok(/<a[^>]*href="\/admin\/envios"[^>]*>[\s\S]*?Administração/.test(profileForm),'Administration is a link, so it never submits the profile form');
 profileEdit=true;html=render({view:'settings'});profileEdit=false;const editedForm=html.match(/<form class="profile-form"[\s\S]*?<\/form>/)[0];
 assert.ok(/<section class="list-section profile-account">[\s\S]*?<button[^>]*type="submit"[^>]*>Salvar<\/button>/.test(editedForm),'The changed block carries its own Salvar');assert.ok(!/profile-contacts">[\s\S]*?type="submit"[\s\S]*?profile-preferences/.test(editedForm),'Unchanged blocks show no Salvar');assert.ok(/<button[^>]*type="submit"[^>]*form="profile-form"/.test(html),'The phone save bar submits the same form');
@@ -80,7 +91,7 @@ console.log('Complete pages: four mobile destinations, page-based wizard/editor/
 // A trip keeps its identity, header and section position on every tab.
 const tripPages=[{view:'searches',searchId:search.id},{view:'history',searchId:search.id},{view:'searches',searchId:search.id,panel:'alerts'}].map(render);
 for(const page of tripPages){
- assert.equal((page.match(/class="card route-card"/g)||[]).length,1);
+ assert.equal((page.match(/class="card route-card( is-listing)?"/g)||[]).length,1);
  assert.equal((page.match(/class="monitor-sections"/g)||[]).length,1);
  assert.ok(page.indexOf('route-card') < page.indexOf('monitor-sections'));
  const mainNav=page.match(/<nav aria-label="Navegação principal">([\s\S]*?)<\/nav>/)[1];
@@ -110,7 +121,15 @@ console.log('Ended trip history: trip selector with the ended trips group passed
 // The alert settings write the access phone as the server formats it (phone_display), once.
 user.phone_display='+1 202-555-0123';user.additional_phones=[{country:'US',phone:'+12025550123'}];data.whatsapp_available=true;
 html=render({view:'searches',searchId:search.id,editor:'alerts'});
-assert.ok(html.includes('WhatsApp para: +1 202-555-0123<'),'Formatted, and the same number is not repeated');
+assert.ok(html.includes('<span aria-hidden="true">+1 20· ··· 0123</span><span class="sr-only">terminado em 0123</span></small>'),'Formatted, masked, and the same number is not repeated');
 delete user.phone_display;user.additional_phones=[];data.whatsapp_available=false;
 console.log('Alert settings: formatted WhatsApp access phone passed.');
+// The trip card points to the profile when a channel on has no contact, WhatsApp included.
+config.notify_whatsapp=true;user.whatsapp_phone=null;data.whatsapp_available=true;
+html=render({view:'searches',searchId:search.id});
+assert.ok(html.includes('Cadastre um número de WhatsApp no perfil para receber alertas.'),'WhatsApp on without a number');
+config.notify_whatsapp=false;user.whatsapp_phone='+12025550123';data.whatsapp_available=false;
+html=render({view:'searches',searchId:search.id});
+assert.ok(!html.includes('Cadastre um número de WhatsApp')&&!html.includes('Adicione seus e-mails'),'Nothing to fix');
+console.log('Trip alerts card: the contact link for WhatsApp without a number passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

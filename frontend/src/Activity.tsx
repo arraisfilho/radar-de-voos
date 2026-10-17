@@ -50,12 +50,14 @@ export function Activity({
   });
   const totals = query.data?.totals || {};
   const tiles = [
-    { status: "sent" as const, label: t("Aceitos"), value: totals.sent || 0, icon: CheckCircle2 },
-    { status: "pending" as const, label: t("Pendentes"), value: totals.queued || 0, icon: Clock },
+    // A WhatsApp message reported undelivered counts as a problem, as its chip shows.
+    { status: "sent" as const, label: t("Enviados"), value: (totals.sent || 0) - (totals.delivery_failed || 0), icon: CheckCircle2 },
+    // Alerts held by quiet hours read "Silenciado" on their chips: not "Enviando".
+    { status: "pending" as const, label: t("Enviando"), value: (totals.queued || 0) - (totals.held || 0), icon: Clock },
     {
       status: "failed" as const,
-      label: t("Exigem atenção"),
-      value: ["failed", "partial", "uncertain", "waiting_smtp", "waiting_service", "waiting_contact"].reduce(
+      label: t("Com problema"),
+      value: ["failed", "partial", "uncertain", "expired", "waiting_smtp", "waiting_service", "waiting_contact", "delivery_failed"].reduce(
         (sum, key) => sum + (totals[key] || 0),
         0,
       ),
@@ -72,8 +74,10 @@ export function Activity({
   };
   return (
     <div className="activity-page">
+      {/* Only the blocks with alerts, and none at all before the first one. */}
+      {tiles.some((tile) => tile.value > 0) && (
       <div className="activity-summary" role="group" aria-label={t("Situação dos avisos")}>
-        {tiles.map((tile) => {
+        {tiles.filter((tile) => tile.value > 0 || (!observed && status === tile.status)).map((tile) => {
           const selected = !observed && status === tile.status;
           return (
             <button
@@ -92,6 +96,7 @@ export function Activity({
           );
         })}
       </div>
+      )}
       <div className="activity-toolbar">
         <div className="segmented activity-mode" role="group" aria-label={t("Tipo de histórico")}>
           {(
@@ -126,7 +131,7 @@ export function Activity({
                   [
                     ["all", t("Todos os avisos")],
                     ["sent", t("Enviados")],
-                    ["pending", t("Pendentes")],
+                    ["pending", t("Enviando")],
                     ["failed", t("Com problema")],
                   ] as const
                 ).map(([value, label]) => (
@@ -139,13 +144,11 @@ export function Activity({
           )}
         </div>
       </div>
-      <p className="activity-help">
-        {observed
-          ? t("Altas e quedas do menor preço elegível. O voo pode mudar. Somente oportunidades elegíveis geram avisos.")
-          : t(
-              "Os avisos permanecem no histórico. Consulte os ícones para ver a situação de cada canal. Aceito não confirma entrega ou leitura.",
-            )}
-      </p>
+      {observed && (
+        <p className="activity-help">
+          {t("Altas e quedas do menor preço elegível. O voo pode mudar. Somente oportunidades elegíveis geram avisos.")}
+        </p>
+      )}
       {query.isError ? (
         <div className="banner warning activity-error" role="alert">
           <CircleAlert size={18} aria-hidden="true" />
@@ -167,7 +170,11 @@ export function Activity({
           <div className="empty-state">
             <Bell aria-hidden="true" />
             <h2>{observed ? t("Nenhuma variação registrada ainda") : t("Nenhum aviso registrado ainda")}</h2>
-            <p>{t("Os registros aparecem após as coletas. Uma alta de preço não é um e-mail enviado.")}</p>
+            <p>
+              {observed
+                ? t("As variações aparecem depois das coletas.")
+                : t("Avisamos quando o preço atinge a meta ou cai pelo menos a queda mínima.")}
+            </p>
           </div>
         </section>
       ) : (

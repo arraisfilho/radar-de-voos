@@ -4,6 +4,7 @@ import {t,getLanguage,useLanguage} from './i18n';
 import {PasswordField} from './PasswordField';
 import {PhoneField} from './PhoneField';
 import {LanguagePicker} from './LanguagePicker';
+import {AppearancePicker} from './AppearancePicker';
 import {SystemVersion} from './SystemVersion';
 import {AppIcon} from './AppIcon';
 import {usePageTitle} from './pageTitle';
@@ -14,16 +15,16 @@ export function RecoveryForm({token,onBack}:{token:string;onBack:()=>void}) {
   const [country,setCountry]=useState('BR'),[phone,setPhone]=useState(''),[password,setPassword]=useState(''),[confirm,setConfirm]=useState(''),[busy,setBusy]=useState(false),[done,setDone]=useState(false),[error,setError]=useState('');
   useEffect(()=>{if(token)history.replaceState(null,'',location.pathname+location.search)},[token]);
   return <main className="auth-page">
-    <div className="auth-toolbar"><LanguagePicker/></div>
+    <div className="auth-toolbar"><LanguagePicker/><AppearancePicker/></div>
     <Card className="auth-card">
       <div className="auth-intro">
         <AppIcon size="lg"/>
         <h1>{t('Radar de Voos')}</h1>
         <h2 className="auth-heading">{t('Recuperar acesso')}</h2>
-        {!done && !token && <p>{t('O link será enviado ao primeiro e-mail salvo no seu perfil.')}</p>}
+        {!done && !token && <p>{t('Enviaremos o link ao primeiro e-mail do seu perfil. Sem e-mail, peça ao administrador para redefinir a senha.')}</p>}
       </div>
       {done ? <div className="auth-status" role="status">
-        <p><CheckCircle2 className="auth-done-icon" size={28} aria-hidden="true"/>{token?t('Senha atualizada. Entre novamente em seus dispositivos.'):t('Se a conta tiver um e-mail cadastrado e o envio estiver disponível, você receberá um link válido por 20 minutos.')}</p>
+        <p><CheckCircle2 className="auth-done-icon" size={28} aria-hidden="true"/>{token?t('Senha atualizada. Entre novamente em seus dispositivos.'):t('Se a conta tiver e-mail e o envio estiver ativo, você receberá um link válido por 20 minutos.')}</p>
       </div> : <form onSubmit={async e=>{
         e.preventDefault();setError('');if(token&&password!==confirm){setError(t('As senhas não coincidem'));return}setBusy(true);
         try{const session=await fetch('/api/auth/session',{cache:'no-store'}).then(r=>r.json());const r=await fetch('/api/auth/recovery'+(token?'/confirm':''),{method:'POST',headers:{'content-type':'application/json','x-radar-token':session.token,'x-radar-language':getLanguage()},body:JSON.stringify(token?{token,password}:{country,phone})});const data=await r.json();if(!r.ok)throw Error(typeof data.detail==='string'?data.detail:t('Não foi possível concluir a ação'));setPassword('');setConfirm('');setDone(true)}catch(e){setError(t((e as Error).message))}finally{setBusy(false)}

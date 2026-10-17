@@ -10,6 +10,7 @@ import { PasswordField } from "./PasswordField";
 import { CodeField } from "./CodeField";
 import { EmailFields } from "./EmailFields";
 import { LanguagePicker } from "./LanguagePicker";
+import { AppearancePicker } from "./AppearancePicker";
 import { SystemVersion } from "./SystemVersion";
 import { AppIcon } from "./AppIcon";
 import { usePageTitle } from "./pageTitle";
@@ -104,6 +105,8 @@ export function SignIn({
           emails,
           whatsapp_use_login: true,
           whatsapp_country: country,
+          // New accounts take this device's time zone (alert times, quiet hours); the profile can change it.
+          ...(mode !== "login" && { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC" }),
         },
       );
       if ("two_factor_required" in result && result.two_factor_required) {
@@ -156,6 +159,7 @@ export function SignIn({
     <main className="auth-page">
       <div className="auth-toolbar">
         <LanguagePicker />
+        <AppearancePicker />
       </div>
       <Card className="auth-card">
         <div className="auth-intro">
@@ -260,8 +264,9 @@ export function SignIn({
               {mode !== "login" && <p className="help">{t("Use pelo menos dez caracteres.")}</p>}
               {mode !== "login" && (
                 <details className="optional-contacts">
-                  <summary>{t("Adicionar e-mails para alertas (opcional)")}</summary>
-                  <EmailFields values={emails} onChange={setEmails} />
+                  <summary>{t("Adicionar e-mail (opcional)")}</summary>
+                  <p className="help">{t("Sem e-mail, só o administrador pode redefinir sua senha.")}</p>
+                  <EmailFields compact values={emails} onChange={setEmails} />
                 </details>
               )}
               {mode === "admin" && (

@@ -1271,3 +1271,72 @@
     background-color: CanvasText;
   }
 }
+
+/* Delivery log: the chip and, under it, the exact state in the administration's words. */
+.delivery-state {
+  display: inline-grid;
+  justify-items: start;
+  gap: 2px;
+  min-width: 0;
+}
+.delivery-state > small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+  white-space: normal;
+}
+
+/* Above the administration: alert links on this computer, the 2FA reminder. */
+.admin-notices {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.admin-notices > .banner {
+  margin-bottom: 0;
+}
+.admin-reminder {
+  align-items: center;
+}
+.admin-reminder > span {
+  flex: 1;
+  min-width: 0;
+}
+.admin-reminder a,
+.delivery-blocks a,
+.link-button {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+}
+.admin-reminder-dismiss,
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+.admin-reminder-dismiss {
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 0 8px;
+  color: inherit;
+  font-weight: 600;
+}
+.delivery-blocks {
+  margin: 12px 0 0;
+}
+/* A title followed by its info button (InfoTip). */
+.admin-card-title,
+.channel-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+@media (pointer: coarse) {
+  .admin-reminder-dismiss {
+    min-height: 44px;
+  }
+}

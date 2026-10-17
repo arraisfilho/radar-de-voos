@@ -1,4 +1,5 @@
 """Persistent scheduling, versioned comparisons and a bounded SMTP outbox."""
+import hashlib
 import json
 import logging
 import math
@@ -34,22 +35,50 @@ INTERRUPT_SIGNALS = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
 # Collector subprocesses in flight (one Monitor per process), mapped to True once Monitor.stop ended them.
 CHILDREN = {}
 CHILDREN_LOCK = threading.Lock()
+# A target still met, with no new low and no new crossing, is reminded at most once per this many seconds.
+REMINDER_INTERVAL = 86400
+# Seconds between two alerts of one direction.
+MIN_GAP = 600
 
 
-def make_event(search, flight, previous, last_floor=None, last_alerted=None, now=None):
+def recent(last_alerted, now):
+    """Within MIN_GAP of the last alert; a clock set back never blocks."""
+    return last_alerted is not None and 0 <= now-last_alerted < MIN_GAP
+
+
+def make_event(search, flight, previous, last_floor=None, last_alerted=None, now=None, peak=None, gate=True):
+    """Alert for this price, or None. last_floor and last_alerted are the price and time of the last alert.
+
+    After a first alert, a new one needs a new low (last alert minus the minimum drop, also across
+    several small drops) or a new crossing of the target: the previous price was above it, the price
+    left it by the minimum drop or 2% of the target, whichever is larger (peak is the highest price
+    since the last alert), and differs from the last alert. Otherwise a target still met is reminded once
+    REMINDER_INTERVAL has passed. gate=False leaves the MIN_GAP check to the caller.
+    """
     now = now or time.time()
     price = flight["price_cents"]
-    target = search.target_cents is not None and price <= search.target_cents
-    drop = previous is not None and previous-price >= search.min_drop_cents
-    if not target and not drop:
+    goal, step = search.target_cents, search.min_drop_cents
+    target = goal is not None and price <= goal
+    drop = previous is not None and previous-price >= step
+    low = last_floor is not None and last_floor-price >= step
+    if not (target or drop or low):
         return None
-    # Avoid resending an equal/worse opportunity during the quiet interval.
-    if last_floor is not None and price >= last_floor and now-(last_alerted or 0) < 7200:
+    if gate and recent(last_alerted, now):
         return None
-    if last_alerted and now-last_alerted < 600:
+    margin = max(step, round(goal*0.02)) if goal is not None else 0
+    if last_floor is None:
+        reason = "first"
+    elif low:
+        reason = "new_low"
+    elif target and previous is not None and previous > goal and price != last_floor and peak is not None and peak-goal >= margin:
+        reason = "rearmed"
+    elif target and now-(last_alerted or 0) >= REMINDER_INTERVAL:
+        reason = "reminder"
+    else:
         return None
     kind = "target" if target else "lower_price"
-    return {"kind": kind, "title": "Meta atingida" if target else "Nova menor tarifa",
+    title = "Ainda dentro da meta" if reason == "reminder" else "Meta atingida" if target else "Nova menor tarifa"
+    return {"kind": kind, "reason": reason, "title": title, "target_cents": goal,
             "flight": flight, "previous": previous, "price_cents": price,
             "saving_cents": max(0, previous-price) if previous else None,
             "saving_percent": round(100*(previous-price)/previous) if previous and previous>price else None,
@@ -59,7 +88,7 @@ def make_event(search, flight, previous, last_floor=None, last_alerted=None, now
 
 def event_text(name, direction, event, language='pt'):
     from .alert_messages import render
-    return render([(direction,event)],language)[0]
+    return render([(direction,event)],language,name=name)[0]
 
 
 class QueryInterrupted(Exception):
@@ -124,6 +153,23 @@ def fetch(search, job):
     return result
 
 
+# The fields that change what one direction compares, named one by one: a field added later
+# (display, channels) never starts every trip's alerts over.
+RULE_FIELDS = ("origins", "destinations", "adults", "children", "infants_in_seat", "infants_on_lap", "cabin", "currency",
+               "checked_bags", "target_cents", "min_drop_cents")
+LEG_FIELDS = ("start", "end", "arrival_before", "stops", "max_duration", "max_layover", "airlines")
+
+
+def alert_rule(search, direction):
+    """Fingerprint of what one direction's alerts compare: the source version, RULE_FIELDS and the
+    direction's LEG_FIELDS, lists in sorted order. An edit outside them (name, language, channels)
+    keeps the alert state; any other one, or a new source version, starts it over."""
+    fields = lambda source, names: {name: sorted(value) if isinstance(value, list) else value
+                                    for name in names for value in [getattr(source, name)]}
+    key = {**fields(search, RULE_FIELDS), "leg": fields(getattr(search, direction), LEG_FIELDS)}
+    return hashlib.sha256(json.dumps([SOURCE_VERSION, direction, key], sort_keys=True).encode()).hexdigest()
+
+
 def persist_snapshots(c, sid, version, cid, search, results):
     from .accounts import alert_recipients,search_is_quiet
     recipients = alert_recipients(c,sid)
@@ -137,34 +183,55 @@ def persist_snapshots(c, sid, version, cid, search, results):
         complete = bool(part) and all(r["status"] not in ("error", "skipped") for r in part)
         options = [f for r in part if r["status"] not in ("error", "skipped") for f in r.get("flights", []) if eligible(f, leg) and local_instant(f["departure"],f["origin"]).timestamp()>time.time()]
         best = min(options, key=lambda f:f["price_cents"], default=None)
+        rule = alert_rule(search, direction)
         c.execute("INSERT INTO snapshots(search_id,version,cycle_id,direction,collected,complete,price,flight,count) VALUES(?,?,?,?,?,?,?,?,?)",
                   (sid, version, cid, direction, time.time(), int(complete), best["price_cents"] if best else None,
                    json.dumps(best) if best else None, len(options)))
         if not complete or best is None:
             continue
-        previous = c.execute("SELECT * FROM baselines WHERE search_id=? AND version=? AND direction=?", (sid,version,direction)).fetchone()
-        event = make_event(search, best, previous["price"] if previous else None,
-                           previous["alert_floor"] if previous else None, previous["alerted"] if previous else None)
-        floor = previous["alert_floor"] if previous else None
-        alerted = previous["alerted"] if previous else None
+        base = c.execute("SELECT * FROM baselines WHERE search_id=? AND version=? AND direction=?", (sid,version,direction)).fetchone()
+        floor, alerted = (base["alert_floor"], base["alerted"]) if base else (None, None)
+        if base is None:
+            # A new name or channel (new version, same rule) keeps the alert state; any other edit or a
+            # new source version starts it over. The price is never carried over.
+            older = c.execute("SELECT alert_floor,alerted,rule FROM baselines WHERE search_id=? AND direction=? AND version<? ORDER BY version DESC LIMIT 1",
+                              (sid,direction,version)).fetchone()
+            if older and older["rule"] == rule:
+                floor, alerted = older["alert_floor"], older["alerted"]
+        now = time.time()
+        # Highest price of this version since the last alert, on the whole snapshots_search_time index.
+        peak = c.execute("SELECT MAX(price) FROM snapshots WHERE search_id=? AND version=? AND direction=? AND collected>? AND complete=1",
+                         (sid,version,direction,alerted)).fetchone()[0] if alerted is not None and search.target_cents is not None else None
+        candidate = make_event(search, best, base["price"] if base else None, floor, alerted, now, peak, gate=False)
+        held = candidate is not None and recent(alerted, now)
+        event = None if held else candidate
+        status = None
+        if event:
+            status = ("quiet" if quiet else "queued") if search.notify_whatsapp else "in_app" if not search.notify_email else "waiting_contact" if not recipients else "quiet" if quiet else "queued" if mail.available() else "waiting_smtp"
+            # Quiet hours hold any alert, unrecorded and with its reference price kept: the rule runs
+            # again in the first cycle after them, so a price that went back up sends nothing.
+            if status == "quiet":
+                event, held = None, True
         if event:
             aid = uuid.uuid4().hex
-            status = ("quiet" if quiet else "queued") if search.notify_whatsapp else "in_app" if not search.notify_email else "waiting_contact" if not recipients else "quiet" if quiet else "queued" if mail.available() else "waiting_smtp"
             cursor = c.execute("INSERT OR IGNORE INTO alerts(id,search_id,version,cycle_id,direction,created,kind,price,previous,payload,status) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                                (aid,sid,version,cid,direction,time.time(),event["kind"],event["price_cents"],event["previous"],json.dumps(event),status))
             if cursor.rowcount:
                 generated.append((aid, direction, event, status))
                 floor, alerted = best["price_cents"], time.time()
-        c.execute("INSERT OR REPLACE INTO baselines VALUES(?,?,?,?,?,?,?)",
-                  (sid,version,direction,best["price_cents"],json.dumps(best),floor,alerted))
+        # A held alert keeps the price it compares with, so its drop or crossing still counts next cycle.
+        price, flight = (base["price"], base["flight"]) if held and base else (best["price_cents"], json.dumps(best))
+        c.execute("INSERT OR REPLACE INTO baselines(search_id,version,direction,price,flight,alert_floor,alerted,rule) VALUES(?,?,?,?,?,?,?,?)",
+                  (sid,version,direction,price,flight,floor,alerted,rule))
     queue = [(a,d,e) for a,d,e,s in generated if s not in ('in_app','quiet')]
     if queue:
-        language_row=c.execute("SELECT a.language FROM accounts a JOIN searches s ON s.owner_id=a.id WHERE s.id=?",(sid,)).fetchone()
-        language=language_row[0] if language_row else "pt"
+        owner=c.execute("SELECT a.language,a.timezone FROM accounts a JOIN searches s ON s.owner_id=a.id WHERE s.id=?",(sid,)).fetchone()
+        language,zone=(owner["language"],owner["timezone"]) if owner else ("pt","UTC")
         from . import offer_links, alert_messages
         events=[(d,e) for a,d,e in queue]
         links={i:offer_links.create(c,a,e['flight'].get('search_url','')) for i,(a,d,e) in enumerate(queue)}
-        body,body_html=alert_messages.render(events,language,links=links)
+        trip=dict(name=search.name,page=offer_links.trip_page(sid),zone=zone)
+        body,body_html=alert_messages.render(events,language,links=links,**trip)
         ids=[a for a,d,e in queue];subject=f"Radar de Voos · {search.name}"
         if search.notify_email:
             ready=bool(recipients and mail.available())
@@ -175,7 +242,7 @@ def persist_snapshots(c, sid, version, cid, search, results):
                 link(c,oid,ids)
                 c.execute('UPDATE outbox SET body_html=? WHERE id=?',(body_html,oid))
         if search.notify_whatsapp:
-            whatsapp_body,_=alert_messages.render(events,language,channel='whatsapp',links=links)
+            whatsapp_body,_=alert_messages.render(events,language,channel='whatsapp',links=links,**trip)
             whatsapp.enqueue(c,sid,version,ids,subject,whatsapp_body)
         sync_alerts(c,ids)
 
@@ -419,21 +486,24 @@ class Monitor:
                 return
             row = dict(row)
             if row["search_id"]:
-                from .accounts import search_is_quiet
-                if search_is_quiet(c,row['search_id']):
-                    c.execute("UPDATE outbox SET status='quiet' WHERE id=?",(row['id'],))
-                    sync_alerts(c,json.loads(row['alert_ids']))
-                    return
                 search = c.execute("SELECT active,archived,version FROM searches WHERE id=?", (row["search_id"],)).fetchone()
                 if not search["active"] or search["archived"] or search["version"] != row["version"]:
                     c.execute("UPDATE outbox SET status='cancelled' WHERE id=?", (row["id"],))
                     sync_alerts(c,json.loads(row['alert_ids']))
                     return
-            # A delayed old fare should not be sent as a current opportunity.
-            if time.time()-row["created"] > 1800:
+            # A delayed old fare should not be sent as a current opportunity. A message held by quiet
+            # hours counts from their end (next_due); its text says when the price was seen.
+            if time.time()-max(row["created"], row["next_due"] or 0) > 1800:
                 c.execute("UPDATE outbox SET status='expired' WHERE id=?", (row["id"],))
                 sync_alerts(c,json.loads(row['alert_ids']))
                 return
+            if row["search_id"]:
+                from .accounts import search_quiet_until
+                # Quiet hours hold the message, still pending, until they end; the expiry above still applies then.
+                until = search_quiet_until(c,row['search_id'])
+                if until:
+                    c.execute("UPDATE outbox SET next_due=? WHERE id=?",(until,row['id']))
+                    return
             # Configuration problems are terminal blocks, not transport attempts.
             blocked = 'waiting_service' if not config['enabled'] else 'waiting_contact' if row['search_id'] and not json.loads(row['recipients'] or '[]') else None
             if blocked:

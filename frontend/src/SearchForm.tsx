@@ -1,7 +1,7 @@
 import { partyLabel, validParty } from "./passengers";
-import { suggestedName, nextTripAction } from "./searchJourney";
+import { suggestedName, nextTripAction, impossibleReturns } from "./searchJourney";
 import { t } from "./i18n";
-import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { Fragment, lazy, Suspense, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import * as Slider from "@radix-ui/react-slider";
 import {
   ArrowLeft,
@@ -14,7 +14,6 @@ import {
   MessageCircle,
   Minus,
   Plus,
-  Send,
   SlidersHorizontal,
   UserRound,
   type LucideIcon,
@@ -26,11 +25,17 @@ import { AirlinePicker } from "./AirlinePicker";
 import { AirportPicker } from "./AirportPicker";
 import { RouteCodes, RoutePlaces } from "./RouteSummary";
 import { Button } from "./ui";
+import { ChannelSummary, MaskedPhone } from "./AlertChannels";
+import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js";
+import type { NumberDraft } from "./WhatsAppNumber";
+import { InfoTip } from "./InfoTip";
 import { currencySymbol, formatDateTime, formatDuration, formatMoney } from "./format";
 import { plainClick, routePath } from "./navigation";
 import { legDates } from "./tripSummary";
 import type { Config, Leg, State } from "./types";
 import "./search-form.css";
+// The WhatsApp number field (phone library) downloads only for an account without a number.
+const WhatsAppNumber = lazy(() => import("./WhatsAppNumber").then((module) => ({ default: module.WhatsAppNumber })));
 
 type Side = "outbound" | "inbound";
 const SIDES: Side[] = ["outbound", "inbound"];
@@ -500,7 +505,10 @@ function MoneyField({
   );
 }
 
-/** One alert channel in the grouped list: icon, recipients and a switch. */
+/**
+ * One alert channel: icon, name, switch and the destination in small text. The name and the
+ * destination toggle the switch too, a touch target as tall as the row.
+ */
 function ChannelRow({
   icon: Icon,
   label,
@@ -513,10 +521,11 @@ function ChannelRow({
 }: {
   icon: LucideIcon;
   label: string;
-  detail: string;
+  detail: ReactNode;
   checked: boolean;
   disabled: boolean;
   invalid: boolean;
+  /** Shown under the row: a link to the profile or the number field. */
   action?: ReactNode;
   onChange: (checked: boolean) => void;
 }) {
@@ -526,11 +535,12 @@ function ChannelRow({
       <span className="channel-icon" aria-hidden="true">
         <Icon size={18} />
       </span>
-      <span className="channel-text">
-        <label htmlFor={id}>{label}</label>
+      <label className="channel-text" htmlFor={id}>
+        <span className="channel-name" id={id + "-name"}>
+          {label}
+        </span>
         <small id={id + "-detail"}>{detail}</small>
-        {action}
-      </span>
+      </label>
       <input
         id={id}
         type="checkbox"
@@ -539,9 +549,11 @@ function ChannelRow({
         checked={checked}
         disabled={disabled}
         aria-invalid={invalid || undefined}
+        aria-labelledby={id + "-name"}
         aria-describedby={id + "-detail"}
         onChange={(e) => onChange(e.target.checked)}
       />
+      {action && <div className="channel-extra">{action}</div>}
     </div>
   );
 }
@@ -550,7 +562,8 @@ type Props = {
   config: Config;
   setConfig: (v: Config) => void;
   airports: State["airports"];
-  onSave: (submitted?: Config, currencyReviewed?: boolean) => void;
+  /** numberSaved: the WhatsApp number typed in the review went to the profile just before. */
+  onSave: (submitted?: Config, currencyReviewed?: boolean, numberSaved?: boolean) => void;
   savedCurrency?: string;
   saving: boolean;
   general?: boolean;
@@ -562,6 +575,12 @@ type Props = {
   alertsOnly?: boolean;
   whatsappAvailable?: boolean;
   whatsappRecipients?: string[];
+  /** Saves a WhatsApp number typed in the review to the profile (accounts without one). */
+  onSaveWhatsapp?: (country: string, phone: string) => Promise<void>;
+  /** The account's country, the starting country of that number. */
+  defaultCountry?: string;
+  /** Lowest fare collected now, per leg, shown under the target (alert settings of a saved trip). */
+  lowest?: { outbound?: number; inbound?: number };
   journey?: {
     maxStep?: number;
     step: number;
@@ -593,6 +612,9 @@ export function SearchForm({
   alertsOnly = false,
   whatsappAvailable = false,
   whatsappRecipients = [],
+  onSaveWhatsapp,
+  defaultCountry = "BR",
+  lowest,
   journey,
   children,
   draftSaved = false,
@@ -600,7 +622,11 @@ export function SearchForm({
   const baggageId = useId();
   const errorId = useId();
   // Hook order matters to the tests: direction, step and error come first.
-  const returnTouched = useRef(false);
+  // A return that is not the default after the outbound was chosen (a restored draft): never moved silently.
+  const returnTouched = useRef(
+    !!config.inbound &&
+      (config.inbound.start !== returnAfter(config.outbound).start || config.inbound.end !== returnAfter(config.outbound).end),
+  );
   const [localDirection, setLocalDirection] = useState<Side>("outbound"),
     [localStep, setLocalStep] = useState(editing ? 1 : 0),
     [error, setError] = useState(""),
@@ -611,6 +637,8 @@ export function SearchForm({
     Boolean(savedCurrency && savedCurrency !== config.currency),
   );
   const uid = useId();
+  // The WhatsApp number typed in the review (accounts without one): kept across stages, saved on creation.
+  const [number, setNumber] = useState<NumberDraft>({ country: defaultCountry, phone: "", error: "", busy: false });
   const ids = {
     tripType: uid + "-type",
     passengers: uid + "-party-title",
@@ -624,6 +652,10 @@ export function SearchForm({
   };
   const emailReady = emailAvailable && emailRecipients.length > 0;
   const whatsappReady = whatsappAvailable && whatsappRecipients.length > 0;
+  // A new trip starts with WhatsApp on (as the API does) only where WhatsApp can send. Without a
+  // number it is created without WhatsApp; a saved trip keeps its choice until changed here.
+  const creating = general && !editing;
+  const whatsappOn = !!config.notify_whatsapp && (whatsappAvailable || !creating);
   const maxStep = editing ? 2 : Math.max(journey?.maxStep || 0, journey?.step || 0);
   const direction = journey?.direction || localDirection,
     step = journey?.step ?? localStep;
@@ -656,7 +688,7 @@ export function SearchForm({
     if (!(config.min_drop_cents >= 100)) list.push({ field: "min-drop", step: 2, message: least });
     if (currencyNeedsReview)
       list.push({ field: "currency-review", step: 2, message: t("Revise os valores de alerta após trocar a moeda.") });
-    if ((config.notify_email && !emailReady) || (config.notify_whatsapp && !whatsappReady))
+    if ((config.notify_email && !emailReady) || (config.notify_whatsapp && !whatsappReady && !creating))
       list.push({
         field: "channels",
         step: 2,
@@ -759,7 +791,7 @@ export function SearchForm({
     const next = { ...config, outbound };
     const list = tripProblems(next, true);
     if (list.length) return report(list);
-    if (next.inbound!.start < outbound.start && !returnTouched.current) next.inbound = returnAfter(outbound);
+    if (next.inbound!.start.slice(0, 10) < outbound.end.slice(0, 10) && !returnTouched.current) next.inbound = returnAfter(outbound);
     setConfig(next);
     autoAdvanced.current = true;
     setDirection("inbound");
@@ -778,7 +810,8 @@ export function SearchForm({
       const list = tripProblems(config, true);
       if (list.length) return report(list);
       if (!validate()) return;
-      if (config.inbound && config.inbound.start < config.outbound.start && !returnTouched.current)
+      // An untouched return starting before the outbound window ends moves after it.
+      if (config.inbound && config.inbound.start.slice(0, 10) < config.outbound.end.slice(0, 10) && !returnTouched.current)
         global({ inbound: returnAfter(config.outbound) });
       autoAdvanced.current = true;
       setDirection("inbound");
@@ -1018,7 +1051,34 @@ export function SearchForm({
       {t("Configurar contato")}
     </a>
   );
-  const whatsappTo = [...new Set(whatsappRecipients)];
+  // Every number in international format (the extra ones come raw), once, then masked.
+  const international = (phone: string, country?: string) =>
+    parsePhoneNumberFromString(phone, country as CountryCode)?.formatInternational() || phone;
+  const whatsappTo = [...new Set(whatsappRecipients.map((phone) => international(phone)))];
+  const asksNumber = !!onSaveWhatsapp && whatsappAvailable && !whatsappTo.length;
+  const numberValid = !!parsePhoneNumberFromString(number.phone, number.country as CountryCode)?.isPossible();
+  // A number typed and not saved yet, that creating this trip with WhatsApp would save.
+  const typedNumber = creating && whatsappOn && asksNumber && !!number.phone;
+  const focusNumber = () =>
+    requestAnimationFrame(() => form.current?.querySelector<HTMLInputElement>('.whatsapp-inline input[type="tel"]')?.focus());
+  /** Saves the typed number to the profile; false, with the error at the field, when it cannot. */
+  async function saveNumber() {
+    if (!numberValid) {
+      setNumber({ ...number, error: t("Confira o código de área e a quantidade de dígitos para o país selecionado.") });
+      focusNumber();
+      return false;
+    }
+    setNumber({ ...number, busy: true, error: "" });
+    try {
+      await onSaveWhatsapp!(number.country, number.phone);
+      setNumber((current) => ({ ...current, phone: "", busy: false }));
+      return true;
+    } catch (failure) {
+      setNumber((current) => ({ ...current, busy: false, error: (failure as Error).message }));
+      focusNumber();
+      return false;
+    }
+  }
   const channelsError = problemOf("channels");
   const alerts = (
     <>
@@ -1035,7 +1095,7 @@ export function SearchForm({
             cents={config.target_cents}
             placeholder={t("Opcional")}
             error={problemOf("target")}
-            describedBy={ids.values + "-help"}
+            describedBy={ids.values + "-help" + (lowest ? " " + ids.values + "-now" : "")}
             onChange={(target_cents) => global({ target_cents })}
           />
           <MoneyField
@@ -1054,6 +1114,20 @@ export function SearchForm({
           {t("Valores em {0}. Altere a moeda na etapa Viagem.", [currency])}{" "}
           {t("Preço total para {0}, por trecho.", [partyLabel(config)])}
         </p>
+        {lowest && (lowest.outbound != null || lowest.inbound != null) && (
+          <p className="field-help lowest-now" id={ids.values + "-now"}>
+            {t("Menor preço agora: {0}", [
+              config.inbound
+                ? [
+                    lowest.outbound != null && `${t("Ida")} ${formatMoney(lowest.outbound, currency)}`,
+                    lowest.inbound != null && `${t("Volta")} ${formatMoney(lowest.inbound, currency)}`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : formatMoney(lowest.outbound ?? lowest.inbound, currency),
+            ])}
+          </p>
+        )}
         {currencyNeedsReview && (
           <div className="currency-review" id={`${uid}-currency-review`} data-field="currency-review">
             <label className="check-row">
@@ -1070,63 +1144,85 @@ export function SearchForm({
           </div>
         )}
       </section>
-      <fieldset className="list-section channels-field" id={`${uid}-channels`} data-field="channels">
-        <legend className="list-section-title">{t("Enviar alertas")}</legend>
-        <div className={clsx("list-group", channelsError && "is-invalid")}>
-          <ChannelRow
-            icon={Mail}
-            label={t("E-mail")}
-            detail={
-              !emailAvailable
-                ? t("Indisponível")
-                : emailRecipients.length
-                  ? t("Enviar para: {0}", [emailRecipients.join(", ")])
-                  : config.notify_email
-                    ? t("Adicione até quatro e-mails em Meu perfil. Você não precisa configurar um servidor.")
-                    : t("Nenhum e-mail cadastrado.")
-            }
-            checked={config.notify_email}
-            disabled={!emailReady && !config.notify_email}
-            invalid={config.notify_email && !emailReady}
-            action={emailAvailable && !emailRecipients.length ? contactLink : undefined}
-            onChange={(notify_email) => global({ notify_email })}
-          />
-          <ChannelRow
-            icon={MessageCircle}
-            label={t("WhatsApp")}
-            detail={
-              !whatsappAvailable
-                ? t("Indisponível")
-                : whatsappTo.length
-                  ? t("WhatsApp para: {0}", [whatsappTo.join(", ")])
-                  : config.notify_whatsapp
-                    ? t("Cadastre o número WhatsApp em Meu perfil.")
-                    : t("Nenhum WhatsApp cadastrado.")
-            }
-            checked={!!config.notify_whatsapp}
-            disabled={!whatsappReady && !config.notify_whatsapp}
-            invalid={!!config.notify_whatsapp && !whatsappReady}
-            action={whatsappAvailable && !whatsappTo.length ? contactLink : undefined}
-            onChange={(notify_whatsapp) => global({ notify_whatsapp })}
-          />
-          <ChannelRow
-            icon={Send}
-            label={t("Telegram")}
-            detail={t("Em breve")}
-            checked={false}
-            disabled
-            invalid={false}
-            onChange={() => {}}
-          />
+      <div className="list-section channels-field">
+        <div className="list-section-head">
+          <span className="list-section-title" id={`${uid}-channels-title`}>
+            {t("Enviar alertas")}
+          </span>
+          <InfoTip label={t("Sobre os canais de alerta")}>
+            <p>{t("Marque um ou mais canais. Os destinos vêm de Meu perfil.")}</p>
+            {(!emailAvailable || !whatsappAvailable) && <p>{t("Canal indisponível depende da administração.")}</p>}
+          </InfoTip>
         </div>
-        <p className="list-section-footer">
-          {t("Você pode selecionar mais de um canal.")}{" "}
-          {(!emailAvailable || !whatsappAvailable) &&
-            t("Canais indisponíveis precisam ser configurados pela administração.")}
-        </p>
-        {channelsError && <FieldError>{channelsError}</FieldError>}
-      </fieldset>
+        <ChannelSummary
+          whatsapp={whatsappOn && whatsappAvailable ? (typedNumber && numberValid ? [international(number.phone, number.country)] : whatsappTo) : []}
+          email={config.notify_email && emailAvailable ? emailRecipients : []}
+        />
+        <div id={`${uid}-channels`} data-field="channels" className="channels-rows">
+          <div role="group" aria-labelledby={`${uid}-channels-title`} className={clsx("list-group", channelsError && "is-invalid")}>
+            <ChannelRow
+              icon={MessageCircle}
+              label={t("WhatsApp")}
+              detail={
+                !whatsappAvailable
+                  ? t("Indisponível")
+                  : whatsappTo.length
+                    ? whatsappTo.map((phone, i) => (
+                        <Fragment key={phone}>
+                          {i > 0 && ", "}
+                          <MaskedPhone phone={phone} />
+                        </Fragment>
+                      ))
+                    : t("Sem número no perfil")
+              }
+              checked={whatsappOn}
+              disabled={!whatsappAvailable && !whatsappOn}
+              invalid={whatsappOn && !whatsappReady && !creating}
+              action={
+                whatsappAvailable && !whatsappTo.length
+                  ? asksNumber
+                    ? whatsappOn && (
+                        <Suspense fallback={null}>
+                          <WhatsAppNumber value={number} onChange={setNumber} onSave={() => void saveNumber()} />
+                        </Suspense>
+                      )
+                    : contactLink
+                  : undefined
+              }
+              onChange={(notify_whatsapp) => global({ notify_whatsapp })}
+            />
+            <ChannelRow
+              icon={Mail}
+              label={t("E-mail")}
+              detail={
+                !emailAvailable
+                  ? t("Indisponível")
+                  : emailRecipients.length
+                    ? emailRecipients.join(", ")
+                    : t("Sem e-mail no perfil")
+              }
+              checked={config.notify_email}
+              disabled={!emailReady && !config.notify_email}
+              invalid={config.notify_email && !emailReady}
+              action={emailAvailable && !emailRecipients.length ? contactLink : undefined}
+              onChange={(notify_email) => global({ notify_email })}
+            />
+          </div>
+          {channelsError && <FieldError>{channelsError}</FieldError>}
+        </div>
+      </div>
     </>
+  );
+
+  // Return dates earlier than outbound dates: each leg is still searched, but those pairs are no trip.
+  const returns = impossibleReturns(config);
+  const returnWarning = returns.impossible > 0 && (
+    <p className="return-warning" role="status">
+      <CircleAlert size={16} aria-hidden="true" />
+      <span>
+        {t("Em {0} de {1} combinações de datas, a volta é antes da ida.", [returns.impossible, returns.total])}
+      </span>
+    </p>
   );
 
   // ---- Assistant chrome
@@ -1199,13 +1295,17 @@ export function SearchForm({
           return;
         }
         if (!validate()) return;
-        onSave(
-          {
-            ...config,
-            name: config.name.trim() || suggestedName(config),
-          },
-          general && !currencyNeedsReview,
-        );
+        const submitted = {
+          ...config,
+          name: config.name.trim() || suggestedName(config),
+          ...(creating && { notify_whatsapp: whatsappOn && whatsappReady }),
+        };
+        // A typed number goes to the profile first; an invalid one stops here, next to its field.
+        if (!typedNumber) onSave(submitted, general && !currencyNeedsReview);
+        else
+          void saveNumber().then(
+            (ok) => ok && onSave({ ...submitted, notify_whatsapp: true }, general && !currencyNeedsReview, true),
+          );
       }}
     >
       {general && !alertsOnly && (
@@ -1433,6 +1533,7 @@ export function SearchForm({
                     : undefined
                 }
               />
+              {legDirection === "inbound" && returnWarning}
             </div>
           </div>
         </div>
@@ -1551,6 +1652,7 @@ export function SearchForm({
               </section>
             );
           })}
+          {returnWarning}
           <div className="field monitor-name">
             <label className="field-label" htmlFor={ids.name}>
               {t("Nome da viagem (opcional)")}
@@ -1621,7 +1723,7 @@ export function SearchForm({
               {t("Rascunho salvo neste navegador")}
             </span>
           )}
-          <Button type="submit" size="large" disabled={saving} className="wizard-next">
+          <Button type="submit" size="large" disabled={saving || number.busy} className="wizard-next">
             {saving && <LoaderCircle size={18} className="spin" aria-hidden="true" />}
             <span>{primary}</span>
             {!saving && advancing && <ArrowRight size={18} aria-hidden="true" />}

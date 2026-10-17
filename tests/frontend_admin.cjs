@@ -17,7 +17,25 @@ function render(){stateCalls=0;return renderToStaticMarkup(React.createElement(o
 let html=render();assert.ok(html.includes('Nenhum envio encontrado'));assert.ok(html.includes('role="tablist"'));assert.ok(html.includes('Nome ou login'));assert.ok(!html.includes('Existing mail configuration'));
 fixture={items:[{id:'fixture',created:1,subject:'<script>untrusted subject</script>',status:'sent',channel:'email',kind:'alert',recipients:['fixture@example.org'],account_name:'User fixture',login:'+123'}],total:18,page_size:15,totals:{sent:16,pending:1,failed:1}};
 html=render();assert.ok(html.includes('User fixture'));assert.ok(html.includes('fixture@example.org'));assert.ok(html.includes('Aceito pelo provedor'));assert.ok(html.includes('Página 1 de 2'));
-assert.ok(html.includes('16 aceitos · 1 pendente · 1 para verificar'),'Each count takes its own singular or plural');
+assert.ok(html.includes('16 enviados · 1 enviando · 1 com problema'),'The chips\' words, each count with its singular or plural');
+fixture={...fixture,totals:{sent:2}};html=render();assert.ok(html.includes('<span>2 enviados</span>'),'Zeros are left out');
+assert.ok(!html.includes('delivery-blocks'),'No blocks: no banner');
+fixture={...fixture,blocked:[{channel:'email',status:'waiting_service',count:20},{channel:'whatsapp',status:'waiting_contact',count:1}]};html=render();
+assert.match(html,/20 bloqueados: e-mail sem serviço\s*—\s*<a href="\/admin\/canais\/email"[^>]*>Configurar<\/a>/,'Count by reason, with the way to the channel');
+assert.ok(html.includes('1 bloqueado: sem destinatário')&&html.includes('Ver envios'));
+mail={...mail,available:true};html=render();assert.ok(!html.includes('e-mail sem serviço'),'A channel set up since then needs no action');assert.ok(html.includes('1 bloqueado: sem destinatário'));
+mail={...mail,available:false};fixture={...fixture,blocked:[],totals:{sent:16,pending:1,failed:1}};
+// Above the administration: links on this computer (amber) and the 2FA reminder; nothing when all is well.
+assert.ok(!html.includes('admin-notices'),'Nothing to say: no notices');
+fixture={...fixture,alert_links_local:true,enabled:false};html=render();
+assert.match(html,/<div class="admin-notices"><p class="banner warning" role="status">[\s\S]*?Os links dos alertas apontam para este computador\. Defina RADAR_PUBLIC_URL\./);
+assert.ok(html.includes('Sua conta de administrador está sem verificação em duas etapas.')&&html.includes('Ativar no perfil')&&html.includes('Agora não'));
+fixture={...fixture,alert_links_local:false,enabled:true};html=render();assert.ok(!html.includes('admin-notices'));
+// A message held by quiet hours: Silenciado for the person, "Retida até HH:MM" for the administrator.
+const held={...fixture.items[0],id:'held',status:'pending',next_due:Date.now()/1000+3600};
+fixture={...fixture,items:[held],alert_links_local:false,enabled:undefined};html=render();
+assert.match(html,/status-chip tone-gray[^>]*title="Silenciado · Retida até \d{2}:\d{2}"/);assert.match(html,/<small aria-hidden="true">Retida até \d{2}:\d{2}<\/small>/);
+fixture={...fixture,items:[{...held,status:'pending',next_due:1}]};html=render();assert.ok(html.includes('tone-gray')&&html.includes('Enviando')&&!html.includes('Retida'),'Due now: Enviando');
 assert.match(html,/Consulta atualizada em \d{2}\/\d{2}(\/\d{2})?,? \d{2}:\d{2}/,'The stable query names its date and time');
 // Only the selected tab points at a panel, the one in the page.
 assert.deepEqual([...html.matchAll(/aria-controls="([^"]+)"/g)].map(m=>m[1]),['admin-panel-deliveries']);assert.ok(html.includes('id="admin-panel-deliveries"'));assert.ok(html.includes('&lt;script&gt;'));assert.ok(!html.includes('<script>'));
@@ -28,10 +46,10 @@ assert.ok(html.includes('<span class="cell-title cell-truncate cell-clamp" title
 // The stacked rows change the display of the table parts, so the parts carry explicit table roles.
 assert.match(html,/<td role="cell" class="cell-channel cell-field"><span class="cell-label">Canal<\/span><span class="channel-name">/);
 assert.match(html,/<td role="cell" class="cell-when cell-field"><span class="cell-label">Data e hora<\/span><time [^>]*>[^<]+<\/time><\/td>/);
-assert.match(html,/<td role="cell" class="cell-status"><span class="status-pill is-warning">Bloqueado: canal indisponível<\/span><\/td>/);
+assert.match(html,/<td role="cell" class="cell-status"><span class="delivery-state"><span class="status-chip tone-red" title="Falha · Bloqueado: canal indisponível"><span aria-hidden="true">Falha<\/span><span class="sr-only">Falha · Bloqueado: canal indisponível<\/span><\/span><small aria-hidden="true">Bloqueado: canal indisponível<\/small><\/span><\/td>/,'The person\'s chip, with the exact state visible under it');
 assert.match(html,/<table role="table" class="data-table delivery-table">/);assert.match(html,/<thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader"/);assert.match(html,/<tbody role="rowgroup"><tr role="row" class="is-clickable">/);
 tab='channels';render();await new Promise(resolve=>setImmediate(resolve));html=render();assert.ok(html.includes('Existing mail configuration'));assert.ok(!html.includes('User fixture'));
-subchannel='whatsapp';html=render();assert.ok(html.includes('WhatsApp integration fixture'));assert.ok(!html.includes('Existing mail configuration'));subchannel='telegram';html=render();assert.ok(html.includes('Integração ainda não disponível'));subchannel='email';
+subchannel='whatsapp';html=render();assert.ok(html.includes('WhatsApp integration fixture'));assert.ok(!html.includes('Existing mail configuration'));subchannel='telegram';html=render();assert.ok(html.includes('WhatsApp integration fixture')&&!html.includes('Telegram')&&!html.includes('Em breve'),'No Telegram for now: an old link opens WhatsApp');subchannel='email';
 // E-mail channel status from the state: "Ativo" only when a message can be sent (email_available), with the service really in use.
 const channelRow=(page,name)=>(page.split('<a ').find(part=>part.includes(`channel-link-name">${name}</span>`))||'').split('</a>')[0];
 const pill=part=>(part.match(/<span class="status-pill [^"]+">[^<]*<\/span>/)||[''])[0];
