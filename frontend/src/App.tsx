@@ -691,7 +691,7 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
         throw Error(
           r.status === 404
             ? t("Monitoramento não encontrado.")
-            : t("Não foi possível conectar ao serviço local"),
+            : t("Não foi possível conectar ao Radar de Voos."),
         );
       const next = await r.json();
       if (next.unchanged && previous)
@@ -2101,11 +2101,6 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
                               <Mail size={19} />
                               {t("E-mail por SMTP")}
                             </h2>
-                            <p>
-                              {t(
-                                "Credenciais armazenadas no servidor.",
-                              )}
-                            </p>
                           </div>
                           <span
                             className={`delivery-badge ${data.mail_provider === "smtp" ? "success" : ""}`}
@@ -2129,7 +2124,7 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
                                   !!smtpDraft.password ||
                                   smtpDraft.password_set,
                               });
-                            }, t("Configuração SMTP salva localmente. Use o botão abaixo para testar."));
+                            }, t("Configuração SMTP salva."));
                           }}
                         >
                           <label className="check-row">
@@ -2220,7 +2215,7 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
                               placeholder={
                                 smtpDraft.password_set
                                   ? t("Senha salva · deixe vazio para manter")
-                                  : t("Digite somente neste formulário local")
+                                  : t("Digite a senha")
                               }
                               onChange={(e) =>
                                 setSmtpDraft({
@@ -2286,7 +2281,7 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
                           </div>
                           <p className="help">
                             {t(
-                              "O teste usa o destinatário da configuração já salva. Alertas antigos que aguardavam configuração não são enviados retroativamente. Nenhuma mensagem é marcada como entregue sem confirmação.",
+                              "O teste usa o destinatário salvo. Alertas anteriores não serão reenviados.",
                             )}
                           </p>
                         </form>

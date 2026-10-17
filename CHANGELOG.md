@@ -1,5 +1,10 @@
 # Alterações
 
+## 0.24.1
+
+- Nome do produto e mensagens unificados, com descrições mais curtas e sem referências desnecessárias ao ambiente de execução.
+- Teste de navegação independente do build local, corrigindo a falha no GitHub Actions.
+
 ## 0.24.0
 
 - Seletor de idioma com bandeiras do Brasil, Estados Unidos e Espanha; cartões de viagem com alturas iguais e áreas de datas/preços alinhadas.

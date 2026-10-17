@@ -6,7 +6,7 @@
 - Domínio com HTTPS e proxy reverso existente.
 - Disco persistente e conectividade com a fonte de tarifas e os provedores de alertas.
 
-Como referência inicial para o piloto: 2 vCPU e 4 GB de RAM. Dimensione disco e capacidade conforme a carga. Instalação do Docker: [guia oficial para Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
+Configuração inicial sugerida: 2 vCPU e 4 GB de RAM. Dimensione disco e capacidade conforme a carga. Instalação do Docker: [guia oficial para Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
 
 ## Instalação
 

@@ -851,10 +851,6 @@
     "en": "Search archived; history is preserved.",
     "es": "Búsqueda archivada; historial conservado."
   },
-  "Busca arquivada. Histórico preservado no banco local.": {
-    "en": "Search archived. Local history preserved.",
-    "es": "Búsqueda archivada. Historial local conservado."
-  },
   "Busca restaurada e pausada. Revise as datas antes de retomar.": {
     "en": "Search restored and paused. Review dates before resuming.",
     "es": "Búsqueda restaurada y pausada. Revisa las fechas antes de reanudar."
@@ -1154,10 +1150,6 @@
   "Criar administrador": {
     "en": "Create administrator",
     "es": "Crear administrador"
-  },
-  "Configurar o primeiro administrador neste Mac": {
-    "en": "Set up the first administrator on this Mac",
-    "es": "Configurar el primer administrador en este Mac"
   },
   "Esta configuração inicial só está disponível neste computador.": {
     "en": "Initial setup is only available on this computer.",
@@ -1483,10 +1475,6 @@
     "en": "Saved password · leave blank to keep",
     "es": "Contraseña guardada · deja vacío para conservar"
   },
-  "Digite somente neste formulário local": {
-    "en": "Enter only in this local form",
-    "es": "Introduce solo en este formulario local"
-  },
   "E-mail remetente": {
     "en": "Sender email",
     "es": "Correo remitente"
@@ -1495,17 +1483,9 @@
     "en": "Test recipient",
     "es": "Destinatario de pruebas"
   },
-  "Configuração SMTP salva localmente. Use o botão abaixo para testar.": {
-    "en": "SMTP settings saved locally. Use the button below to test.",
-    "es": "Configuración SMTP guardada localmente. Usa el botón de prueba."
-  },
   "E-mail de teste colocado na fila. Acompanhe o resultado ao lado.": {
     "en": "Test email queued. Check delivery activity.",
     "es": "Correo de prueba en cola. Consulta la actividad de envío."
-  },
-  "O teste usa o destinatário da configuração já salva. Alertas antigos que aguardavam configuração não são enviados retroativamente. Nenhuma mensagem é marcada como entregue sem confirmação.": {
-    "en": "Tests use the saved recipient. Old alerts are not sent retroactively. Provider acceptance does not confirm inbox delivery.",
-    "es": "La prueba usa el destinatario guardado. Las alertas antiguas no se envían retroactivamente. La aceptación del proveedor no confirma la entrega en bandeja."
   },
   "Atividade de envio": {
     "en": "Delivery activity",
@@ -1586,10 +1566,6 @@
   "Não foi possível conectar ao radar.": {
     "en": "Could not connect to radar.",
     "es": "No se pudo conectar al radar."
-  },
-  "Não foi possível conectar ao serviço local": {
-    "en": "Could not connect to the local service",
-    "es": "No se pudo conectar al servicio local"
   },
   "Não foi possível concluir a ação": {
     "en": "Could not complete the action",
@@ -1795,18 +1771,6 @@
     "en": "Archived search not found",
     "es": "Búsqueda archivada no encontrada"
   },
-  "O piloto permite até cinco buscas": {
-    "en": "This version allows up to five searches",
-    "es": "Esta versión permite hasta cinco búsquedas"
-  },
-  "O piloto permite até cinco buscas ativas ou pausadas": {
-    "en": "This version allows up to five active or paused searches",
-    "es": "Esta versión permite hasta cinco búsquedas activas o pausadas"
-  },
-  "O piloto aceita até 24 combinações aeroporto/data por ciclo": {
-    "en": "This version allows 24 airport/date combinations per cycle",
-    "es": "Esta versión permite 24 combinaciones de aeropuerto y fecha por ciclo"
-  },
   "A janela de viagem já terminou para um aeroporto selecionado": {
     "en": "The travel window has ended for a selected airport",
     "es": "El horario del viaje ya terminó para un aeropuerto seleccionado"
@@ -1970,18 +1934,6 @@
   "A conexão Google ainda não está habilitada nesta distribuição do aplicativo": {
     "en": "Google connection is not enabled in this distribution yet",
     "es": "La conexión Google aún no está habilitada en esta distribución"
-  },
-  "Conecte a conta Google neste Mac, abrindo http://127.0.0.1:8765/": {
-    "en": "Connect the Google account on this Mac at http://127.0.0.1:8765/",
-    "es": "Conecta la cuenta Google en este Mac en http://127.0.0.1:8765/"
-  },
-  "Adicione a conta neste Mac, em http://127.0.0.1:8765/": {
-    "en": "Add the account on this Mac at http://127.0.0.1:8765/",
-    "es": "Añade la cuenta en este Mac en http://127.0.0.1:8765/"
-  },
-  "Crie o primeiro administrador neste Mac, em http://127.0.0.1:8765/": {
-    "en": "Create the first administrator on this Mac at http://127.0.0.1:8765/",
-    "es": "Crea el primer administrador en este Mac en http://127.0.0.1:8765/"
   },
   "Meta atingida": {
     "en": "Target reached",
@@ -2242,10 +2194,6 @@
   "Ver resultados": {
     "en": "View results",
     "es": "Ver resultados"
-  },
-  "Dados e credenciais ficam em uma pasta local ignorada pelo Git. A recuperação de acesso usa o primeiro e-mail salvo no perfil.": {
-    "en": "Data and credentials stay in a local folder ignored by Git. Account recovery uses the first email saved in the profile.",
-    "es": "Los datos y las credenciales quedan en una carpeta local ignorada por Git. La recuperación usa el primer correo guardado en el perfil."
   },
   "Preços observados, sem garantia de disponibilidade · voos no horário local dos aeroportos": {
     "en": "Observed fares, availability not guaranteed · flights in local airport time",
@@ -3279,10 +3227,6 @@
     "en": "Enable WhatsApp delivery",
     "es": "Habilitar envíos por WhatsApp"
   },
-  "O token fica somente no servidor, em arquivo privado fora do Git.": {
-    "en": "The token stays on the server, in a private file outside Git.",
-    "es": "El token permanece en el servidor, en un archivo privado fuera de Git."
-  },
   "Sessão WhatsApp pronta.": {
     "en": "WhatsApp session ready.",
     "es": "Sesión de WhatsApp lista."
@@ -3523,14 +3467,6 @@
     "en": "Ask the administrator to create your account.",
     "es": "Solicita tu registro al administrador."
   },
-  "Configure a integração Google abaixo antes de conectar a conta.": {
-    "en": "Configure the Google integration below before connecting the account.",
-    "es": "Configura la integración de Google abajo antes de conectar la cuenta."
-  },
-  "Integração Google do servidor": {
-    "en": "Server Google integration",
-    "es": "Integración de Google del servidor"
-  },
   "Configure uma vez com um cliente OAuth do tipo Aplicativo da Web. Depois, basta informar o e-mail e autorizar no Google.": {
     "en": "Set up a Web application OAuth client once. Then enter the email and authorize access with Google.",
     "es": "Configura una vez un cliente OAuth de tipo Aplicación web. Después, introduce el correo y autoriza el acceso en Google."
@@ -3550,10 +3486,6 @@
   "Deixe vazio para manter o segredo salvo": {
     "en": "Leave blank to keep the saved secret",
     "es": "Déjalo vacío para conservar el secreto guardado"
-  },
-  "O segredo fica somente no servidor. Nunca o envie ao GitHub.": {
-    "en": "The secret stays on the server. Never send it to GitHub.",
-    "es": "El secreto permanece en el servidor. Nunca lo envíes a GitHub."
   },
   "Salvar integração Google": {
     "en": "Save Google integration",
@@ -3983,10 +3915,6 @@
     "en": "The administrator needs to configure the delivery service.",
     "es": "La administración debe configurar el servicio de envío."
   },
-  "A conexão Google deste ambiente ainda precisa ser ativada pelo responsável técnico do aplicativo.": {
-    "en": "The application administrator still needs to activate the Google connection in this environment.",
-    "es": "El responsable técnico de la aplicación todavía debe activar la conexión de Google en este entorno."
-  },
   "{0} ativa": {
     "en": "{0} active",
     "es": "{0} activa"
@@ -4235,10 +4163,6 @@
     "en": "Latest trip alert",
     "es": "Última alerta de este viaje"
   },
-  "Credenciais armazenadas no servidor.": {
-    "en": "Credentials are stored on the server.",
-    "es": "Las credenciales se almacenan en el servidor."
-  },
   "SMTP fora de uso": {
     "en": "SMTP not in use",
     "es": "SMTP fuera de uso"
@@ -4318,5 +4242,69 @@
   "Economia de {0}": {
     "en": "Save {0}",
     "es": "Ahorro de {0}"
+  },
+  "Não foi possível conectar ao Radar de Voos.": {
+    "en": "Unable to connect to Flight Radar.",
+    "es": "No se pudo conectar con Radar de Vuelos."
+  },
+  "Configuração SMTP salva.": {
+    "en": "SMTP settings saved.",
+    "es": "Configuración SMTP guardada."
+  },
+  "Digite a senha": {
+    "en": "Enter password",
+    "es": "Introduce la contraseña"
+  },
+  "Configurar administrador": {
+    "en": "Set up administrator",
+    "es": "Configurar administrador"
+  },
+  "Configuração Google": {
+    "en": "Google settings",
+    "es": "Configuración de Google"
+  },
+  "Solicite a configuração Google ao administrador.": {
+    "en": "Ask your administrator to configure Google.",
+    "es": "Solicita la configuración de Google al administrador."
+  },
+  "Configure a integração Google antes de conectar a conta.": {
+    "en": "Configure the Google integration before connecting an account.",
+    "es": "Configura la integración de Google antes de conectar una cuenta."
+  },
+  "O teste usa o destinatário salvo. Alertas anteriores não serão reenviados.": {
+    "en": "The test uses the saved recipient. Previous alerts will not be resent.",
+    "es": "La prueba usa el destinatario guardado. Las alertas anteriores no se reenviarán."
+  },
+  "Acesso não autorizado.": {
+    "en": "Access denied.",
+    "es": "Acceso no autorizado."
+  },
+  "Atualize a página e tente novamente.": {
+    "en": "Refresh the page and try again.",
+    "es": "Actualiza la página e inténtalo de nuevo."
+  },
+  "Adicione a conta pelo endereço local da aplicação.": {
+    "en": "Add the account using the application’s local address.",
+    "es": "Añade la cuenta desde la dirección local de la aplicación."
+  },
+  "Conecte a conta Google pelo endereço local da aplicação.": {
+    "en": "Connect the Google account using the application’s local address.",
+    "es": "Conecta la cuenta de Google desde la dirección local de la aplicación."
+  },
+  "Interface indisponível.": {
+    "en": "Interface unavailable.",
+    "es": "Interfaz no disponible."
+  },
+  "Configure o primeiro administrador pelo endereço local da aplicação.": {
+    "en": "Set up the first administrator using the application’s local address.",
+    "es": "Configura el primer administrador desde la dirección local de la aplicación."
+  },
+  "Limite de 24 combinações entre aeroportos e datas por ciclo.": {
+    "en": "Limit of 24 airport and date combinations per cycle.",
+    "es": "Límite de 24 combinaciones de aeropuertos y fechas por ciclo."
+  },
+  "Conexão com troca de aeroporto não suportada.": {
+    "en": "Connections requiring an airport change are not supported.",
+    "es": "No se admiten conexiones con cambio de aeropuerto."
   }
 }

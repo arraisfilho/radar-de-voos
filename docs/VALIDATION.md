@@ -27,4 +27,4 @@ Após instalação ou alteração relevante:
 6. Verifique layouts em Safari, Chrome, Firefox e dispositivo móvel.
 7. Teste backup e restauração em ambiente separado.
 
-Build e fixtures não substituem inspeção visual entre navegadores. A revisão de layout 0.21.0 foi feita por análise da captura e do CSS; a conferência interativa nos navegadores permanece pendente. Saúde do processo não comprova entrega de mensagens nem conectividade com a fonte.
+Valide o layout nos navegadores de destino. A saúde do processo não comprova entrega de mensagens nem conectividade com a fonte.

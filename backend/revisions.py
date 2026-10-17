@@ -1,4 +1,4 @@
-"""Cheap account-scoped revisions for conditional local state polling."""
+"""Account-scoped revisions for conditional state polling."""
 import hashlib
 import json
 

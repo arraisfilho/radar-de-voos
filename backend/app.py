@@ -1,4 +1,4 @@
-"""Flight radar API with explicit local and HTTPS deployment modes."""
+"""HTTP API for flight monitoring and price alerts."""
 import json
 import os
 import secrets
@@ -37,7 +37,7 @@ async def lifespan(app):
     monitor.stop()
 
 
-app = FastAPI(title="Radar de Voos local", version="0.24.0", lifespan=lifespan,
+app = FastAPI(title="Radar de Voos", version="0.24.1", lifespan=lifespan,
               docs_url=None, redoc_url=None)
 
 
@@ -48,7 +48,7 @@ async def validation_error(request, exc):
 
 
 @app.middleware("http")
-async def local_guard(request: Request, call_next):
+async def access_guard(request: Request, call_next):
     host = request.headers.get("host", "")
     try:hostname = urlsplit("http://"+host).hostname
     except ValueError:return JSONResponse({"detail":"Host inválido"},status_code=403)
@@ -56,14 +56,14 @@ async def local_guard(request: Request, call_next):
     test_client = hostname == "testserver" and request.client and request.client.host == "testclient"
     accepted = public_request_allowed(request) if public_mode() else bool(test_client or (allowed_host(hostname) and request.client and allowed_client(request.client.host)))
     if not accepted:
-        return JSONResponse({"detail": "Acesso permitido somente neste computador e na rede local configurada"}, status_code=403)
+        return JSONResponse({"detail": "Acesso não autorizado."}, status_code=403)
     origin = request.headers.get("origin")
     origins = (public_origin(),) if public_mode() else ("http://"+host, "https://"+host)
     if origin and origin not in origins:
         return JSONResponse({"detail": "Origem não autorizada"}, status_code=403)
     if request.method in ("POST", "PUT", "DELETE", "PATCH"):
         if not secrets.compare_digest(request.headers.get("x-radar-token", ""), TOKEN):
-            return JSONResponse({"detail": "Atualize a página para renovar a sessão local"}, status_code=403)
+            return JSONResponse({"detail": "Atualize a página e tente novamente."}, status_code=403)
         if int(request.headers.get("content-length", "0")) > 50000:
             return JSONResponse({"detail": "Requisição muito grande"}, status_code=413)
     response = await call_next(request)
@@ -137,7 +137,7 @@ def open_offer(request: Request, token: str):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "version": "0.24.0", "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
+    return {"ok": True, "version": app.version, "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
 
 
 @app.get("/api/airports")
@@ -393,7 +393,7 @@ def register(request: Request, response: Response, data: accounts.Registration):
 @app.post("/api/auth/bootstrap")
 def bootstrap(request: Request, response: Response, data: accounts.Registration):
     if not accounts.can_bootstrap(request):
-        raise HTTPException(403,"Crie o primeiro administrador neste Mac, em http://127.0.0.1:8765/")
+        raise HTTPException(403,"Configure o primeiro administrador pelo endereço local da aplicação.")
     user=accounts.register(data,response,admin=True)
     audit.record(request,"bootstrap_success",user["id"])
     return user
@@ -609,7 +609,7 @@ def connect_mail_account(request: Request, account: mail_discovery.MailAccount):
     if provider!='google':
         return {"provider":provider,"email":account.email,"ready":False}
     if not public_mode() and request.url.hostname not in ("127.0.0.1","localhost"):
-        raise HTTPException(422,"Adicione a conta neste Mac, em http://127.0.0.1:8765/")
+        raise HTTPException(422,"Adicione a conta pelo endereço local da aplicação.")
     if not google_mail.public_settings()["configured"]:
         return {"provider":"google","email":account.email,"ready":False,"setup_required":True}
     try:
@@ -622,7 +622,7 @@ def connect_mail_account(request: Request, account: mail_discovery.MailAccount):
 def google_start(request: Request):
     user=accounts.require_admin(request)
     if not public_mode() and request.url.hostname not in ("127.0.0.1","localhost"):
-        raise HTTPException(422,"Conecte a conta Google neste Mac, abrindo http://127.0.0.1:8765/")
+        raise HTTPException(422,"Conecte a conta Google pelo endereço local da aplicação.")
     try:
         return {"url":google_mail.start(user,request.cookies.get(accounts.COOKIE,""),(public_origin() if public_mode() else "http://"+request.url.hostname+":"+str(request.url.port or 80)))}
     except google_mail.GoogleMailError as exc:raise HTTPException(422,str(exc))
@@ -680,5 +680,5 @@ def index(request: Request):
     if "state" in params and ("code" in params or "error" in params):
         return google_callback(request=request,state=params.get("state",""),code=params.get("code",""),error=params.get("error",""))
     if not (DIST / "index.html").exists():
-        raise HTTPException(503,"Execute o build do frontend seguindo o README")
+        raise HTTPException(503,"Interface indisponível.")
     return FileResponse(DIST / "index.html", headers={"Cache-Control":"no-cache"})

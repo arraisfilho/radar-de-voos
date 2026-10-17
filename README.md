@@ -41,6 +41,6 @@ Siga o [guia de implantação](docs/DEPLOYMENT.md) para configurar o ambiente, c
 
 React, TypeScript e Vite no frontend; Python/FastAPI, SQLite e trabalhadores de coleta/envio no backend. A fonte de tarifas utiliza `fast-flights`.
 
-O projeto está em estágio de piloto, com uma instância de aplicação e volume persistente. A coleta tem cadência de cinco minutos, sujeita à fila e à disponibilidade da fonte. Tarifas observadas não garantem disponibilidade de compra; franquias e condições devem ser confirmadas no vendedor. Telegram ainda não possui transporte implementado.
+A aplicação usa uma instância com volume persistente. A coleta tem cadência de cinco minutos, sujeita à fila e à disponibilidade da fonte. Tarifas observadas não garantem disponibilidade de compra; franquias e condições devem ser confirmadas no vendedor. Telegram ainda não possui transporte implementado.
 
 Dados, credenciais e backups ficam fora do Git. Consulte os guias antes de publicar uma instalação.

@@ -379,7 +379,7 @@ export function AuthGate() {
             }}
           >
             <Shield size={15} />
-            {t("Configurar o primeiro administrador neste Mac")}
+            {t("Configurar administrador")}
           </button>
         )}
         {mode === "admin" && (

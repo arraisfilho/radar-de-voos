@@ -41,13 +41,23 @@ class AdminMonitoringTests(unittest.TestCase):
         self.assertEqual(self.admin.get('/api/admin/users/missing').status_code,404)
 
     def test_client_pages_support_direct_navigation_without_an_api_catchall(self):
-        for path in ('/viagens','/viagens/nova?etapa=1&trecho=volta','/viagens/fixture/editar','/viagens/fixture/historico','/perfil','/historico','/alertas','/admin/usuarios/fixture/editar','/admin/envios/fixture'):
-            response=self.anon.get(path)
-            self.assertEqual(response.status_code,200,path)
-            self.assertIn('text/html',response.headers['content-type'])
-            self.assertEqual(response.headers['cache-control'],'no-cache')
-        self.assertEqual(self.anon.get('/api/nonexistent').status_code,404)
-        self.assertEqual(self.anon.get('/assets/nonexistent.js').status_code,404)
+        frontend=Path(self.temp.name)/'frontend'
+        frontend.mkdir()
+        shell='<!doctype html><title>Radar de Voos</title><div id="root"></div>'
+        (frontend/'index.html').write_text(shell)
+        with patch.object(self.app,'DIST',frontend):
+            for path in ('/viagens','/viagens/nova?etapa=1&trecho=volta','/viagens/fixture/editar','/viagens/fixture/historico','/perfil','/historico','/alertas','/admin/usuarios/fixture/editar','/admin/envios/fixture'):
+                response=self.anon.get(path)
+                self.assertEqual(response.status_code,200,path)
+                self.assertEqual(response.text,shell)
+                self.assertIn('text/html',response.headers['content-type'])
+                self.assertEqual(response.headers['cache-control'],'no-cache')
+            self.assertEqual(self.anon.get('/api/nonexistent').status_code,404)
+            self.assertEqual(self.anon.get('/assets/nonexistent.js').status_code,404)
+
+    def test_client_page_without_frontend_build_returns_service_unavailable(self):
+        with patch.object(self.app,'DIST',Path(self.temp.name)/'unbuilt'):
+            self.assertEqual(self.anon.get('/viagens').status_code,503)
 
     def test_customer_numbers_counts_and_id_search(self):
         one,two,three=[self.add() for _ in range(3)];self.add(self.aid)

@@ -101,7 +101,7 @@ class Search(BaseModel):
         if self.inbound and self.inbound.start < self.outbound.start:
             raise ValueError("A janela da volta deve começar após o início da ida")
         if len(jobs(self)) > 24:
-            raise ValueError("O piloto aceita até 24 combinações aeroporto/data por ciclo")
+            raise ValueError("Limite de 24 combinações entre aeroportos e datas por ciclo.")
         return self
 
 

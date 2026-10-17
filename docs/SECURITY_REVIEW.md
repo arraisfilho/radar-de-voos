@@ -18,6 +18,6 @@ Configure TLS, proxy e firewall; restrinja a porta da aplicação ao proxy. Mant
 
 ## Limitações
 
-O projeto está em piloto. Não há MFA administrativo, confirmação de posse de telefone/e-mail, alta disponibilidade ou auditoria de segurança independente. Validação sintática de contato não comprova titularidade. Aceitação de mensagem pelo transporte não comprova entrega.
+Não há MFA administrativo, confirmação de posse de telefone/e-mail, alta disponibilidade ou auditoria de segurança independente. Validação sintática de contato não comprova titularidade. Aceitação de mensagem pelo transporte não comprova entrega.
 
 A exposição pública exige avaliação de capacidade, controles de abuso e condições de uso da fonte de tarifas. Consulte [contas](ACCOUNTS.md), [operação](DEPLOYMENT.md) e [validação](VALIDATION.md).

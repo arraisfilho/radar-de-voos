@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { t, getLocale } from "./i18n";
 import { Button, Card } from "./ui";
 import { PhoneField } from "./PhoneField";
-import { Save, ShieldCheck, Send } from "lucide-react";
+import { Save, Send } from "lucide-react";
 type Field = {
   key: string;
   label: string;
@@ -217,12 +217,6 @@ export function WhatsAppPanel({ request }: { request: RequestFn }) {
               />
               {t("Habilitar envios por WhatsApp")}
             </label>
-            <p className="help">
-              <ShieldCheck size={14} />
-              {t(
-                "Credenciais armazenadas no servidor.",
-              )}
-            </p>
             <div className="settings-actions">
               <Button type="submit">
                 <Save size={16} />

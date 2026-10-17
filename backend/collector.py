@@ -52,7 +52,7 @@ def collect(options):
             layovers = []
             for previous, following in zip(segments, segments[1:]):
                 if previous["destination"] != following["origin"]:
-                    raise ValueError("Conexão com troca de aeroporto não suportada pelo piloto")
+                    raise ValueError("Conexão com troca de aeroporto não suportada.")
                 layovers.append(round((local_instant(following["departure"], following["origin"]) - local_instant(previous["arrival"], previous["destination"])).total_seconds()/60))
             if duration <= 0 or any(v < 0 for v in layovers) or not isinstance(item.price, (int, float)) or item.price <= 0:
                 raise ValueError("Horário ou preço inválido na fonte")

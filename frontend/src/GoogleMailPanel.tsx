@@ -144,8 +144,8 @@ export function GoogleMailPanel({
         setError(
           t(
             status.deployment === "public"
-              ? "Configure a integração Google abaixo antes de conectar a conta."
-              : "A conexão Google deste ambiente ainda precisa ser ativada pelo responsável técnico do aplicativo.",
+              ? "Configure a integração Google antes de conectar a conta."
+              : "Solicite a configuração Google ao administrador.",
           ),
         );
         return;
@@ -204,7 +204,7 @@ export function GoogleMailPanel({
             open={setupOpen}
             onToggle={(event) => setSetupOpen(event.currentTarget.open)}
           >
-            <summary>{t("Integração Google do servidor")}</summary>
+            <summary>{t("Configuração Google")}</summary>
             <p className="help">
               {t(
                 "Configure uma vez com um cliente OAuth do tipo Aplicativo da Web. Depois, basta informar o e-mail e autorizar no Google.",
@@ -290,11 +290,6 @@ export function GoogleMailPanel({
                   onChange={(event) => setClientSecret(event.target.value)}
                 />
               </label>
-              <p className="help">
-                {t(
-                  "O segredo fica somente no servidor. Nunca o envie ao GitHub.",
-                )}
-              </p>
               <Button
                 type="submit"
                 variant="outline"
