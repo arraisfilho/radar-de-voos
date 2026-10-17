@@ -25,7 +25,7 @@ def restore(stream):
                 source=archive.extractfile(member)
                 with (staging/name).open('wb') as output:shutil.copyfileobj(source,output)
         if 'radar.sqlite3' not in names:raise ValueError('Backup sem banco de dados.')
-        with sqlite3.connect('file:'+str(staging/'radar.sqlite3')+'?mode=ro',uri=True) as db:
+        with sqlite3.connect((staging/'radar.sqlite3').as_uri()+'?mode=ro',uri=True) as db:
             if db.execute('PRAGMA integrity_check').fetchone()[0]!='ok' or db.execute('PRAGMA foreign_key_check').fetchall():
                 raise ValueError('Backup inválido: integridade do banco.')
         # Validation completed before touching any live file. No running app may share this volume.

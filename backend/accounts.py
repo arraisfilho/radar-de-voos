@@ -1,18 +1,25 @@
 """Accounts, contact normalization and revocable server-side sessions."""
+import hmac
+import json
+import math
+import os
 import re
+import threading
+from contextlib import contextmanager
 from datetime import datetime,timezone
 from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 import hashlib
 import secrets
 import time
 import sqlite3
-from ipaddress import ip_address
+from ipaddress import ip_address, ip_network
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError, InvalidHashError
 from email_validator import validate_email, EmailNotValidError
 import phonenumbers
 from pydantic import BaseModel, Field, field_validator, model_validator
 from fastapi import HTTPException, Request
+from . import store
 from .store import db
 from .network import public_mode
 
@@ -20,6 +27,45 @@ HASHER = PasswordHasher()
 DUMMY_HASH = HASHER.hash(secrets.token_urlsafe(32))
 COOKIE = "radar_session"
 SESSION_SECONDS = 7 * 86400
+# Login limits: per address and per account, the account limit applies to unknown phones too.
+LOGIN_WINDOW = 900
+ADDRESS_LIMIT = 10
+ACCOUNT_LIMIT = 5
+LOCK_STEPS = (60, 120, 240, 480, 900)
+SERIES_GAP = 3600
+LOGIN_HISTORY = 86400
+THROTTLED = "Muitas tentativas. Aguarde alguns minutos e tente novamente."
+# Argon2 is memory-hard: bound concurrent hashes/verifications for the whole process.
+PASSWORD_SLOTS = threading.BoundedSemaphore(4)
+# A short wait: waiting requests hold threads of the pool shared by every sync route.
+PASSWORD_WAIT = 0.3
+BUSY = "Serviço temporariamente ocupado. Tente novamente em alguns segundos."
+# Server secret for the per-account limit key; created on first use, kept with the other secrets.
+LIMIT_SECRET_FILE = "login-limit-private.json"
+LIMIT_SECRET_LOCK = threading.Lock()
+
+
+@contextmanager
+def password_slot():
+    if not PASSWORD_SLOTS.acquire(timeout=PASSWORD_WAIT):
+        raise HTTPException(503, BUSY, headers={"Retry-After": "5"})
+    try:
+        yield
+    finally:
+        PASSWORD_SLOTS.release()
+
+
+def hash_password(password):
+    with password_slot():
+        return HASHER.hash(password)
+
+
+def verify_password(password_hash, password):
+    with password_slot():
+        try:
+            return HASHER.verify(password_hash, password)
+        except (VerificationError, InvalidHashError):
+            return False
 
 
 def phone_e164(value, country):
@@ -148,19 +194,27 @@ class Login(BaseModel):
     password: str = Field(min_length=1, max_length=200)
 
 
+def phone_display(value):
+    """E.164 login phone in international notation, e.g. +55 11 98765-4321."""
+    try:
+        return phonenumbers.format_number(phonenumbers.parse(value, None), phonenumbers.PhoneNumberFormat.INTERNATIONAL)
+    except phonenumbers.NumberParseException:
+        return value
+
+
 def public_user(row):
     import json
     return {"search_limit":row["search_limit"],"additional_phones":json.loads(row["additional_phones"]),"id":row["id"], "name":row["name"], "role":row["role"], "country":row["country"],
-            "timezone":row["timezone"],"quiet_hours":bool(row["quiet_hours"]),"quiet_start":row["quiet_start"],"quiet_end":row["quiet_end"],"language":row["language"], "telegram_username":row["telegram_username"], "phone":row["phone"], "phone_verified":False, "emails":json.loads(row["emails"]),
+            "timezone":row["timezone"],"quiet_hours":bool(row["quiet_hours"]),"quiet_start":row["quiet_start"],"quiet_end":row["quiet_end"],"language":row["language"], "telegram_username":row["telegram_username"], "phone":row["phone"], "phone_display":phone_display(row["phone"]), "phone_verified":False, "emails":json.loads(row["emails"]),
             "whatsapp_use_login":bool(row["whatsapp_use_login"]), "whatsapp_country":row["whatsapp_country"],
             "whatsapp_phone":row["phone"] if row["whatsapp_use_login"] else row["whatsapp_phone"]}
 
 
-def current_user(request: Request, required=True):
+def current_user(request: Request, required=True, timeout=15):
     token = request.cookies.get(COOKIE, "")
     row = None
     if token:
-        with db() as c:
+        with db(timeout) as c:
             row = c.execute("SELECT u.* FROM accounts u JOIN sessions s ON s.user_id=u.id WHERE s.digest=? AND s.expires>?", (hashlib.sha256(token.encode()).hexdigest(), time.time())).fetchone()
     if not row and required:
         raise HTTPException(401,"Entre na sua conta para continuar")
@@ -194,15 +248,12 @@ def establish_session(c, user_id, response):
 def register(data, response, admin=False):
     import json
     uid = secrets.token_hex(16)
-    password_hash = HASHER.hash(data.password)
+    password_hash = hash_password(data.password)
     if admin:
         with db() as c:
             existing = c.execute("SELECT * FROM accounts WHERE phone=?",(data.phone,)).fetchone()
         if existing:
-            try:
-                valid = HASHER.verify(existing["password_hash"],data.password)
-            except (VerificationError,InvalidHashError):
-                valid = False
+            valid = verify_password(existing["password_hash"],data.password)
             if not valid:
                 raise HTTPException(409,"Esse telefone já tem conta. Use a senha existente para configurar o administrador.")
             with db() as c:
@@ -229,35 +280,133 @@ def register(data, response, admin=False):
         raise HTTPException(409,"Não foi possível cadastrar esse telefone. Se já tem conta, entre.")
 
 
-def authenticate(data, request, response):
+def limit_secret():
+    """HMAC key of the login limits, from a private 0600 file in the data directory."""
+    path = store.DATA_DIR / LIMIT_SECRET_FILE
+    with LIMIT_SECRET_LOCK:
+        try:
+            value = bytes.fromhex(json.loads(path.read_text())["secret"])
+            if len(value) >= 32:
+                return value
+        except (FileNotFoundError, ValueError, KeyError, TypeError):
+            # Missing or unreadable: a new secret; earlier counters stop matching and expire.
+            pass
+        value = secrets.token_bytes(32)
+        store.DATA_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
+        temp = path.with_suffix("."+secrets.token_hex(6)+".tmp")
+        fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w") as file:
+            json.dump({"secret": value.hex()}, file)
+        temp.replace(path)
+        return value
+
+
+def limit_key(value):
+    return hmac.new(limit_secret(), value.encode(), hashlib.sha256).hexdigest()
+
+
+def login_key(data):
+    """Normalized phone (or None) and the limit key: an HMAC with a server secret, never the number.
+
+    Keys from the former unsalted SHA-256 no longer match and expire with LOGIN_HISTORY.
+    """
+    country = data.country.upper()
     try:
-        phone = phone_e164(data.phone,data.country.upper())
+        phone = phone_e164(data.phone, country)
     except ValueError:
-        phone = "invalid"
-    key = request.client.host if request.client else "unknown"
+        # Invalid input never matches an account but keeps a counter of its own.
+        return None, limit_key("invalid:"+country+":"+re.sub(r"\D", "", data.phone))
+    return phone, limit_key(phone)
+
+
+def limit_address(host):
+    """Key of the per-address login limit: the IPv6 /64 network (one subscriber usually holds a
+    whole /64), the IPv4 address itself (also when IPv4-mapped), or the raw value if not an IP."""
+    try:
+        address = ip_address(host)
+    except ValueError:
+        return host
+    if address.version == 6 and address.ipv4_mapped:
+        return str(address.ipv4_mapped)
+    if address.version == 6:
+        return str(ip_network((address, 64), strict=False))
+    return str(address)
+
+
+def clear_login_failures(c, phone):
+    """Forget the account's failures, and so its lock, after a password reset (as a successful login does)."""
+    c.execute("DELETE FROM login_attempts WHERE account=?", (limit_key(phone),))
+
+
+def account_lock_until(times):
+    """Moment an account may try again, from its failure times in ascending order.
+
+    The fifth failure within LOGIN_WINDOW locks for LOCK_STEPS[0]; each later failure
+    of the same series uses the next step, capped at the last. A series ends after
+    SERIES_GAP without failures; a successful login or a password reset deletes the
+    account's failures.
+    """
+    level, until, start = 0, 0.0, 0
+    for index, moment in enumerate(times):
+        if index and moment-times[index-1] >= SERIES_GAP:
+            level, until, start = 0, 0.0, index
+        recent = sum(1 for value in times[start:index+1] if value > moment-LOGIN_WINDOW)
+        if level or recent >= ACCOUNT_LIMIT:
+            until = moment+LOCK_STEPS[min(level, len(LOCK_STEPS)-1)]
+            level += 1
+    return until
+
+
+def reserve_login(c, address, account, now):
+    """Decide and reserve one attempt inside the caller's BEGIN IMMEDIATE transaction.
+
+    Returns (rowid, 0) when allowed, or (None, seconds) when limited. The reserved row
+    already counts as a failure, so concurrent attempts cannot exceed the limits.
+    """
+    c.execute("DELETE FROM login_attempts WHERE created<? OR (account IS NULL AND created<?)", (now-LOGIN_HISTORY, now-LOGIN_WINDOW))
+    by_address = [r[0] for r in c.execute("SELECT created FROM login_attempts WHERE address=? AND created>? ORDER BY created", (address, now-LOGIN_WINDOW))]
+    by_account = [r[0] for r in c.execute("SELECT created FROM login_attempts WHERE account=? ORDER BY created", (account,))]
+    waits = []
+    if len(by_address) >= ADDRESS_LIMIT:
+        waits.append(by_address[len(by_address)-ADDRESS_LIMIT]+LOGIN_WINDOW-now)
+    until = account_lock_until(by_account)
+    if until > now:
+        waits.append(until-now)
+    if waits:
+        return None, max(1, math.ceil(max(waits)))
+    return c.execute("INSERT INTO login_attempts(address,created,account) VALUES(?,?,?)", (address, now, account)).lastrowid, 0
+
+
+def authenticate(data, request, response):
+    phone, account = login_key(data)
+    address = limit_address(request.client.host if request.client else "unknown")
     now = time.time()
     with db() as c:
-        c.execute("DELETE FROM login_attempts WHERE created<?",(now-900,))
-        limited=c.execute("SELECT COUNT(*) FROM login_attempts WHERE address=?",(key,)).fetchone()[0] >= 10
-        row=c.execute("SELECT * FROM accounts WHERE phone=?",(phone,)).fetchone()
-    if limited:
-        from .audit import record
-        record(request,'login_throttled')
-        raise HTTPException(429,"Muitas tentativas. Aguarde alguns minutos e tente novamente.")
-    try:
-        valid=HASHER.verify(row["password_hash"] if row else DUMMY_HASH,data.password) and row is not None
-    except (VerificationError,InvalidHashError):
-        valid=False
-    with db() as c:
-        if not valid:
-            c.execute("INSERT INTO login_attempts(address,created) VALUES(?,?)",(key,now))
-        else:
-            c.execute("DELETE FROM login_attempts WHERE address=?",(key,))
-            establish_session(c,row["id"],response)
+        c.execute("BEGIN IMMEDIATE")
+        row = c.execute("SELECT * FROM accounts WHERE phone=?", (phone,)).fetchone() if phone else None
+        attempt, wait = reserve_login(c, address, account, now)
     from .audit import record
-    record(request,'login_success' if valid else 'login_failed',row['id'] if row else None)
+    user_id = row["id"] if row else None
+    if attempt is None:
+        # Same answer for existing and unknown phones: counting does not depend on the account row.
+        record(request, "login_throttled", user_id)
+        raise HTTPException(429, THROTTLED, headers={"Retry-After": str(wait)})
+    try:
+        valid = verify_password(row["password_hash"] if row else DUMMY_HASH, data.password) and row is not None
+    except HTTPException:
+        # No verification happened, so the busy answer must not count as a failure.
+        with db() as c:
+            c.execute("DELETE FROM login_attempts WHERE rowid=?", (attempt,))
+        raise
+    if valid:
+        with db() as c:
+            c.execute("BEGIN IMMEDIATE")
+            # Reset only this account; failures from this address against other accounts remain.
+            c.execute("DELETE FROM login_attempts WHERE account=?", (account,))
+            establish_session(c, row["id"], response)
+    record(request, "login_success" if valid else "login_failed", user_id)
     if not valid:
-        raise HTTPException(401,"Telefone ou senha incorretos")
+        raise HTTPException(401, "Telefone ou senha incorretos")
     return public_user(row)
 
 

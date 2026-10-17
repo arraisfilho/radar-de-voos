@@ -63,6 +63,13 @@ def save(enabled,secret):
     return public_settings()
 
 
+def remove():
+    """Called with whatsapp.LOCK held, when the integration itself is removed."""
+    path=store.DATA_DIR/'whatsapp-receipts-private.json';existed=path.exists()
+    path.unlink(missing_ok=True)
+    return existed
+
+
 def parse(body,signature):
     from . import whatsapp
     cfg=settings();config=whatsapp.settings()

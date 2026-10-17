@@ -1,4 +1,5 @@
 """Worldwide routes, bag price intent, migration and opt-in LAN boundary."""
+import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import json
 import os
 import unittest
@@ -105,7 +106,7 @@ class LANTests(unittest.TestCase):
 
 
 class CollectionReliabilityTests(unittest.TestCase):
-    def test_saved_cadence_does_not_grow_with_failures(self):
+    def test_saved_cadence_is_kept_without_route_failures(self):
         from backend.engine import next_collection_due
         for interval in (60,300,420,1800):
             for elapsed in (2,35,300,1200):
@@ -127,7 +128,8 @@ class CollectionReliabilityTests(unittest.TestCase):
     def collect_fixture(self,items):
         from types import SimpleNamespace as NS
         group=self.group(items)
-        script=NS(text=lambda:'data:'+json.dumps([None,None,[[1]],None])+',')
+        # One raw itinerary (parse_js is replaced) and block 7 with the airline codes.
+        script=NS(text=lambda:'data:'+json.dumps([None,None,[[1]],None,None,None,None,[None,[[],[['BA','British Airways']]]]])+',')
         parser=NS(css_first=lambda selector:script)
         with patch.object(collector,'fetch_flights_html',return_value='fixture'),patch.object(collector,'LexborHTMLParser',return_value=parser),patch.object(collector,'parse_js',return_value=group):
             return collector.collect({'origin':'LHR','destination':'JFK','date':'2026-11-05','cabin':'economy','adults':1})
@@ -144,8 +146,10 @@ class CollectionReliabilityTests(unittest.TestCase):
 
     def test_all_unverifiable_offers_are_an_error_not_no_flights(self):
         bad=self.item([('LHR','LGA',12,13),('EWR','JFK',14,15)])
-        with self.assertRaisesRegex(ValueError,'validadas'):
+        with self.assertRaisesRegex(ValueError,'validadas') as caught:
             self.collect_fixture([bad])
+        # This query's offers only: the search backs off, the source is not paused for everyone.
+        self.assertEqual(caught.exception.kind,'no_results')
 
 
 class CurrencyLifecycleTests(unittest.TestCase):

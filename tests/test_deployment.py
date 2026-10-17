@@ -1,4 +1,5 @@
 """Public deployment boundaries and private backup; no source queries or email."""
+import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import importlib
 import json
 import os
@@ -52,8 +53,22 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/auth/bootstrap',json=self.registration,headers=headers).status_code,403)
         client=TestClient(self.module.app,base_url='http://127.0.0.1',client=('127.0.0.1',5000))
         self.addCleanup(client.close)
-        self.assertEqual(client.get('/api/health').status_code,200)
+        with patch.object(self.module,'monitor',test_isolation.IdleMonitor(healthy=True)):
+            self.assertEqual(client.get('/api/health').status_code,200)
         self.assertEqual(client.get('/api/auth/session').status_code,403)
+    def test_health_body_for_the_container_check_and_the_administrator_only(self):
+        local=TestClient(self.module.app,base_url='http://127.0.0.1:8765',client=('127.0.0.1',5000))
+        self.addCleanup(local.close)
+        with patch.object(self.module,'monitor',test_isolation.IdleMonitor(healthy=True)):
+            # The image HEALTHCHECK: plaintext from the loopback, reading ok, collector_alive and whatsapp_sender_alive.
+            body=local.get('/api/health').json()
+            self.assertTrue(body['ok'] and body['collector_alive'] and body['whatsapp_sender_alive']);self.assertIn('source',body)
+            # Through the public origin, without an administrator session: ok only.
+            self.assertEqual(self.client.get('/api/health').json(),{'ok':True})
+            token=self.client.get('/api/auth/session').json()['token']
+            login=self.client.post('/api/auth/login',json=self.registration,headers={'x-radar-token':token,'origin':'https://radar.example.com'})
+            self.assertEqual(login.status_code,200,login.text)
+            self.assertEqual(self.client.get('/api/health').json()['source']['status'],'ok')
     def test_only_exact_proxy_can_assert_https(self):
         proxy=ProxyHeadersMiddleware(self.module.app,trusted_hosts=['172.30.88.1'])
         for address,expected in [('172.30.88.1',200),('172.30.88.9',403)]:

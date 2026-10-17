@@ -1,4 +1,5 @@
 """Refinement regressions: no provider requests or messages leave these fixtures."""
+import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import hashlib
 import importlib
 import json
@@ -207,7 +208,8 @@ class RefinementTests(unittest.TestCase):
         with store.db() as c:row=dict(c.execute('SELECT * FROM searches WHERE id=?',(sid,)).fetchone())
         search=Search.model_validate_json(row['config']);self.assertEqual(search.interval,300)
         with patch('backend.engine.fetch') as fetch:
-            self.assertEqual(Monitor().gated_fetch(search,('outbound','THE','GRU','2090-11-05'),row)['status'],'error');fetch.assert_not_called()
+            # A paused search is skipped: never queried, no result row and no failure kind.
+            self.assertEqual(Monitor().gated_fetch(search,('outbound','THE','GRU','2090-11-05'),row)['status'],'skipped');fetch.assert_not_called()
     def test_quiet_profile_and_queued_price_suppression(self):
         sid,_=self.search()
         r=self.client.put('/api/profile',json={**self.user,'quiet_hours':True,'timezone':'America/Sao_Paulo','quiet_start':'22:00','quiet_end':'08:00'},headers=self.headers)

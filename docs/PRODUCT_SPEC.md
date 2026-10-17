@@ -8,7 +8,7 @@ O limite padrão é cinco buscas por conta, ajustável pelo administrador. Há l
 
 ## Filtros
 
-- Aeroportos internacionais, pesquisáveis por cidade, nome ou código IATA.
+- Aeroportos internacionais, pesquisáveis por cidade, nome ou código IATA, com ou sem acentos. Cidades brasileiras aparecem com a grafia em português ("São Paulo", "Foz do Iguaçu").
 - Janelas de data e horário, inclusive atravessando a meia-noite.
 - Adultos, crianças e bebês, com ou sem assento, conforme categorias aceitas pela fonte.
 - Cabine e moeda da consulta; a sugestão inicial considera idioma/região e fuso do dispositivo.

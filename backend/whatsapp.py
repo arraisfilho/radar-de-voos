@@ -1,6 +1,7 @@
 """Private provider settings and a bounded, recipient-specific WhatsApp outbox."""
 import hashlib
 import json
+import logging
 import os
 import secrets
 import threading
@@ -13,6 +14,7 @@ from .integrations.base import IntegrationError
 from .notifications import sync_alerts,link
 
 LOCK=threading.RLock()
+logger=logging.getLogger('radar.whatsapp')
 class Settings(BaseModel):
     provider:str=Field(default='openwa',max_length=50)
     enabled:bool=False
@@ -57,12 +59,27 @@ def save(data):
         fd=os.open(tmp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
         with os.fdopen(fd,'w') as f:json.dump(result,f)
         tmp.replace(path);os.chmod(path,0o600)
-        # A saved identity switch or disabling must never redirect queued messages.
-        with store.db() as c:
-            rows=c.execute("SELECT id,alert_ids FROM outbox WHERE channel='whatsapp' AND status='pending' AND (transport_ref!=? OR ?=0)",(reference(result),int(result['enabled']))).fetchall()
-            for row in rows:
-                c.execute("UPDATE outbox SET status='cancelled',error='Configuração WhatsApp alterada' WHERE id=?",(row['id'],));sync_alerts(c,json.loads(row['alert_ids']))
+        with store.db() as c:cancel_queue(c,result)
     return public_settings()
+
+
+def cancel_queue(c,config):
+    """A saved identity switch, disabling or removal must never redirect queued messages."""
+    rows=c.execute("SELECT id,alert_ids FROM outbox WHERE channel='whatsapp' AND status='pending' AND (transport_ref!=? OR ?=0)",(reference(config),int(config['enabled']))).fetchall()
+    for row in rows:
+        c.execute("UPDATE outbox SET status='cancelled',error='Configuração WhatsApp alterada' WHERE id=?",(row['id'],));sync_alerts(c,json.loads(row['alert_ids']))
+    return len(rows)
+
+
+def remove():
+    """Delete the integration and its receipt secret; pending WhatsApp messages are cancelled."""
+    from . import whatsapp_receipts
+    with LOCK:
+        path=store.DATA_DIR/'whatsapp-private.json';previous=settings();existed=path.exists()
+        path.unlink(missing_ok=True)
+        receipts=whatsapp_receipts.remove()
+        with store.db() as c:cancelled=cancel_queue(c,{**previous,'enabled':False})
+    return {'provider':previous['provider'],'existed':existed,'receipts_removed':receipts,'cancelled':cancelled}
 
 
 def recipients(c,sid):
@@ -119,8 +136,11 @@ def send_one():
             if len(phones)!=1:raise IntegrationError('Destinatário WhatsApp inválido')
             provider_id=WHATSAPP_PROVIDERS[config['provider']].send(config['values'],phones[0],row['body'])
             status,error='sent',None
-        except IntegrationError as exc:status,error,provider_id='uncertain' if exc.uncertain else 'failed',str(exc),None
-        except Exception:status,error,provider_id='uncertain','Não foi possível confirmar a operação no WhatsApp',None
+        except IntegrationError as exc:status,error,provider_id,failure='uncertain' if exc.uncertain else 'failed',str(exc),None,'IntegrationError'
+        except Exception as exc:status,error,provider_id,failure='uncertain','Não foi possível confirmar a operação no WhatsApp',None,type(exc).__name__
+        if status!='sent':
+            # Identifiers only: never the phone number or the message body.
+            logger.warning('Envio WhatsApp não confirmado',extra={'outbox_id':row['id'],'search_id':row['search_id'],'status':status,'kind':failure})
         with store.db() as c:
             c.execute('UPDATE outbox SET status=?,error=?,sent=?,provider_message_id=? WHERE id=?',(status,error,time.time() if status=='sent' else None,provider_id,row['id']));sync_alerts(c,json.loads(row['alert_ids']))
             from . import whatsapp_receipts

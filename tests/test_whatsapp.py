@@ -1,4 +1,5 @@
 """WhatsApp fixtures: private temp files and mocked transports; never real sends."""
+import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import importlib
 import io
 import json

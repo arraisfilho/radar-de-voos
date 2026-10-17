@@ -81,6 +81,12 @@ def client_parameters(data):
     return {'client_id':data['client_id'], **({'client_secret':data['client_secret']} if data.get('client_secret') else {})}
 
 
+def private_settings():
+    """Only what this installation saved; never merged with a bundled public client."""
+    with LOCK:
+        return json.loads(path().read_text()) if path().exists() else {}
+
+
 def settings():
     with LOCK:
         private=json.loads(path().read_text()) if path().exists() else {}
@@ -249,6 +255,15 @@ def disconnect():
         # Local deletion is immediate. Revocation can also be done in the Google account.
         write({k:v for k,v in data.items() if k in ('client_id','client_secret','client_type')})
     with db() as c:c.execute('DELETE FROM oauth_requests')
+
+
+def remove_client():
+    """Delete the saved OAuth client and its tokens. Revocation can also be done in the Google account."""
+    with LOCK:
+        data=private_settings()
+        path().unlink(missing_ok=True)
+    with db() as c:c.execute('DELETE FROM oauth_requests')
+    return {'existed':bool(data),'was_connected':bool(data.get('refresh_token'))}
 
 
 def transmit(config, message_id, subject, body):

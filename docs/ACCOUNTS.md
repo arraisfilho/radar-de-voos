@@ -33,4 +33,20 @@ Em **Esqueci minha senha**, informe país e telefone cadastrados. Se houver reme
 
 O assistente `create_admin.py` não redefine senhas existentes. Se houver outro acesso administrativo disponível, use **Administração → Usuários** para redefinir a senha. Sem acesso administrativo e sem recuperação por e-mail, a recuperação depende de intervenção do operador no servidor.
 
-Muitas tentativas incorretas de login causam bloqueio temporário. Não envie senhas ou links de recuperação em issues públicas.
+Não envie senhas ou links de recuperação em issues públicas.
+
+## Limite de tentativas de login
+
+- Por IP: 10 falhas em 15 minutos bloqueiam novas tentativas desse IP, inclusive com a senha correta, até a falha mais antiga expirar. Endereços IPv6 contam pelo prefixo /64, que costuma pertencer inteiro a um mesmo assinante; IPv4, inclusive mapeado em IPv6, conta pelo endereço.
+- Por conta, de qualquer IP: a 5ª falha em 15 minutos bloqueia a conta por 1 minuto. Cada falha seguinte da mesma sequência bloqueia por 2, 4, 8 e depois 15 minutos, contados da última falha. A sequência recomeça após uma hora sem falhas.
+- Telefones sem cadastro são contados da mesma forma e recebem respostas idênticas.
+- Um login com sucesso zera somente os contadores daquela conta.
+- A redefinição de senha pelo link de recuperação ou pelo administrador também apaga as falhas registradas da conta e libera o bloqueio na hora. Como no login com sucesso, essas falhas deixam de contar também no limite por IP.
+
+O bloqueio responde HTTP 429 com o cabeçalho `Retry-After`, em segundos. A tentativa é reservada como falha antes da verificação da senha; tentativas simultâneas não ultrapassam os limites.
+
+Como o bloqueio da conta vale para qualquer IP, quem conhece um telefone cadastrado consegue mantê-lo bloqueado com cerca de quatro senhas erradas por hora: cada falha renova a espera de até 15 minutos. As falhas expiram em 24 horas; quando expiram as cinco que abriram a sequência, o bloqueio termina, a menos que ocorram outras cinco falhas em 15 minutos, o que recomeça a sequência. Nesse caso, use a recuperação por e-mail ou peça a redefinição ao administrador.
+
+As falhas são guardadas por 24 horas com o IP (em IPv6, o prefixo /64) e uma chave da conta: HMAC-SHA-256 do telefone normalizado com um segredo do servidor, nunca o número. O segredo fica em `login-limit-private.json` (modo 0600) no diretório de dados, é criado na primeira tentativa de login e entra no backup com os demais arquivos privados. Se o arquivo for removido, um novo segredo é criado e os contadores existentes deixam de valer. Contadores gravados por versões anteriores, com SHA-256 sem segredo, também deixam de contar e expiram em 24 horas.
+
+O processo executa até quatro cálculos de senha (Argon2) ao mesmo tempo: login, cadastro, redefinição e criação de conta pelo administrador. Se nenhum fica livre em 0,3 segundo, a resposta é HTTP 503 e a tentativa de login não conta como falha. A espera é curta porque a requisição em espera ocupa uma thread do conjunto que atende as demais rotas.

@@ -12,9 +12,9 @@ DATA_DIR = Path(os.environ.get("RADAR_DATA_DIR", Path(__file__).resolve().parent
 
 
 @contextmanager
-def db():
+def db(timeout=15):
     DATA_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
-    connection = sqlite3.connect(DATA_DIR / "radar.sqlite3", timeout=15)
+    connection = sqlite3.connect(DATA_DIR / "radar.sqlite3", timeout=timeout)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys=ON")
     try:
@@ -25,6 +25,20 @@ def db():
         raise
     finally:
         connection.close()
+
+
+def ping(timeout=2):
+    """Read-only probe for health checks; never creates the database."""
+    try:
+        # as_uri() percent-encodes "?", "#" and "%" in the folder name.
+        connection = sqlite3.connect((DATA_DIR / "radar.sqlite3").as_uri()+"?mode=ro", uri=True, timeout=timeout)
+        try:
+            connection.execute("SELECT 1 FROM sqlite_master LIMIT 1").fetchall()
+        finally:
+            connection.close()
+        return True
+    except sqlite3.Error:
+        return False
 
 
 def setup(seed=True):
@@ -116,6 +130,20 @@ def setup(seed=True):
             c.execute("ALTER TABLE accounts ADD COLUMN additional_phones TEXT NOT NULL DEFAULT '[]'")
         if 'actor_id' not in {r[1] for r in c.execute('PRAGMA table_info(access_audit)')}:
             c.execute('ALTER TABLE access_audit ADD COLUMN actor_id TEXT REFERENCES accounts(id)')
+        from . import audit
+        audit.setup(c)
+        # Login limits count by address and by account key (HMAC of the normalized phone, accounts.login_key).
+        if 'account' not in {r[1] for r in c.execute('PRAGMA table_info(login_attempts)')}:
+            c.execute('ALTER TABLE login_attempts ADD COLUMN account TEXT')
+        c.execute('CREATE INDEX IF NOT EXISTS login_attempts_address ON login_attempts(address,created)')
+        c.execute('CREATE INDEX IF NOT EXISTS login_attempts_account ON login_attempts(account,created)')
+        if 'error_kind' not in {r[1] for r in c.execute('PRAGMA table_info(searches)')}:
+            c.execute('ALTER TABLE searches ADD COLUMN error_kind TEXT')
+        # failures used to grow on any cycle with a failing route; it is now the backoff exponent
+        # (Monitor.run_cycle). Reset it once, so old counts do not stretch the cadence to the cap.
+        if not c.execute("SELECT 1 FROM metadata WHERE key='search_failures_reset_v1'").fetchone():
+            c.execute('UPDATE searches SET failures=0')
+            c.execute("INSERT INTO metadata VALUES('search_failures_reset_v1','1')")
         c.execute("CREATE INDEX IF NOT EXISTS searches_owner ON searches(owner_id,archived)")
         c.execute("UPDATE searches SET archived=1 WHERE state='expired' AND active=0")
         # Old queued messages lack an account-specific recipient: never use a global fallback.
@@ -141,15 +169,19 @@ def setup(seed=True):
         c.execute("CREATE INDEX IF NOT EXISTS alerts_cycle ON alerts(cycle_id)")
         previous_adapter = c.execute("SELECT value FROM metadata WHERE key='adapter_version'").fetchone()
         if previous_adapter and previous_adapter[0] != ADAPTER_VERSION:
-            c.execute("UPDATE searches SET version=version+1,error=NULL,last_success=NULL")
+            c.execute("UPDATE searches SET version=version+1,error=NULL,error_kind=NULL,last_success=NULL")
             c.execute("DELETE FROM filter_result_refs")
+            # A pause caused by the previous adapter (e.g. a format change) does not carry over.
+            from . import source
+            c.execute("DELETE FROM metadata WHERE key=?", (source.KEY,))
         c.execute("INSERT OR REPLACE INTO metadata VALUES('adapter_version',?)", (ADAPTER_VERSION,))
         # Cadence is a server policy. Preserve prices and filter references.
         c.execute("UPDATE searches SET config=json_set(config,'$.interval',300) WHERE COALESCE(json_extract(config,'$.interval'),0)<>300")
         c.execute("CREATE INDEX IF NOT EXISTS snapshots_search_time ON snapshots(search_id,version,direction,collected)")
         # Recover an interrupted process: no running task survived the restart.
         c.execute("UPDATE cycles SET status='interrupted', finished=? WHERE status='running'", (time.time(),))
-        c.execute("UPDATE searches SET state='scheduled', next_due=MAX(?,COALESCE(last_started,0)+300) WHERE active=1 AND archived=0", (time.time(),))
+        # A later next_due (per-search backoff) survives the restart.
+        c.execute("UPDATE searches SET state='scheduled', next_due=MAX(?,COALESCE(last_started,0)+300,COALESCE(next_due,0)) WHERE active=1 AND archived=0", (time.time(),))
         # A crashed send may have reached SMTP. Hold it for manual review, not a blind resend.
         c.execute("UPDATE outbox SET status='uncertain', error='Processo interrompido durante envio; confirme antes de reenviar' WHERE status='sending'")
         from .notifications import sync_alerts

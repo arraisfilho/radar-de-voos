@@ -1,4 +1,5 @@
 """Manual administration uses temporary accounts without external notifications."""
+import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import importlib
 import json
 import tempfile

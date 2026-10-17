@@ -56,14 +56,19 @@ def public_origin():
     return 'https://'+parsed.hostname.lower()+((':'+str(port)) if port!=443 else '')
 
 
+def loopback_request(request):
+    """Direct local request: loopback peer and loopback Host, as the container health check sends."""
+    try:
+        return bool(request.client) and ip_address(request.client.host).is_loopback and request.url.hostname in ('127.0.0.1','localhost')
+    except ValueError:
+        return False
+
+
 def public_request_allowed(request):
     from urllib.parse import urlsplit
     # Container health checks never expose application routes over plaintext HTTP.
-    if request.url.path=='/api/health' and request.client:
-        try:
-            if ip_address(request.client.host).is_loopback and request.url.hostname in ('127.0.0.1','localhost'):
-                return True
-        except ValueError:pass
+    if request.url.path=='/api/health' and loopback_request(request):
+        return True
     try:
         host=urlsplit('https://'+request.headers.get('host',''))
         if host.username or host.password or host.path or host.query or host.fragment:return False

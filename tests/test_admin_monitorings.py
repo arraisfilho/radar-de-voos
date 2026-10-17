@@ -1,4 +1,5 @@
 """Admin read-only inspection, stable numeric references and existing account ACLs."""
+import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import importlib
 import json
 from pathlib import Path

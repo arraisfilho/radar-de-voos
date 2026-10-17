@@ -62,10 +62,25 @@ Confie somente no IP exato do par TCP definido em `RADAR_TRUSTED_PROXY`. Em prod
 ## Verificação inicial
 
 ```sh
-curl -fsS https://radar.example.com/api/health
+curl -sS https://radar.example.com/api/health
 ```
 
-Substitua o domínio pelo configurado. Confira versão e trabalhadores ativos. Depois valide login, criação de monitoramento, coleta e recebimento de um alerta. O endpoint de saúde não comprova acesso à fonte de tarifas nem entrega de mensagens.
+Substitua o domínio pelo configurado. Sem sessão de administrador, a resposta é só `{"ok": true}` com HTTP 200, ou `{"ok": false}` com HTTP 503. O corpo completo vai para o loopback do container, que o `HEALTHCHECK` da imagem usa, e para sessão de administrador, como no painel **Administração**. Para lê-lo no servidor:
+
+```sh
+docker compose --env-file deploy/cloud.env -f compose.cloud.yaml exec app \
+  python -c "import urllib.request as r; print(r.urlopen('http://127.0.0.1:8765/api/health').read().decode())"
+```
+
+Com `ok: false`, o comando termina com `HTTP Error 503`. `ok` exige:
+
+- `db_ok`: leitura do banco com timeout de 2 segundos;
+- `collector_alive`, `email_sender_alive` e `whatsapp_sender_alive`;
+- `heartbeats`: segundos desde a última volta de cada trabalhador, até 120 para o coletor e 300 para os envios.
+
+`source` mostra o estado da fonte de tarifas (`ok`, `degraded` ou `paused`) e não altera `ok`: reiniciar o container não desfaz um bloqueio da fonte. O `HEALTHCHECK` da imagem consulta `ok`, `collector_alive` e `whatsapp_sender_alive`.
+
+Depois valide login, criação de monitoramento, coleta e recebimento de um alerta. O endpoint de saúde não comprova entrega de mensagens.
 
 Configure os remetentes em **Administração → Canais**: [Google OAuth](GOOGLE_MAIL.md), SMTP ou [WhatsApp](WHATSAPP.md). Clientes cadastram os destinatários no próprio perfil. Telegram está indisponível.
 
@@ -117,6 +132,8 @@ A restauração valida o arquivo e substitui banco e credenciais privadas. Não 
 docker compose --env-file deploy/cloud.env -f compose.cloud.yaml logs --tail=100 app
 ```
 
-O Compose limita logs do container a três arquivos de 10 MB. Registros de envio e auditoria têm retenção própria, ajustável em **Administração → Retenção**, com limpeza manual e prévia. Um estado `unhealthy` não reinicia automaticamente o container.
+O Compose limita logs do container a três arquivos de 10 MB. A aplicação escreve um objeto JSON por linha, com `time`, `level`, `logger`, `message` e, quando houver, `search_id`, `cycle_id`, `outbox_id` e `kind`. O nível vem de `RADAR_LOG_LEVEL`; os arquivos Compose não definem a variável e o padrão é `INFO`. Os logs não incluem senhas, tokens, telefones, e-mails ou corpo de mensagens.
+
+Registros de envio e auditoria têm retenção própria, ajustável em **Administração → Retenção**, com limpeza manual e prévia. Na auditoria, login recusado, tentativas limitadas, recuperação solicitada, login com sucesso e saída repetidos com o mesmo IP e conta em até 10 minutos são agregados em um registro com `count` e `last_seen`; login com sucesso e saída só se agregam com o mesmo navegador e sistema (`user_agent`), para que outro dispositivo no mesmo IP apareça em registro próprio. A limpeza horária aplica a retenção em dias pela última ocorrência e cotas separadas, em que uma categoria não remove registros de outra: 5 mil para login recusado, tentativas limitadas e recuperação solicitada; 20 mil para os demais eventos de conta (login, saída, cadastro e redefinição de senha); e 20 mil para administração e configuração (eventos `admin_*` e criação do primeiro administrador). Alterar a retenção e limpar logs manualmente geram registros de auditoria. Um estado `unhealthy` não reinicia automaticamente o container.
 
 Mantenha uma única instância por volume SQLite. O Compose local usa um volume distinto; dados locais não migram automaticamente para a nuvem.

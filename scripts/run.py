@@ -13,5 +13,9 @@ network=lan_network()
 host=os.environ.get('RADAR_HOST','127.0.0.1')
 if host not in ('127.0.0.1','localhost') and not (network and host == '0.0.0.0'):
     raise SystemExit('Para acesso na rede local use RADAR_HOST=0.0.0.0 e RADAR_LAN_CIDR com a sub-rede privada autorizada.')
+from backend.logs import configure
+try:configure()
+except ValueError as exc:raise SystemExit(str(exc))
 import uvicorn
-uvicorn.run('backend.app:app',host=host,port=int(os.environ.get('RADAR_PORT','8765')),access_log=False,proxy_headers=False)
+# log_config=None: uvicorn's own messages also go through the JSON handler.
+uvicorn.run('backend.app:app',host=host,port=int(os.environ.get('RADAR_PORT','8765')),access_log=False,proxy_headers=False,log_config=None)

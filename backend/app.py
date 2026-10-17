@@ -2,6 +2,7 @@
 import json
 import os
 import secrets
+import sqlite3
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -12,13 +13,14 @@ from fastapi import FastAPI, HTTPException, Request, Response, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field, field_validator
 from .airports import airport_record, search_airports
 from .domain import Search, eligible, jobs, validate_future, monitoring_deadline, local_instant
-from .store import db, setup, decode_search, add_search
+from .store import db, setup, decode_search, add_search, ping
 from .engine import Monitor
-from . import mail, accounts, google_mail, mail_discovery, audit, logos, recovery, revisions, retention, activity, airlines, deliveries, admin_accounts, whatsapp, whatsapp_receipts
-from .network import allowed_client, allowed_host, public_mode, public_origin, public_request_allowed
+from . import mail, accounts, google_mail, mail_discovery, audit, logos, recovery, revisions, retention, activity, airlines, deliveries, admin_accounts, whatsapp, whatsapp_receipts, source
+from .network import allowed_client, allowed_host, loopback_request, public_mode, public_origin, public_request_allowed
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "frontend" / "dist"
@@ -45,6 +47,12 @@ app = FastAPI(title="Radar de Voos", version="0.25.0", lifespan=lifespan,
 async def validation_error(request, exc):
     # Pydantic normally echoes invalid inputs, including a whole SMTP object.
     return JSONResponse({"detail":[{"loc":e["loc"],"msg":e["msg"],"type":e["type"]} for e in exc.errors()]},status_code=422)
+
+
+# Registered before access_guard, so it runs inside it: it sees whole bodies (the 1 KB minimum
+# works) and access_guard still sets the final headers. Request bodies, e.g. signed webhooks,
+# are never touched; images and partial responses are skipped.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
 @app.middleware("http")
@@ -76,6 +84,9 @@ async def access_guard(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     if request.url.path.startswith("/api/") and not (request.method == "GET" and request.url.path.startswith("/api/airline-logo/") and response.status_code == 200):
         response.headers["Cache-Control"] = "no-store"
+    # Build files carry a content hash in the name; index.html stays no-cache.
+    if request.url.path.startswith("/assets/") and response.status_code in (200, 206, 304):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return response
 
 
@@ -100,7 +111,10 @@ def recent_results(c, row, preview_pool=False):
         stale = result["status"] == "error"
         chosen = fallback.get(result["route_key"]) if stale else result
         data = json.loads(chosen["data"]) if chosen else json.loads(result["data"])
-        error = json.loads(result["data"]).get("error") if stale else None
+        failure = json.loads(result["data"]) if stale else {}
+        error = failure.get("error")
+        # Rows written before cancelled queries were skipped may carry kind "cancelled": not a source kind.
+        kind = failure.get("kind") if failure.get("kind") in source.KINDS else None
         leg = config.outbound if result["direction"] == "outbound" else config.inbound
         available = [dict(f, stale=stale, collected_at=f.get("collected_at",chosen["collected"] if chosen else result["collected"])) for f in data.get("flights", []) if leg and local_instant(f["departure"],f["origin"]).timestamp()>time.time()]
         filtered = [f for f in available if eligible(f,leg)]
@@ -109,7 +123,8 @@ def recent_results(c, row, preview_pool=False):
                        "date": data["date"], "direction": result["direction"], "status": result["status"],
                        "last_attempt": result["collected"], "last_valid": chosen["collected"] if chosen else None,
                        "count": len(filtered), "raw_count": len(data.get("flights", [])),
-                       "stale": stale, "error": error, "latency": data.get("elapsed_seconds")})
+                       "stale": stale, "error": error, "error_kind": kind,
+                       "latency": data.get("elapsed_seconds")})
     return sorted(flights,key=lambda f:f["price_cents"]), routes
 
 
@@ -138,9 +153,38 @@ def open_offer(request: Request, token: str):
     return RedirectResponse(target,status_code=302,headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer'})
 
 
+def administrator_session(request):
+    """True for an administrator's session cookie; a short database timeout keeps health prompt."""
+    if not request.cookies.get(accounts.COOKIE):
+        return False
+    try:
+        user = accounts.current_user(request, required=False, timeout=2)
+    except sqlite3.Error:
+        return False
+    return bool(user and user["role"] == "admin")
+
+
 @app.get("/api/health")
-def health():
-    return {"ok": True, "version": app.version, "collector_alive": monitor.worker.is_alive(),"whatsapp_sender_alive":monitor.whatsapp_sender.is_alive()}
+def health(request: Request):
+    """Process health. The fare-source state is reported but never changes ok: restarting does not lift a block.
+
+    The full body goes to the loopback (the container HEALTHCHECK) and to an administrator
+    session (the admin panel); any other client receives only {"ok": ...}, same HTTP status.
+    """
+    db_ok = ping()
+    workers = monitor.status()
+    fresh = all(w["age"] is not None and w["age"] <= w["limit"] for w in workers.values())
+    ok = bool(db_ok and all(w["alive"] for w in workers.values()) and fresh)
+    # The database is consulted for the session only when the probe found it readable.
+    if not (loopback_request(request) or (db_ok and administrator_session(request))):
+        return JSONResponse({"ok": ok}, status_code=200 if ok else 503)
+    body = {"ok": ok, "version": app.version, "db_ok": db_ok,
+            "collector_alive": workers["collector"]["alive"],
+            "whatsapp_sender_alive": workers["whatsapp_sender"]["alive"],
+            "email_sender_alive": workers["email_sender"]["alive"],
+            "heartbeats": {name: None if w["age"] is None else round(w["age"], 1) for name, w in workers.items()},
+            "source": source.public(timeout=2) if db_ok else None}
+    return JSONResponse(body, status_code=200 if ok else 503)
 
 
 @app.get("/api/airports")
@@ -167,8 +211,11 @@ def state(request: Request, search_id: str | None = None, preview_pool: bool = F
     recipient=mail.test_recipient() if administrative else None
     available=mail.available()
     whatsapp_available=whatsapp.available()
+    collection=source.public()
     with db() as c:
-        revision=revisions.token(c,user['id'],TOKEN,[search_id,preview_pool,detail,scope,available,whatsapp_available,smtp,google,recipient])
+        # Source status changes refresh the state; timestamps alone do not.
+        revision=revisions.token(c,user['id'],TOKEN,[search_id,preview_pool,detail,scope,available,whatsapp_available,smtp,google,recipient,
+                                                     {k:collection[k] for k in ('status','kind','retry_at')} if collection else None])
         if since==revision:return {'unchanged':True,'revision':revision,'server_time':time.time()}
         searches = [decode_search(r) for r in c.execute("SELECT * FROM searches WHERE archived=0 AND owner_id=? ORDER BY created",(user["id"],)).fetchall()]
         archived = [decode_search(r) for r in c.execute("SELECT * FROM searches WHERE archived=1 AND owner_id=? ORDER BY created DESC",(user["id"],)).fetchall()]
@@ -208,6 +255,7 @@ def state(request: Request, search_id: str | None = None, preview_pool: bool = F
     return {"quote_expires":min((local_instant(f["departure"],f["origin"]).timestamp() for f in flights),default=None),"revision":revision,"alert_total":alert_total,"raw_retention_days":retention.days(),"mail_provider":mail.delivery_settings()["provider"] if user["role"]=="admin" else None,"token": TOKEN, "server_time": time.time(), "searches": searches, "archived": archived, "selected": chosen,
             "flights": flights, "routes": routes, "history": history, "alerts": alerts, "cycles": cycles,
             "user": user, "smtp": smtp, "email_available": available, "whatsapp_available":whatsapp_available, "google_mail": google, "mail_test_recipient": recipient, "deliveries": deliveries,
+            "source": collection,
             "airports": [airport_record(code) for code in sorted({code for item in searches + archived for key in ("origins", "destinations") for code in item["config"][key]})]}
 
 
@@ -243,7 +291,7 @@ def update_search(request: Request, sid: str, config: Search):
         c.execute("BEGIN IMMEDIATE")
         row = require_search(c,sid,user["id"])
         reused = result_cache.carry_forward(c,row,config)
-        c.execute("UPDATE searches SET config=?,version=version+1,state=?,next_due=?,progress=0,total=0,error=NULL WHERE id=?",
+        c.execute("UPDATE searches SET config=?,version=version+1,state=?,next_due=?,progress=0,total=0,error=NULL,error_kind=NULL WHERE id=?",
                   (config.model_dump_json(),"scheduled" if row["active"] else "paused",max(time.time(),(row["last_started"] or 0)+300) if row["active"] else None,sid))
     return {"ok":True,"reference_reset":True,"results_reused":bool(reused)}
 
@@ -330,11 +378,22 @@ def export(request: Request, sid: str):
 
 @app.put("/api/smtp")
 def configure_smtp(request: Request, config: mail.SMTPSettings):
-    accounts.require_admin(request)
+    actor=accounts.require_admin(request)
+    before=mail.settings()
     try:
         mail.save_settings(config)
     except ValueError as exc:
         raise HTTPException(422,str(exc))
+    after=mail.settings()
+    audit.record(request,'admin_smtp_saved',actor_id=actor['id'],details={'enabled':after['enabled'],'changed':audit.changed(before,after,mail.FIELDS)})
+    return mail.public_settings()
+
+
+@app.delete("/api/smtp")
+def remove_smtp(request: Request):
+    actor=accounts.require_admin(request)
+    existed=mail.remove_settings()
+    audit.record(request,'admin_smtp_removed',actor_id=actor['id'],details={'existed':existed})
     return mail.public_settings()
 
 
@@ -484,9 +543,23 @@ def admin_whatsapp(request:Request):
 
 @app.put('/api/admin/whatsapp')
 def save_whatsapp(request:Request,data:whatsapp.Settings):
-    accounts.require_admin(request)
-    try:return whatsapp.save(data)
+    actor=accounts.require_admin(request)
+    before=whatsapp.settings()
+    try:result=whatsapp.save(data)
     except ValueError as exc:raise HTTPException(422,str(exc))
+    after=whatsapp.settings()
+    keys=sorted(set(before['values'])|set(after['values']))
+    changed=audit.changed(before,after,('provider','enabled'))+audit.changed(before['values'],after['values'],keys)
+    audit.record(request,'admin_whatsapp_saved',actor_id=actor['id'],details={'provider':after['provider'],'enabled':after['enabled'],'changed':changed})
+    return result
+
+
+@app.delete('/api/admin/whatsapp')
+def remove_whatsapp(request:Request):
+    actor=accounts.require_admin(request)
+    details=whatsapp.remove()
+    audit.record(request,'admin_whatsapp_removed',actor_id=actor['id'],details=details)
+    return whatsapp.public_settings()
 
 
 @app.post('/api/admin/whatsapp/check')
@@ -516,9 +589,15 @@ def get_whatsapp_receipts(request: Request):
 
 @app.put('/api/admin/whatsapp/receipts')
 def save_whatsapp_receipts(request: Request,data: ReceiptSettings):
-    accounts.require_admin(request)
-    try:return whatsapp_receipts.save(data.enabled,data.secret)
+    actor=accounts.require_admin(request)
+    before=whatsapp_receipts.settings()
+    try:result=whatsapp_receipts.save(data.enabled,data.secret)
     except ValueError as exc:raise HTTPException(422,str(exc))
+    after=whatsapp_receipts.settings()
+    # 'identity' marks a new binding to the saved WhatsApp integration; the secret is named, never stored here.
+    changed=audit.changed(before,after,('enabled','secret'))+(['identity'] if before.get('transport_ref')!=after.get('transport_ref') else [])
+    audit.record(request,'admin_whatsapp_receipts_saved',actor_id=actor['id'],details={'enabled':bool(after.get('enabled')),'changed':changed})
+    return result
 
 
 @app.post(whatsapp_receipts.PATH)
@@ -588,8 +667,11 @@ def delivery_retention(request:Request,scope:Literal['deliveries','access']='del
 
 @app.put('/api/admin/delivery-retention')
 def change_log_policy(request:Request,data:LogPolicy):
-    accounts.require_admin(request)
-    return deliveries.configure_days(data.scope,data.days)
+    actor=accounts.require_admin(request)
+    before=deliveries.days(data.scope)
+    result=deliveries.configure_days(data.scope,data.days)
+    audit.record(request,'admin_retention_changed',actor_id=actor['id'],details={'scope':data.scope,'before':before,'after':data.days})
+    return result
 
 
 @app.post('/api/admin/delivery-cleanup/preview')
@@ -601,7 +683,10 @@ def preview_delivery_cleanup(request:Request,data:DeliveryCleanup):
 @app.post('/api/admin/delivery-cleanup/confirm')
 def confirm_delivery_cleanup(request:Request,data:DeliveryCleanup):
     user=accounts.require_admin(request)
-    return deliveries.confirm(data.before,data.expires,data.proof,user['id'],TOKEN,data.scope)
+    result=deliveries.confirm(data.before,data.expires,data.proof,user['id'],TOKEN,data.scope)
+    # Written after the deletion, so an access-log cleanup cannot remove its own record.
+    audit.record(request,'admin_logs_cleaned',actor_id=user['id'],details={'scope':data.scope,'before':data.before,'removed':result['removed'],'has_more':result['has_more']})
+    return result
 
 
 @app.get("/api/admin/audit")
@@ -629,9 +714,23 @@ def profile(request: Request, data: accounts.Contacts):
 
 @app.put("/api/google/client")
 def google_client(request: Request, config: google_mail.OAuthClient):
-    accounts.require_admin(request)
-    try:return google_mail.configure(config)
+    actor=accounts.require_admin(request)
+    before=google_mail.private_settings()
+    try:result=google_mail.configure(config)
     except google_mail.GoogleMailError as exc:raise HTTPException(422,str(exc))
+    after=google_mail.private_settings()
+    audit.record(request,'admin_google_client_saved',actor_id=actor['id'],details={'client_type':after.get('client_type'),
+                 'changed':audit.changed(before,after,('client_id','client_secret','client_type')),
+                 'connection_removed':bool(before.get('refresh_token')) and not after.get('refresh_token')})
+    return result
+
+
+@app.delete("/api/google/client")
+def remove_google_client(request: Request):
+    actor=accounts.require_admin(request)
+    details=google_mail.remove_client()
+    audit.record(request,'admin_google_client_removed',actor_id=actor['id'],details=details)
+    return google_mail.public_settings()
 
 
 @app.post("/api/mail/connect")
@@ -662,8 +761,10 @@ def google_start(request: Request):
 
 @app.post("/api/google/disconnect")
 def google_disconnect(request: Request):
-    accounts.require_admin(request)
+    actor=accounts.require_admin(request)
+    connected=bool(google_mail.private_settings().get('refresh_token'))
     google_mail.disconnect()
+    audit.record(request,'admin_google_disconnected',actor_id=actor['id'],details={'was_connected':connected})
     return {"ok":True}
 
 
@@ -679,6 +780,8 @@ def google_callback(request: Request, state: str = "", code: str = "", error: st
         message=str(exc)
         # Persist diagnostics only for a validated, session-bound authorization.
         if pending:google_mail.remember_connection_error(message)
+    # The session-bound authorization identifies the administrator who started it.
+    if ok:audit.record(request,'admin_google_connected',actor_id=pending['user_id'],details={'provider':'google'})
     from .i18n import translate
     language=pending.get('language','pt') if pending else request.headers.get('accept-language','pt').split(',')[0].split('-')[0]
     if language not in ('pt','en','es'):language='en'

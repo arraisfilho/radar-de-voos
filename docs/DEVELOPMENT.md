@@ -38,6 +38,7 @@ Acesse `http://localhost:8765`. Pare uma aplicação já em execução antes do 
 | `RADAR_AUDIT_RETENTION_DAYS` | Retenção inicial de acessos; padrão 90 dias |
 | `RADAR_DELIVERY_RETENTION_DAYS` | Retenção inicial de envios concluídos; padrão 90 dias |
 | `RADAR_WHATSAPP_URL` | Sugestão inicial de URL do integrador |
+| `RADAR_LOG_LEVEL` | Nível dos logs JSON no stderr: `DEBUG`, `INFO` (padrão), `WARNING`, `ERROR` ou `CRITICAL` |
 
 Para testes na LAN, habilite escuta em todas as interfaces, configure `RADAR_LAN_CIDR` com sua sub-rede privada e ajuste `RADAR_PUBLIC_URL` para o endereço alcançável do servidor. Esse modo é destinado a redes confiáveis. Para publicar, use o [modo de produção](DEPLOYMENT.md).
 
@@ -51,4 +52,12 @@ npm --prefix frontend run build
 for test in tests/frontend_*.cjs; do node "$test" || exit 1; done
 ```
 
-Os testes usam dados temporários e transportes simulados. Consulte [validação](VALIDATION.md) para cobertura e verificações operacionais.
+Os testes usam dados temporários e transportes simulados. Todo módulo de teste importa primeiro `tests/test_isolation.py`: sem `RADAR_DATA_DIR`, ou com ele apontando para `.data/` ou para uma pasta dentro dela, a suíte usa um diretório temporário, desativa o monitoramento inicial e o ciclo de vida da API não inicia o coletor nem os envios. Consulte [validação](VALIDATION.md) para cobertura e verificações operacionais.
+
+`scripts/run.py` e `scripts/serve.py` emitem logs em JSON, um objeto por linha no stderr, incluindo as mensagens do uvicorn:
+
+```sh
+RADAR_LOG_LEVEL=DEBUG .venv/bin/python scripts/run.py
+```
+
+Em outro processo que não configure logs, por exemplo `uvicorn backend.app:app` direto, avisos e erros da aplicação saem no stderr como texto simples, pelo tratamento padrão do Python; mensagens INFO e DEBUG não aparecem.
