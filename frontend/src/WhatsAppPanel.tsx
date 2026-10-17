@@ -1,3 +1,4 @@
+import { WhatsAppReceipts } from "./WhatsAppReceipts";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { t, getLocale } from "./i18n";
@@ -117,6 +118,7 @@ export function WhatsAppPanel({ request }: { request: RequestFn }) {
       );
       await cache.invalidateQueries({ queryKey: ["radar"] });
       await cache.invalidateQueries({ queryKey: ["admin-deliveries"] });
+      await cache.invalidateQueries({ queryKey: ["whatsapp-receipts"] });
     });
   }
   const states: Record<string, string> = {
@@ -279,6 +281,7 @@ export function WhatsAppPanel({ request }: { request: RequestFn }) {
           {message}
         </p>
       )}
+      <WhatsAppReceipts request={request} />
       <details className="whatsapp-test">
         <summary>{t("Enviar mensagem de teste")}</summary>
         <p className="help">

@@ -4306,5 +4306,125 @@
   "Conexão com troca de aeroporto não suportada.": {
     "en": "Connections requiring an airport change are not supported.",
     "es": "No se admiten conexiones con cambio de aeropuerto."
+  },
+  "Enviado": {
+    "en": "Sent",
+    "es": "Enviado"
+  },
+  "Entregue": {
+    "en": "Delivered",
+    "es": "Entregado"
+  },
+  "Lido": {
+    "en": "Read",
+    "es": "Leído"
+  },
+  "Entrega parcial": {
+    "en": "Partially delivered",
+    "es": "Entrega parcial"
+  },
+  "Falha de entrega": {
+    "en": "Delivery failed",
+    "es": "Error de entrega"
+  },
+  "Falhas de entrega: {0}": {
+    "en": "Delivery failures: {0}",
+    "es": "Errores de entrega: {0}"
+  },
+  "Envio confirmado em": {
+    "en": "Sending confirmed at",
+    "es": "Envío confirmado el"
+  },
+  "Entrega confirmada em": {
+    "en": "Delivery confirmed at",
+    "es": "Entrega confirmada el"
+  },
+  "Leitura confirmada em": {
+    "en": "Reading confirmed at",
+    "es": "Lectura confirmada el"
+  },
+  "Horários de confirmação informados pelo integrador.": {
+    "en": "Confirmation times reported by the provider.",
+    "es": "Horarios de confirmación informados por el proveedor."
+  },
+  "Entregue no WhatsApp": {
+    "en": "Delivered on WhatsApp",
+    "es": "Entregado en WhatsApp"
+  },
+  "Lido no WhatsApp": {
+    "en": "Read on WhatsApp",
+    "es": "Leído en WhatsApp"
+  },
+  "Falha de entrega no WhatsApp": {
+    "en": "WhatsApp delivery failed",
+    "es": "Error de entrega en WhatsApp"
+  },
+  "Não foi possível carregar as confirmações.": {
+    "en": "Unable to load receipt settings.",
+    "es": "No se pudo cargar la configuración de confirmaciones."
+  },
+  "Confirmações de entrega e leitura": {
+    "en": "Delivery and read receipts",
+    "es": "Confirmaciones de entrega y lectura"
+  },
+  "Receptor habilitado. Cadastre o webhook no OpenWA.": {
+    "en": "Receiver enabled. Register the webhook in OpenWA.",
+    "es": "Receptor habilitado. Registra el webhook en OpenWA."
+  },
+  "Configure o receptor e o webhook para acompanhar as confirmações.": {
+    "en": "Set up the receiver and webhook to track receipts.",
+    "es": "Configura el receptor y el webhook para seguir las confirmaciones."
+  },
+  "Receber confirmações do WhatsApp": {
+    "en": "Receive WhatsApp receipts",
+    "es": "Recibir confirmaciones de WhatsApp"
+  },
+  "Segredo de assinatura": {
+    "en": "Signing secret",
+    "es": "Secreto de firma"
+  },
+  "Segredo salvo · deixe vazio para manter": {
+    "en": "Secret saved · leave blank to keep",
+    "es": "Secreto guardado · deja vacío para conservar"
+  },
+  "Use o mesmo segredo no webhook OpenWA": {
+    "en": "Use the same secret in the OpenWA webhook",
+    "es": "Usa el mismo secreto en el webhook de OpenWA"
+  },
+  "Salvar confirmações": {
+    "en": "Save receipt settings",
+    "es": "Guardar confirmaciones"
+  },
+  "URL do webhook": {
+    "en": "Webhook URL",
+    "es": "URL del webhook"
+  },
+  "O teste local usa eventos simulados. Em produção, cadastre a URL HTTPS do Radar no OpenWA.": {
+    "en": "Local testing uses simulated events. In production, register Radar’s HTTPS URL in OpenWA.",
+    "es": "Las pruebas locales usan eventos simulados. En producción, registra la URL HTTPS de Radar en OpenWA."
+  },
+  "No OpenWA, selecione message.ack e message.failed e use o mesmo segredo.": {
+    "en": "In OpenWA, select message.ack and message.failed and use the same secret.",
+    "es": "En OpenWA, selecciona message.ack y message.failed y usa el mismo secreto."
+  },
+  "Configuração de confirmações salva.": {
+    "en": "Receipt settings saved.",
+    "es": "Configuración de confirmaciones guardada."
+  },
+  "Use um segredo de 32 a 255 caracteres, sem espaços.": {
+    "en": "Use a secret of 32 to 255 characters, without spaces.",
+    "es": "Usa un secreto de 32 a 255 caracteres, sin espacios."
+  },
+  "Salve a integração OpenWA e informe o segredo das confirmações.": {
+    "en": "Save the OpenWA integration and enter the signing secret.",
+    "es": "Guarda la integración OpenWA e introduce el secreto de firma."
+  },
+  "Entregues: {0}/{1} · Lidas: {2}": {
+    "en": "Delivered: {0}/{1} · Read: {2}",
+    "es": "Entregados: {0}/{1} · Leídos: {2}"
+  },
+  "Caminho do webhook": {
+    "en": "Webhook path",
+    "es": "Ruta del webhook"
   }
 }

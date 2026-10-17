@@ -42,6 +42,11 @@ type Entry = {
   error?: string | null;
   content_protected?: boolean;
   provider_message_id?: string | null;
+  receipt_status?: string | null;
+  receipt_sent_at?: number | null;
+  delivered_at?: number | null;
+  read_at?: number | null;
+  receipt_failed_at?: number | null;
   owner_id?: string | null;
 };
 type LogPage = {
@@ -49,6 +54,7 @@ type LogPage = {
   total: number;
   page_size: number;
   totals: Record<string, number>;
+  receipt_totals?: Record<string, number>;
 };
 type Policy = {
   days: number;
@@ -66,6 +72,7 @@ type Plan = {
   proof: string;
   has_more: boolean;
   totals: Record<string, number>;
+  receipt_totals?: Record<string, number>;
 };
 const date = (n: number | null) =>
   n
@@ -80,6 +87,10 @@ const day = (n: number) => {
 };
 const statuses = (): Record<string, string> => ({
   sent: t("Aceito pelo provedor"),
+  confirmed_sent: t("Enviado"),
+  delivered: t("Entregue"),
+  read: t("Lido"),
+  delivery_failed: t("Falha de entrega"),
   pending: t("Na fila"),
   sending: t("Enviando"),
   failed: t("Falha no envio"),
@@ -130,10 +141,14 @@ function tabKeys(e: KeyboardEvent<HTMLDivElement>) {
   tabs[n]?.focus();
   tabs[n]?.click();
 }
+function displayStatus(entry: Entry) {
+  if(entry.channel === "whatsapp" && entry.status === "sent" && entry.receipt_status) return ({sent:"confirmed_sent",delivered:"delivered",read:"read",failed:"delivery_failed"} as Record<string,string>)[entry.receipt_status] || entry.status;
+  return entry.status;
+}
 function Badge({ status }: { status: string }) {
   return (
     <span
-      className={`delivery-badge ${status === "sent" ? "success" : ["failed", "uncertain", "waiting_contact", "waiting_service"].includes(status) ? "delivery-warning" : ""}`}
+      className={`delivery-badge ${["sent", "confirmed_sent", "delivered", "read"].includes(status) ? "success" : ["failed", "delivery_failed", "uncertain", "waiting_contact", "waiting_service"].includes(status) ? "delivery-warning" : ""}`}
     >
       {statuses()[status] || status}
     </span>
@@ -153,6 +168,7 @@ function LogDetail({
     queryFn: ({ signal }) =>
       read("/admin/deliveries/" + encodeURIComponent(id!), signal),
     enabled: !!id,
+    refetchInterval: 15000,
     staleTime: 0,
   });
   const entry = query.data;
@@ -173,7 +189,7 @@ function LogDetail({
         <>
           <div className="admin-detail-heading">
             <strong>{entry.subject}</strong>
-            <Badge status={entry.status} />
+            <Badge status={displayStatus(entry)} />
           </div>
           <dl className="admin-metadata">
             <div>
@@ -216,6 +232,11 @@ function LogDetail({
               <dt>{t("Tentativas")}</dt>
               <dd>{entry.attempts}</dd>
             </div>
+            {entry.channel === "whatsapp" && <>
+              <div><dt>{t("Envio confirmado em")}</dt><dd>{date(entry.receipt_sent_at ?? null)}</dd></div>
+              <div><dt>{t("Entrega confirmada em")}</dt><dd>{date(entry.delivered_at ?? null)}</dd></div>
+              <div><dt>{t("Leitura confirmada em")}</dt><dd>{date(entry.read_at ?? null)}</dd></div>
+            </>}
           </dl>
           {entry.status === "waiting_contact" && <p className="help">{t("Cadastre um contato para receber os próximos alertas. Este registro não será reenviado.")}</p>}
           {["waiting_contact", "waiting_service"].includes(entry.status) && navigate && <Button variant="outline" onClick={() => entry.status === "waiting_contact" && entry.owner_id ? navigate({view: "admin", section: "users", userAction: "edit", userId: entry.owner_id}) : navigate({view: "admin", section: "channels", channel: entry.channel})}>{entry.status === "waiting_contact" ? t("Corrigir contato") : t("Configurar canal")}</Button>}
@@ -239,11 +260,7 @@ function LogDetail({
           ) : (
             <pre className="admin-message">{entry.body}</pre>
           )}
-          <p className="help">
-            {t(
-              "Aceito pelo provedor não confirma entrega na caixa de entrada ou leitura pelo destinatário.",
-            )}
-          </p>
+          <p className="help">{entry.channel === "whatsapp" && entry.receipt_status ? t("Horários de confirmação informados pelo integrador.") : t("Aceito pelo provedor não confirma entrega na caixa de entrada ou leitura pelo destinatário.")}</p>
         </>
       )}
     </TaskPage>
@@ -301,6 +318,7 @@ function DeliveryLog({
     queryKey: ["admin-deliveries", params.toString()],
     queryFn: ({ signal }) => read("/admin/deliveries?" + params, signal),
     staleTime: 15000,
+    refetchInterval: 15000,
   });
   const data = query.data;
   const refresh = () => {
@@ -374,6 +392,9 @@ function DeliveryLog({
             >
               <option value="all">{t("Todas as situações")}</option>
               <option value="sent">{t("Aceito pelo provedor")}</option>
+              <option value="delivered">{t("Entregue no WhatsApp")}</option>
+              <option value="read">{t("Lido no WhatsApp")}</option>
+              <option value="delivery_failed">{t("Falha de entrega no WhatsApp")}</option>
               <option value="pending">{t("Na fila / enviando")}</option>
               <option value="failed">{t("Problemas e bloqueios")}</option>
               <option value="blocked">{t("Bloqueados por configuração")}</option>
@@ -459,7 +480,7 @@ function DeliveryLog({
               {t("{0} aceitos · {1} pendentes · {2} para verificar", [
                 data.totals.sent || 0,
                 (data.totals.pending || 0) + (data.totals.sending || 0),
-                (data.totals.failed || 0) + (data.totals.uncertain || 0) + (data.totals.waiting_contact || 0) + (data.totals.waiting_service || 0),
+                (data.totals.failed || 0) + (data.totals.uncertain || 0) + (data.totals.waiting_contact || 0) + (data.totals.waiting_service || 0) + (data.receipt_totals?.failed || 0),
               ])}
             </span>
           </div>
@@ -497,7 +518,7 @@ function DeliveryLog({
                     </td>
                     <td>{channels()[entry.channel] || entry.channel}</td>
                     <td>
-                      <Badge status={entry.status} />
+                      <Badge status={displayStatus(entry)} />
                     </td>
                     <td>
                       <Button

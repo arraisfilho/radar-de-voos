@@ -64,4 +64,11 @@ def channel_summaries(c, user_id, alert_ids):
     for row in rows:
         channels=grouped.setdefault(row['alert_id'],{})
         channels.setdefault(row['channel'],{})[row['status']]=row['count']
-    return {aid:[{'channel':channel,'counts':counts} for channel,counts in channels.items()] for aid,channels in grouped.items()}
+    receipts={}
+    for row in c.execute('''SELECT n.alert_id,o.receipt_status,COUNT(*) count FROM notification_deliveries n
+      JOIN alerts a ON a.id=n.alert_id JOIN searches s ON s.id=a.search_id
+      JOIN outbox o ON o.id=n.outbox_id AND o.search_id=a.search_id
+      WHERE s.owner_id=? AND n.alert_id IN ('''+marks+''') AND o.channel='whatsapp' AND o.status='sent' AND o.receipt_status IS NOT NULL
+      GROUP BY n.alert_id,o.receipt_status''',[user_id,*values]):
+        receipts.setdefault(row['alert_id'],{})[row['receipt_status']]=row['count']
+    return {aid:[{'channel':channel,'counts':counts,**({'receipts':receipts.get(aid,{})} if channel=='whatsapp' and aid in receipts else {})} for channel,counts in channels.items()] for aid,channels in grouped.items()}

@@ -17,7 +17,7 @@ from .airports import airport_record, search_airports
 from .domain import Search, eligible, jobs, validate_future, monitoring_deadline, local_instant
 from .store import db, setup, decode_search, add_search
 from .engine import Monitor
-from . import mail, accounts, google_mail, mail_discovery, audit, logos, recovery, revisions, retention, activity, airlines, deliveries, admin_accounts, whatsapp
+from . import mail, accounts, google_mail, mail_discovery, audit, logos, recovery, revisions, retention, activity, airlines, deliveries, admin_accounts, whatsapp, whatsapp_receipts
 from .network import allowed_client, allowed_host, public_mode, public_origin, public_request_allowed
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,7 +37,7 @@ async def lifespan(app):
     monitor.stop()
 
 
-app = FastAPI(title="Radar de Voos", version="0.24.1", lifespan=lifespan,
+app = FastAPI(title="Radar de Voos", version="0.25.0", lifespan=lifespan,
               docs_url=None, redoc_url=None)
 
 
@@ -62,9 +62,12 @@ async def access_guard(request: Request, call_next):
     if origin and origin not in origins:
         return JSONResponse({"detail": "Origem não autorizada"}, status_code=403)
     if request.method in ("POST", "PUT", "DELETE", "PATCH"):
-        if not secrets.compare_digest(request.headers.get("x-radar-token", ""), TOKEN):
+        if not (request.method == "POST" and request.url.path == whatsapp_receipts.PATH) and not secrets.compare_digest(request.headers.get("x-radar-token", ""), TOKEN):
             return JSONResponse({"detail": "Atualize a página e tente novamente."}, status_code=403)
-        if int(request.headers.get("content-length", "0")) > 50000:
+        try:length=int(request.headers.get("content-length", "0"))
+        except ValueError:return JSONResponse({"detail":"Requisição inválida"},status_code=400)
+        if length < 0:return JSONResponse({"detail":"Requisição inválida"},status_code=400)
+        if length > 50000:
             return JSONResponse({"detail": "Requisição muito grande"}, status_code=413)
     response = await call_next(request)
     if public_mode() and request.url.scheme=="https":response.headers["Strict-Transport-Security"]="max-age=31536000"
@@ -498,6 +501,35 @@ def check_whatsapp(request:Request):
     except whatsapp.IntegrationError as exc:raise HTTPException(422,str(exc))
 
 
+
+
+class ReceiptSettings(BaseModel):
+    enabled: bool = False
+    secret: str = Field(default='',max_length=255)
+
+
+@app.get('/api/admin/whatsapp/receipts')
+def get_whatsapp_receipts(request: Request):
+    accounts.require_admin(request)
+    return whatsapp_receipts.public_settings()
+
+
+@app.put('/api/admin/whatsapp/receipts')
+def save_whatsapp_receipts(request: Request,data: ReceiptSettings):
+    accounts.require_admin(request)
+    try:return whatsapp_receipts.save(data.enabled,data.secret)
+    except ValueError as exc:raise HTTPException(422,str(exc))
+
+
+@app.post(whatsapp_receipts.PATH)
+async def receive_whatsapp_receipts(request: Request):
+    body=bytearray()
+    async for chunk in request.stream():
+        body.extend(chunk)
+        if len(body)>whatsapp_receipts.MAX_BODY:raise HTTPException(413,'Confirmação muito grande.')
+    return whatsapp_receipts.receive(bytes(body),request.headers.get('x-openwa-signature',''))
+
+
 @app.post('/api/admin/whatsapp/test')
 def test_whatsapp(request:Request,data:accounts.PhoneContact):
     user=accounts.require_admin(request)
@@ -517,7 +549,7 @@ def test_whatsapp(request:Request,data:accounts.PhoneContact):
 class DeliveryFilter(BaseModel):
     page: int = Field(default=0,ge=0,le=10000)
     channel: Literal['all','email','whatsapp','telegram'] = 'all'
-    status: Literal['all','sent','pending','failed','blocked','closed'] = 'all'
+    status: Literal['all','sent','pending','failed','blocked','closed','delivered','read','delivery_failed'] = 'all'
     user: str = Field(default='',max_length=120)
     q: str = Field(default='',max_length=200)
     start: float | None = Field(default=None,ge=0)

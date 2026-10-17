@@ -17,3 +17,5 @@ tab='retention';html=render();assert.ok(html.includes('após 90 dias'));assert.o
 tab='users';html=render();assert.ok(html.includes('User management fixture'));assert.ok(!html.includes('Existing mail configuration'));
 tab='audit';html=render();assert.ok(html.includes('Audit fixture'));assert.ok(!html.includes('Existing mail configuration'));
 console.log('Admin fixtures: isolated tabs, searchable paginated log, escaped content, unavailable channels and safe cleanup preview passed.');
+tab='deliveries';fixture={items:[{id:'receipt-fixture',created:1,status:'sent',receipt_status:'read',channel:'whatsapp',kind:'alert',subject:'Receipt fixture',recipients:['+12025550123'],account_name:'Fixture',login:'+12025550123'}],total:1,page_size:15,totals:{sent:1}};
+html=render();assert.ok(html.includes('Lido'));assert.ok(html.includes('Lido no WhatsApp'));assert.ok(html.includes('Falha de entrega no WhatsApp'));

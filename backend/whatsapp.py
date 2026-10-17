@@ -123,3 +123,5 @@ def send_one():
         except Exception:status,error,provider_id='uncertain','Não foi possível confirmar a operação no WhatsApp',None
         with store.db() as c:
             c.execute('UPDATE outbox SET status=?,error=?,sent=?,provider_message_id=? WHERE id=?',(status,error,time.time() if status=='sent' else None,provider_id,row['id']));sync_alerts(c,json.loads(row['alert_ids']))
+            from . import whatsapp_receipts
+            whatsapp_receipts.reconcile(c,row['id'])

@@ -27,7 +27,7 @@ def configure_days(scope,value):
 
 def setup(c):
     columns = {r[1] for r in c.execute('PRAGMA table_info(outbox)')}
-    for name, definition in [('body_html','TEXT'),('owner_id','TEXT REFERENCES accounts(id)'),('channel',"TEXT NOT NULL DEFAULT 'email'"),('kind',"TEXT NOT NULL DEFAULT 'legacy'"),('provider','TEXT'),('completed','REAL'),('transport_ref','TEXT'),('provider_message_id','TEXT')]:
+    for name, definition in [('body_html','TEXT'),('owner_id','TEXT REFERENCES accounts(id)'),('channel',"TEXT NOT NULL DEFAULT 'email'"),('kind',"TEXT NOT NULL DEFAULT 'legacy'"),('provider','TEXT'),('completed','REAL'),('transport_ref','TEXT'),('provider_message_id','TEXT'),('receipt_status','TEXT'),('receipt_sent_at','REAL'),('delivered_at','REAL'),('read_at','REAL'),('receipt_failed_at','REAL'),('receipt_received_at','REAL')]:
         if name not in columns:
             c.execute('ALTER TABLE outbox ADD COLUMN '+name+' '+definition)
     if not c.execute("SELECT 1 FROM metadata WHERE key='delivery_log_v1'").fetchone():
@@ -36,6 +36,8 @@ def setup(c):
         c.execute("UPDATE outbox SET kind='recovery' WHERE instr(body,'#reset=')>0")
         c.execute("UPDATE outbox SET completed=COALESCE(sent,created) WHERE status IN ('sent','failed','uncertain','cancelled','expired','quiet','waiting_contact','waiting_service')")
         c.execute("INSERT INTO metadata VALUES('delivery_log_v1','1')")
+    from . import whatsapp_receipts
+    whatsapp_receipts.setup(c)
     c.executescript("""
       DROP TRIGGER IF EXISTS delivery_finished_update;
       DROP TRIGGER IF EXISTS delivery_finished_insert;
@@ -64,8 +66,11 @@ def clauses(filters):
     if filters.get('channel','all') != 'all':
         where.append('o.channel=?');values.append(filters['channel'])
     groups = {'sent':('sent',),'pending':('pending','sending'),'failed':('failed','uncertain','waiting_contact','waiting_service'),'blocked':('waiting_contact','waiting_service'),'closed':('cancelled','expired','quiet','waiting_contact','waiting_service')}
+    if filters.get('status') in ('delivered','read','delivery_failed'):
+        where.append("o.channel='whatsapp' AND o.receipt_status IN ("+('?,?' if filters['status']=='delivered' else '?')+")")
+        values.extend(['delivered','read'] if filters['status']=='delivered' else ['failed' if filters['status']=='delivery_failed' else 'read'])
     if filters.get('status','all') in groups:
-        group=groups[filters['status']];where.append('o.status IN ('+','.join('?' for _ in group)+')');values.extend(group)
+        group=groups[filters['status']];where.append('(o.status IN ('+','.join('?' for _ in group)+')'+(" OR (o.channel='whatsapp' AND o.receipt_status='failed')" if filters['status']=='failed' else '')+')');values.extend(group)
     # Escape LIKE wildcards: searches match literal user input, not SQL patterns.
     def like(value):return '%'+value.replace('\\','\\\\').replace('%','\\%').replace('_','\\_')+'%'
     if filters.get('user'):
@@ -91,8 +96,9 @@ def list_items(filters,page=0):
         # Single read snapshot keeps counts and page consistent during concurrent sends.
         c.execute('BEGIN')
         totals={r['status']:r['n'] for r in c.execute('SELECT o.status,COUNT(*) n'+join+' GROUP BY o.status',values)}
-        rows=c.execute('SELECT o.id,o.created,o.completed,o.sent,o.status,o.channel,o.kind,o.provider,o.subject,o.recipients,o.attempts,o.provider_message_id,a.name account_name,a.phone login,o.owner_id'+join+' ORDER BY o.created DESC,o.id DESC LIMIT ? OFFSET ?',values+[PAGE_SIZE,page*PAGE_SIZE]).fetchall()
-    return {'items':[public(r) for r in rows],'page':page,'page_size':PAGE_SIZE,'total':sum(totals.values()),'totals':totals}
+        receipt_totals={r['receipt_status']:r['n'] for r in c.execute('SELECT o.receipt_status,COUNT(*) n'+join+" AND o.channel='whatsapp' AND o.receipt_status IS NOT NULL GROUP BY o.receipt_status",values)}
+        rows=c.execute('SELECT o.id,o.created,o.completed,o.sent,o.status,o.channel,o.kind,o.provider,o.subject,o.recipients,o.attempts,o.provider_message_id,o.receipt_status,o.receipt_sent_at,o.delivered_at,o.read_at,o.receipt_failed_at,o.receipt_received_at,a.name account_name,a.phone login,o.owner_id'+join+' ORDER BY o.created DESC,o.id DESC LIMIT ? OFFSET ?',values+[PAGE_SIZE,page*PAGE_SIZE]).fetchall()
+    return {'items':[public(r) for r in rows],'page':page,'page_size':PAGE_SIZE,'total':sum(totals.values()),'totals':totals,'receipt_totals':receipt_totals}
 
 
 def detail(delivery_id):

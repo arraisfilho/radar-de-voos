@@ -533,3 +533,15 @@
 .admin-monitor-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:14px 0}.admin-monitor-heading h2{display:block;margin:6px 0;overflow-wrap:anywhere}.admin-monitor-heading p{font-size:15px;font-weight:600;overflow-wrap:anywhere}
 .admin-monitor-general,.admin-monitor-leg dl{margin:10px 0;display:grid;gap:9px}.admin-monitor-general{grid-template-columns:1fr 1fr}.admin-monitor-general>div,.admin-monitor-leg dl>div{min-width:0}.admin-monitor-dialog dt{font-size:12px;color:var(--muted)}.admin-monitor-dialog dd{margin:1px 0 0;font-size:14px;overflow-wrap:anywhere}.admin-monitor-legs{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:14px 0}.admin-monitor-leg{border:1px solid var(--border);border-radius:7px;padding:12px}.admin-monitor-leg h3{margin:0 0 10px}.admin-monitor-flights{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}.admin-monitor-flights th,.admin-monitor-flights td{padding:9px 7px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}.admin-monitor-flights small{display:block;font-size:12px;color:var(--muted);white-space:normal}.admin-monitor-flights th:last-child,.admin-monitor-flights td:last-child{text-align:right;white-space:nowrap}
 @media(max-width:600px){.admin-monitor-general{grid-template-columns:1fr}.admin-monitor-legs{grid-template-columns:1fr}.admin-monitor-list>button{flex-wrap:wrap}.admin-monitor-list>button>div{flex-basis:100%}.admin-monitor-list .delivery-badge{margin-right:auto}.admin-monitor-dialog .table-scroll{overflow-x:auto}.admin-monitor-flights{min-width:560px}.admin-monitor-filter select{font-size:16px}.admin-user-actions{flex-wrap:wrap}}
+
+.whatsapp-receipts { margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px; }
+.whatsapp-receipts > summary { min-height: var(--control-height); display: list-item; cursor: pointer; font-weight: 600; }
+.whatsapp-receipts form, .whatsapp-receipts fieldset { display: grid; gap: 16px; min-width: 0; }
+.whatsapp-receipts fieldset { padding: 0; border: 0; }
+.whatsapp-receipts label { display: grid; gap: 8px; margin-block: 12px; }
+.whatsapp-receipts label.check-row { display: flex; }
+.whatsapp-receipts input:not([type="checkbox"]) { width: 100%; min-height: var(--control-height); }
+.channel-read > summary strong, .channel-delivered > summary strong { color: var(--success-text); }
+.channel-delivery_failed > summary strong { color: var(--danger-text); }
+.whatsapp-receipts fieldset > .button { justify-self: start; }
+@media (max-width: 760px) { .whatsapp-receipts fieldset > .button { justify-self: stretch; width: 100%; } }

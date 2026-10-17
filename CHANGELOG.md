@@ -1,5 +1,11 @@
 # Alterações
 
+## 0.25.0
+
+- Confirmações de envio, entrega e leitura do WhatsApp por webhook assinado, com configuração administrativa e associação por mensagem e integração.
+- Eventos repetidos, fora de ordem e anteriores à gravação do envio tratados sem reenvio automático.
+- Estados, contagens por destinatário, horários de confirmação e filtros na Administração; resumo por canal nos alertas.
+
 ## 0.24.1
 
 - Nome do produto e mensagens unificados, com descrições mais curtas e sem referências desnecessárias ao ambiente de execução.

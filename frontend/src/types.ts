@@ -100,7 +100,7 @@ export type Snapshot = {
   price: number | null;
   count: number;
 };
-export type ChannelDelivery = {channel:string;counts:Record<string,number>};
+export type ChannelDelivery = {channel:string;counts:Record<string,number>;receipts?:Record<string,number>};
 export type Alert = {
   channels?: ChannelDelivery[];
   id: string;

@@ -11,3 +11,8 @@ const multi=render({status:'partial',channels:[{channel:'whatsapp',counts:{sent:
 assert.ok(render({status:'partial',channels:[{channel:'whatsapp',counts:{sent:1}}]}).includes('registros incompletos'));
 const future=render({status:'sent',channels:[{channel:'telegram',counts:{sent:1}}]});assert.ok(future.includes('Telegram'));assert.ok(future.includes('<svg'));assert.ok(render({status:'in_app'}).includes('Somente no painel'));assert.ok(render({status:'partial',channels:[]}).includes('Envio parcial'));
 console.log('Channel statuses: icons, explicit labels, per-channel counts, partial/pending, unavailable history and Telegram-ready rendering passed.');
+const readReceipt=render({status:'sent',channels:[{channel:'whatsapp',counts:{sent:1},receipts:{read:1}}]});
+assert.ok(readReceipt.includes('Lido'));assert.ok(readReceipt.includes('Entregues: 1/1 · Lidas: 1'));assert.ok(!readReceipt.includes('não confirma entrega ou leitura'));
+const mixed=render({status:'sent',channels:[{channel:'whatsapp',counts:{sent:3},receipts:{read:1,delivered:1,sent:1}}]});assert.ok(mixed.includes('Enviado'));assert.ok(mixed.includes('Entregues: 2/3 · Lidas: 1'));
+const receiptFailure=render({status:'sent',channels:[{channel:'whatsapp',counts:{sent:2},receipts:{read:1,failed:1}}]});assert.ok(receiptFailure.includes('Entrega parcial'));assert.ok(receiptFailure.includes('Falhas de entrega: 1'));
+const email=render({status:'sent',channels:[{channel:'email',counts:{sent:1},receipts:{read:1}}]});assert.ok(!email.includes('Lido'));assert.ok(email.includes('Aceito'));
