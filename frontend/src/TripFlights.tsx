@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { clsx } from "clsx";
 import {
   ArrowDownWideNarrow,
@@ -76,6 +76,7 @@ export function TripFlights({
   lastAlert,
   serverNow,
   filters,
+  pendingFilters,
   onConfigureAlerts,
   onShowAlerts,
   onManageContacts,
@@ -94,7 +95,10 @@ export function TripFlights({
   previewCompatible: boolean;
   lastAlert?: Alert;
   serverNow: number;
+  /** The filters form, mounted when its card first opens. */
   filters: ReactNode;
+  /** Unsaved changes of that form: it stays mounted with the card closed, as the pending bar submits it. */
+  pendingFilters: boolean;
   onConfigureAlerts: () => void;
   onShowAlerts: () => void;
   onManageContacts: () => void;
@@ -110,6 +114,10 @@ export function TripFlights({
   const detail = (flight?: Flight) =>
     flight ? `${formatDate(flight.departure, "short")} · ${flight.airlines[0]} · ${flight.origin} → ${flight.destination}` : t("Buscando opções");
   const alertsRoute = { view: "searches" as const, searchId: search.id, panel: "alerts" as const };
+  // The filters form (and its code) loads when the card first opens, then stays
+  // mounted: closing keeps its state. Pending changes mount it while closed, as
+  // the pending bar submits it (form="monitor-filters") and its validation opens the card.
+  const [filtersOpened, setFiltersOpened] = useState(false);
   return (
     <>
       <div className={clsx("metrics-grid", !saved.inbound && "one-way-metrics")}>
@@ -180,7 +188,12 @@ export function TripFlights({
           {t("Configurar alertas")}
         </Button>
       </section>
-      <details className="filters-card quick-filters-card card">
+      <details
+        className="filters-card quick-filters-card card"
+        onToggle={(event) => {
+          if (event.currentTarget.open) setFiltersOpened(true);
+        }}
+      >
         <summary>
           <SlidersHorizontal size={18} aria-hidden="true" />
           <span className="quick-filters-title">
@@ -188,7 +201,7 @@ export function TripFlights({
             <span>{t("Escalas, duração, horários, companhias e bagagem")}</span>
           </span>
         </summary>
-        <div className="quick-filters-body">{filters}</div>
+        <div className="quick-filters-body">{(filtersOpened || pendingFilters) && filters}</div>
       </details>
       <section className="card results-card" aria-labelledby="results-title">
         <div className="results-head">

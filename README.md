@@ -8,6 +8,7 @@ Aplicação web para monitorar tarifas aéreas e receber alertas de preço por e
 - Filtros de escalas, duração, companhias, chegada, conexões e taxas estimadas de bagagem.
 - Atualização periódica, metas de preço, histórico de variações e gráficos por trecho.
 - Contas individuais, contatos internacionais e limite de monitoramentos ajustável pelo administrador.
+- Verificação em duas etapas opcional para o administrador, com aplicativo autenticador (TOTP) e códigos de recuperação.
 - Administração de usuários, canais, envios, auditoria e retenção de registros.
 - E-mail por Gmail API/OAuth ou SMTP; WhatsApp por OpenWA, com suporte a novos adaptadores.
 
@@ -27,7 +28,7 @@ Siga o [guia de implantação](docs/DEPLOYMENT.md) para configurar o ambiente, c
 | Guia | Conteúdo |
 |---|---|
 | [Implantação e operação](docs/DEPLOYMENT.md) | Docker, proxy, atualização, backup e restauração |
-| [Contas e contatos](docs/ACCOUNTS.md) | Login, usuários, limites e recuperação de senha |
+| [Contas e contatos](docs/ACCOUNTS.md) | Login, verificação em duas etapas, usuários, limites e recuperação de senha |
 | [E-mail Google](docs/GOOGLE_MAIL.md) | OAuth Web em produção e cliente Desktop local |
 | [WhatsApp](docs/WHATSAPP.md) | Configuração OpenWA e contrato de integradores |
 | [Regras do produto](docs/PRODUCT_SPEC.md) | Monitoramentos, filtros, preços e alertas |

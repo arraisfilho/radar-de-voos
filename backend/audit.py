@@ -8,7 +8,10 @@ NOISY = ('login_failed','login_throttled','recovery_requested')
 # Sessions of one account: aggregated by account, address and user agent (another browser or
 # system behind the same IP, e.g. CGNAT, keeps a row of its own), capped with the other account events.
 SESSION = ('login_success','logout')
-AGGREGATED = NOISY+SESSION
+# Second-step events follow a correct password: aggregated like the anonymous events, but
+# counted with the account's events.
+SECOND_STEP = ('login_2fa_started','login_2fa_failed')
+AGGREGATED = NOISY+SESSION+SECOND_STEP
 AGGREGATE_SECONDS = 600
 NOISY_LIMIT = 5000
 RECORD_LIMIT = 20000
@@ -17,9 +20,10 @@ RECORD_LIMIT = 20000
 ADMIN_LIMIT = 20000
 CATEGORY = ("CASE WHEN event IN ("+",".join("'"+event+"'" for event in NOISY)+") THEN 'noisy'"
             " WHEN event LIKE 'admin\\_%' ESCAPE '\\' OR event='bootstrap_success' THEN 'admin' ELSE 'account' END")
-EVENTS = ('login_success','login_failed','login_throttled','logout','register_success','bootstrap_success',
-          'recovery_requested','password_reset','admin_account_created','admin_account_updated',
-          'admin_password_reset','admin_monitoring_viewed','admin_smtp_saved','admin_smtp_removed',
+EVENTS = ('login_success','login_failed','login_2fa_started','login_2fa_failed','recovery_code_used','login_throttled','logout',
+          'register_success','bootstrap_success','recovery_requested','password_reset','admin_account_created',
+          'admin_account_updated','admin_password_reset','admin_2fa_enabled','admin_2fa_disabled',
+          'admin_monitoring_viewed','admin_smtp_saved','admin_smtp_removed',
           'admin_whatsapp_saved','admin_whatsapp_removed','admin_whatsapp_receipts_saved',
           'admin_google_client_saved','admin_google_client_removed','admin_google_connected',
           'admin_google_disconnected','admin_retention_changed','admin_logs_cleaned')
@@ -38,25 +42,28 @@ def changed(before,after,keys):
     return [key for key in keys if (before or {}).get(key)!=(after or {}).get(key)]
 
 
-def record(request,event,user_id=None,actor_id=None,details=None):
+def record(request,event,user_id=None,actor_id=None,details=None,c=None):
+    """With c, the row joins the caller's open transaction: it commits or rolls back with the change it records."""
+    if c is None:
+        with db() as c:
+            if event in AGGREGATED:c.execute('BEGIN IMMEDIATE')
+            return record(request,event,user_id,actor_id,details,c)
     address=request.client.host if request.client else 'unknown'
     agent=request.headers.get('user-agent','')[:512]
     browser=next((label for token,label in [('Edg/','Edge'),('OPR/','Opera'),('Firefox/','Firefox'),('Chrome/','Chrome'),('Safari/','Safari')] if token in agent),'Unknown')
     system=next((label for token,label in [('Android','Android'),('iPhone','iOS'),('iPad','iPadOS'),('Windows','Windows'),('Macintosh','macOS'),('Linux','Linux')] if token in agent),'Unknown')
     now=time.time()
     payload=json.dumps(details,sort_keys=True,separators=(',',':')) if details is not None else None
-    with db() as c:
-        if event in AGGREGATED:
-            # One row per event, address and account (and user agent, for sessions) while repeats
-            # keep arriving within the window.
-            c.execute('BEGIN IMMEDIATE')
-            device=' AND user_agent=?' if event in SESSION else ''
-            row=c.execute('SELECT id FROM access_audit WHERE event=? AND ip=? AND user_id IS ? AND COALESCE(last_seen,created)>=?'+device+' ORDER BY id DESC LIMIT 1',
-                          (event,address,user_id,now-AGGREGATE_SECONDS)+((agent,) if device else ())).fetchone()
-            if row:
-                c.execute('UPDATE access_audit SET count=count+1,last_seen=? WHERE id=?',(now,row[0]))
-                return
-        c.execute('INSERT INTO access_audit(user_id,event,created,ip,user_agent,browser,system,actor_id,details) VALUES(?,?,?,?,?,?,?,?,?)',(user_id,event,now,address,agent,browser,system,actor_id,payload))
+    if event in AGGREGATED:
+        # One row per event, address and account (and user agent, for sessions) while repeats
+        # keep arriving within the window.
+        device=' AND user_agent=?' if event in SESSION else ''
+        row=c.execute('SELECT id FROM access_audit WHERE event=? AND ip=? AND user_id IS ? AND COALESCE(last_seen,created)>=?'+device+' ORDER BY id DESC LIMIT 1',
+                      (event,address,user_id,now-AGGREGATE_SECONDS)+((agent,) if device else ())).fetchone()
+        if row:
+            c.execute('UPDATE access_audit SET count=count+1,last_seen=? WHERE id=?',(now,row[0]))
+            return
+    c.execute('INSERT INTO access_audit(user_id,event,created,ip,user_agent,browser,system,actor_id,details) VALUES(?,?,?,?,?,?,?,?,?)',(user_id,event,now,address,agent,browser,system,actor_id,payload))
 
 
 def cleanup_in(c,now):

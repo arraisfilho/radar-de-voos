@@ -15,7 +15,7 @@ if(n.endsWith('.json'))return req(path.resolve(__dirname,'../frontend/src',n));
 if(n==='react')return {...React,useEffect(){},useState:initial=>{const i=stateIndex++;let value=i===0||i===6?structuredClone(config):typeof initial==='function'?initial():initial;if(profileEdit&&value&&typeof value==='object'&&'whatsapp_use_login' in value)value={...value,name:'Edited fixture'};return [value,()=>{}]}};
 if(n==='./navigation')return {...load('navigation.ts'),useNavigation:()=>({route,navigate(){},restoreScroll(){}})};
 if(n==='./navigationGuard')return {useUnsavedChanges(){},afterSave:cb=>cb()};
-if(n==='./i18n')return {useLanguage:()=> 'pt',getLanguage:()=> 'pt',getLocale:()=> 'pt-BR',t:(key,args=[])=>key.replace(/\{(\d+)\}/g,(_,i)=>String(args[i]??''))};
+if(n==='./i18n')return {useLanguage:()=> 'pt',usePendingLanguage:()=>null,useLanguageReady:()=>true,getLanguage:()=> 'pt',getLocale:()=> 'pt-BR',t:(key,args=[])=>key.replace(/\{(\d+)\}/g,(_,i)=>String(args[i]??''))};
 if(n==='@tanstack/react-query')return {useQueryClient:()=>({}),useQuery:({queryKey})=>({data:queryKey[0]==='radar'?{...data,user:{...user,role},selected:route.view==='home'?null:search}:queryKey[0]==='trend'?{points:[{id:1,collected:10,price:110800,direction:'outbound',currency:'BRL'},{id:2,collected:20,price:110800,direction:'outbound',currency:'BRL'}],versions:[1]}:queryKey[0]==='admin-delivery'?{id:'message-1',subject:'Fixture message',channel:'whatsapp',kind:'alert',status:'sent',created:1,completed:1,recipients:['+12025550123'],body:'Fixture body',attempts:1}:queryKey[0]==='audit'?{items:[],total:0,page_size:25,days:45,max_records:20000}:{items:[],total:0,page_size:15,totals:{}},dataUpdatedAt:1,isError:false,isLoading:false})};
 if(n.startsWith('./'))return load(n.slice(2)+(n.endsWith('.ts')||n.endsWith('.tsx')?'':fs.existsSync(path.join(__dirname,'../frontend/src',n.slice(2)+'.tsx'))?'.tsx':'.ts'));
 if(n==='../package.json')return {version:'0.23.0'};
@@ -25,6 +25,32 @@ const App=load('App.tsx').default;
 function render(next){route=next;stateIndex=0;return renderToStaticMarkup(React.createElement(App,{onLogout:async()=>{}}));}
 (async()=>{
 let html=render({view:'home'});const mobile=html.match(/<nav class="mobile-nav"[\s\S]*?<\/nav>/)[0];assert.equal((mobile.match(/<a /g)||[]).length,4,'Four mobile destinations as real links');assert.ok(!mobile.includes('<button'));assert.ok(!mobile.includes('Administração'));assert.ok(html.includes('Nova viagem'));
+// The page draft differs from the saved trip: pending changes, or the previous trip's draft until the draft effect runs.
+const withChangedTrip=fn=>{const saved=search.config;search.config={...config,outbound:{...leg,stops:[0]}};try{return fn();}finally{search.config=saved;}};
+// Before the form's code is in, no change can be pending: that draft is a previous trip's and loads nothing.
+html=withChangedTrip(()=>render({view:'searches',searchId:search.id}));assert.ok(html.includes('<div class="quick-filters-body"></div>'),'A draft left from another trip does not download the form');
+// The card owns its filters: TripFlights alone, called as a function, with a state that keeps its value.
+function isolated(file){let state;const out={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(__dirname,'../frontend/src',file),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText,{exports:out,require:n=>n==='react'?{...React,useState:initial=>[state===undefined?(state=initial):state,next=>{state=next;}]}:n==='./i18n'?{t:(key,args=[])=>key.replace(/\{(\d+)\}/g,(_,i)=>String(args[i]??''))}:n.startsWith('./')?load(n.slice(2)+(fs.existsSync(path.join(__dirname,'../frontend/src',n.slice(2)+'.tsx'))?'.tsx':'.ts')):req(n)});return out;}
+const {TripFlights}=isolated('TripFlights.tsx'),findType=(node,type)=>{if(Array.isArray(node)){for(const child of node){const found=findType(child,type);if(found)return found;}return null;}return !node||typeof node!=='object'?null:node.type===type?node:findType(node.props?.children,type);};
+const tripProps={search,config,user,flights:[],direction:'outbound',onDirection(){},visibleCount:40,onShowMore(){},previewing:false,previewCompatible:true,serverNow:10,pendingFilters:false,filters:React.createElement('form',{id:'monitor-filters'}),onConfigureAlerts(){},onShowAlerts(){},onManageContacts(){}};
+const cardBody=tree=>renderToStaticMarkup(tree).match(/<div class="quick-filters-body">(.*?)<\/div><\/details>/)[1];
+let card=TripFlights(tripProps);assert.equal(cardBody(card),'','The closed card has no form');
+findType(card,'details').props.onToggle({currentTarget:{open:true}});card=TripFlights(tripProps);assert.equal(cardBody(card),'<form id="monitor-filters"></form>','Opening the card mounts the filters');
+findType(card,'details').props.onToggle({currentTarget:{open:false}});card=TripFlights(tripProps);assert.equal(cardBody(card),'<form id="monitor-filters"></form>','Closing it keeps them, and their state');
+// The app's card, open before the form's code is in: the compact skeleton stays in the card body, inside a boundary of its own.
+// (React's development build also calls the component without props, to describe component stacks.)
+const tripModule=modules.get('TripFlights.tsx'),appTripFlights=tripModule.TripFlights;let cardProps;tripModule.TripFlights=props=>{if(props)cardProps=props;return TripFlights(props);};
+try{html=render({view:'searches',searchId:search.id});}finally{tripModule.TripFlights=appTripFlights;}
+assert.ok(html.includes('<div class="quick-filters-body"><div class="form-skeleton" role="status"><span class="sr-only">Carregando…</span><span class="skeleton skeleton-field" aria-hidden="true"></span>'),'The open card shows the compact skeleton while the form loads');
+const {ErrorBoundary}=load('ErrorBoundary.tsx');assert.equal(cardProps.filters.type,ErrorBoundary);assert.equal(cardProps.filters.props.scope,'section','A form that cannot load fails inside the card');assert.equal(cardProps.filters.props.resetKey,search.id+':'+search.version,'A new trip version clears the card error');
+const failed=new ErrorBoundary({scope:'section',children:null});failed.state=ErrorBoundary.getDerivedStateFromError(Error('chunk'));
+assert.ok(/^<div class="section-error" role="alert">[\s\S]*Não foi possível carregar[\s\S]*Recarregue para tentar de novo\.[\s\S]*<button[^>]*>[\s\S]*Recarregar<\/button><\/div>$/.test(renderToStaticMarkup(failed.render())),'The card shows the error and Recarregar');
+// The trip form loads on demand: the editor title is there at once, with the form skeleton inside <main>, then the form.
+// The skeleton checks above and below hold only until the form's code resolves: no await before the one that ends them.
+html=render({view:'home',editor:'new',step:0,leg:'outbound'});const editorMain=html.slice(html.indexOf('<main'),html.indexOf('</main>'));
+assert.ok(editorMain.includes('<div class="search-page-body"><div class="form-skeleton" role="status">'),'The form skeleton stays in the editor body, inside <main>');assert.ok(editorMain.includes('<h1 id="editor-title" tabindex="-1">Nova viagem</h1>'),'The editor title is on screen before the form');assert.ok(!html.includes('search-wizard'));
+// The alert settings open on their fields: their skeleton has no steps.
+html=render({view:'searches',searchId:search.id,editor:'alerts'});assert.ok(html.includes('<div class="search-page-body"><div class="form-skeleton" role="status">'));assert.ok(!html.includes('form-skeleton-steps'),'The alerts skeleton has no steps');await new Promise(resolve=>setImmediate(resolve));
 for(const stage of [{step:0,leg:'outbound'},{step:1,leg:'inbound'},{step:2,leg:'outbound'}]){html=render({view:'home',editor:'new',...stage});assert.ok(html.includes('class="search-page"'));assert.ok(!html.includes('dialog-overlay'));assert.ok(!html.includes('role="dialog"'));assert.ok(!html.includes('home-grid'));if(stage.step===1)assert.ok(html.includes('Usar as preferências da ida'));if(stage.step===2){assert.ok(html.includes('Nome da viagem'));assert.ok(html.includes('Enviar alertas'));}}
 html=render({view:'searches',searchId:search.id,editor:'edit',step:0,leg:'outbound'});assert.ok(html.includes('Editar viagem'));assert.ok(!html.includes('route-card'));assert.ok(!html.includes('role="dialog"'));
 html=render({view:'searches',searchId:search.id,editor:'alerts'});assert.ok(html.includes('Salvar alertas'));assert.ok(!html.includes('Escalas permitidas'));
@@ -36,6 +62,11 @@ html=render({view:'admin',section:'deliveries',deliveryId:'message-1'});assert.o
 html=render({view:'searches',searchId:search.id});
 const status=html.match(/<div class="route-live">[\s\S]*?<\/div>/)[0];
 assert.ok(status.includes('Última atualização:'));assert.ok(!status.includes('<button'));assert.ok(!status.includes('chevron-right'));assert.ok(!html.includes('Acompanhamento ao vivo'));assert.ok(!html.includes('inline-status'));
+// The trip filters mount when their card first opens: closed and without pending changes, there is no form (nor its skeleton) yet.
+assert.ok(html.includes('<div class="quick-filters-body"></div>'),'A closed filters card starts empty');assert.ok(!html.includes('id="monitor-filters"'));
+// Pending changes mount the form in the closed card, as the pending bar submits it and its validation opens the card.
+html=withChangedTrip(()=>render({view:'searches',searchId:search.id}));
+assert.ok(/<details class="filters-card quick-filters-card card"><summary>[\s\S]*?<\/summary><div class="quick-filters-body"><form id="monitor-filters"/.test(html),'Pending changes keep the form in the closed card');assert.ok(html.includes('form="monitor-filters"'),'The pending bar submits that form');
 // The profile loads on demand (phone fields): the skeleton stays inside <main> first, then the form.
 html=render({view:'settings'});assert.ok(html.includes('view-skeleton'));assert.ok(html.includes('class="sidebar"'));await new Promise(resolve=>setImmediate(resolve));
 html=render({view:'settings'});const profileForm=html.match(/<form class="profile-form"[\s\S]*?<\/form>/)[0];

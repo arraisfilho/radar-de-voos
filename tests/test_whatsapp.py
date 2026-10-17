@@ -5,6 +5,7 @@ import io
 import json
 import os
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -106,6 +107,24 @@ class WhatsAppTests(unittest.TestCase):
         with patch.object(self.provider,'send',side_effect=IntegrationError('Não foi possível confirmar a operação no WhatsApp',True)) as send:
             whatsapp.send_one();whatsapp.send_one();self.assertEqual(send.call_count,1)
         self.assertEqual(self.rows()[0]['status'],'uncertain');self.assertEqual(self.status(),'uncertain')
+    def test_stop_requested_while_waiting_for_the_locks_claims_nothing(self):
+        # Monitor.stop comes while send_one waits for the write lock, already past whatsapp.LOCK: the message stays queued.
+        self.queue();stop,reached,read=threading.Event(),threading.Event(),whatsapp.settings
+        def settings():
+            reached.set();return read()
+        worker=threading.Thread(target=whatsapp.send_one,args=(stop,))
+        with patch.object(whatsapp,'settings',side_effect=settings),patch.object(self.provider,'send',return_value='fixture-id') as send:
+            try:
+                with store.db() as blocker:
+                    # Another writer holds the lock: send_one takes whatsapp.LOCK, reads settings, then waits in BEGIN IMMEDIATE.
+                    blocker.execute('BEGIN IMMEDIATE');worker.start()
+                    self.assertTrue(reached.wait(5));worker.join(.2);self.assertTrue(worker.is_alive());stop.set()
+            finally:
+                stop.set()
+                if worker.is_alive():worker.join(5)
+            self.assertFalse(worker.is_alive());send.assert_not_called();self.assertEqual(self.rows()[0]['status'],'pending')
+            # Not stopping: the same message is claimed and sent.
+            whatsapp.send_one(threading.Event());self.assertEqual(send.call_count,1);self.assertEqual(self.rows()[0]['status'],'sent')
     def test_partial_recipient_failure_does_not_resend_accepted_messages(self):
         self.queue(extra=True)
         with patch.object(self.provider,'send',side_effect=['accepted-fixture',IntegrationError('Sessão WhatsApp inativa ou requisição recusada')]) as send:

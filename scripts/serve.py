@@ -22,4 +22,5 @@ try:configure()
 except ValueError as exc:raise SystemExit(str(exc))
 import uvicorn
 # log_config=None: uvicorn's own messages also go through the JSON handler.
-uvicorn.run('backend.app:app',host='0.0.0.0',port=8765,workers=1,proxy_headers=bool(trusted),forwarded_allow_ips=trusted,access_log=False,log_config=None)
+# HTTP drain (10 s) plus Monitor.stop (30 s) fit compose's stop_grace_period (45 s).
+uvicorn.run('backend.app:app',host='0.0.0.0',port=8765,workers=1,proxy_headers=bool(trusted),forwarded_allow_ips=trusted,access_log=False,log_config=None,timeout_graceful_shutdown=10)

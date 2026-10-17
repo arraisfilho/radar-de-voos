@@ -5538,5 +5538,321 @@
   "voce@empresa.com": {
     "en": "you@company.com",
     "es": "tu@empresa.com"
+  },
+  "Verificação em duas etapas": {
+    "en": "Two-step verification",
+    "es": "Verificación en dos pasos"
+  },
+  "Digite o código de 6 dígitos do seu aplicativo autenticador.": {
+    "en": "Enter the 6-digit code from your authenticator app.",
+    "es": "Introduce el código de 6 dígitos de tu aplicación de autenticación."
+  },
+  "Digite um dos códigos de recuperação que você guardou ao ativar a verificação.": {
+    "en": "Enter one of the recovery codes you saved when you turned on verification.",
+    "es": "Introduce uno de los códigos de recuperación que guardaste al activar la verificación."
+  },
+  "Código do aplicativo": {
+    "en": "Authenticator code",
+    "es": "Código de la aplicación"
+  },
+  "Código de recuperação": {
+    "en": "Recovery code",
+    "es": "Código de recuperación"
+  },
+  "xxxx-xxxx-xxxx-xxxx": {
+    "en": "xxxx-xxxx-xxxx-xxxx",
+    "es": "xxxx-xxxx-xxxx-xxxx"
+  },
+  "Verificar": {
+    "en": "Verify",
+    "es": "Verificar"
+  },
+  "Usar código de recuperação": {
+    "en": "Use a recovery code",
+    "es": "Usar un código de recuperación"
+  },
+  "Usar o código do aplicativo": {
+    "en": "Use the authenticator code",
+    "es": "Usar el código de la aplicación"
+  },
+  "Radar de Voos: códigos de recuperação": {
+    "en": "Flight Radar (Radar de Voos): recovery codes",
+    "es": "Radar de Vuelos (Radar de Voos): códigos de recuperación"
+  },
+  "QR code para configurar o aplicativo autenticador": {
+    "en": "QR code to set up the authenticator app",
+    "es": "Código QR para configurar la aplicación de autenticación"
+  },
+  "Copiado": {
+    "en": "Copied",
+    "es": "Copiado"
+  },
+  "Não foi possível carregar a verificação em duas etapas.": {
+    "en": "Could not load two-step verification.",
+    "es": "No se pudo cargar la verificación en dos pasos."
+  },
+  "Não foi possível copiar. Selecione o texto e copie manualmente.": {
+    "en": "Could not copy. Select the text and copy it manually.",
+    "es": "No se pudo copiar. Selecciona el texto y cópialo manualmente."
+  },
+  "Não foi possível baixar o arquivo. Copie os códigos.": {
+    "en": "Could not download the file. Copy the codes instead.",
+    "es": "No se pudo descargar el archivo. Copia los códigos."
+  },
+  "Digite sua senha para confirmar.": {
+    "en": "Enter your password to confirm.",
+    "es": "Introduce tu contraseña para confirmar."
+  },
+  "Ativada": {
+    "en": "On",
+    "es": "Activada"
+  },
+  "Desativada": {
+    "en": "Off",
+    "es": "Desactivada"
+  },
+  "Além da senha, o login pedirá um código de 6 dígitos gerado por um aplicativo autenticador no seu celular.": {
+    "en": "Besides the password, signing in will ask for a 6-digit code from an authenticator app on your phone.",
+    "es": "Además de la contraseña, el acceso pedirá un código de 6 dígitos generado por una aplicación de autenticación en tu móvil."
+  },
+  "Ativar": {
+    "en": "Turn on",
+    "es": "Activar"
+  },
+  "Ativada desde {0}": {
+    "en": "On since {0}",
+    "es": "Activada desde el {0}"
+  },
+  "Códigos de recuperação": {
+    "en": "Recovery codes",
+    "es": "Códigos de recuperación"
+  },
+  "{0} restante": {
+    "en": "{0} left",
+    "es": "{0} restante"
+  },
+  "{0} restantes": {
+    "en": "{0} left",
+    "es": "{0} restantes"
+  },
+  "Para gerar novos códigos de recuperação, desative e ative a verificação de novo.": {
+    "en": "To get new recovery codes, turn verification off and on again.",
+    "es": "Para generar nuevos códigos de recuperación, desactiva la verificación y vuelve a activarla."
+  },
+  "Desativar": {
+    "en": "Turn off",
+    "es": "Desactivar"
+  },
+  "Escaneie o QR code": {
+    "en": "Scan the QR code",
+    "es": "Escanea el código QR"
+  },
+  "Abra o aplicativo autenticador no celular e escaneie este código.": {
+    "en": "Open the authenticator app on your phone and scan this code.",
+    "es": "Abre la aplicación de autenticación en tu móvil y escanea este código."
+  },
+  "Não consegue ler o QR code?": {
+    "en": "Can't scan the QR code?",
+    "es": "¿No puedes escanear el código QR?"
+  },
+  "Digite esta chave no aplicativo:": {
+    "en": "Enter this key in the app:",
+    "es": "Introduce esta clave en la aplicación:"
+  },
+  "Copiar chave": {
+    "en": "Copy key",
+    "es": "Copiar clave"
+  },
+  "Código de 6 dígitos do aplicativo": {
+    "en": "6-digit authenticator code",
+    "es": "Código de 6 dígitos de la aplicación"
+  },
+  "A configuração expira em {0} minuto.": {
+    "en": "Setup expires in {0} minute.",
+    "es": "La configuración caduca en {0} minuto."
+  },
+  "A configuração expira em {0} minutos.": {
+    "en": "Setup expires in {0} minutes.",
+    "es": "La configuración caduca en {0} minutos."
+  },
+  "Ao confirmar, as outras sessões abertas da sua conta serão encerradas; esta continua.": {
+    "en": "Confirming ends your account's other open sessions; this one stays.",
+    "es": "Al confirmar, se cerrarán las otras sesiones abiertas de tu cuenta; esta sigue abierta."
+  },
+  "Confirmar": {
+    "en": "Confirm",
+    "es": "Confirmar"
+  },
+  "Verificação em duas etapas ativada.": {
+    "en": "Two-step verification is on.",
+    "es": "Verificación en dos pasos activada."
+  },
+  "Guarde seus códigos de recuperação": {
+    "en": "Save your recovery codes",
+    "es": "Guarda tus códigos de recuperación"
+  },
+  "Se perder o acesso ao aplicativo autenticador, entre com um destes códigos. Cada código vale uma vez.": {
+    "en": "If you lose access to the authenticator app, sign in with one of these codes. Each code works once.",
+    "es": "Si pierdes el acceso a la aplicación de autenticación, inicia sesión con uno de estos códigos. Cada código sirve una sola vez."
+  },
+  "Eles não serão mostrados de novo. Copie ou baixe agora e guarde em um lugar seguro.": {
+    "en": "They will not be shown again. Copy or download them now and keep them somewhere safe.",
+    "es": "No se volverán a mostrar. Cópialos o descárgalos ahora y guárdalos en un lugar seguro."
+  },
+  "Copiar": {
+    "en": "Copy",
+    "es": "Copiar"
+  },
+  "Baixar": {
+    "en": "Download",
+    "es": "Descargar"
+  },
+  "Copiado para a área de transferência.": {
+    "en": "Copied to the clipboard.",
+    "es": "Copiado al portapapeles."
+  },
+  "Desativar a verificação em duas etapas?": {
+    "en": "Turn off two-step verification?",
+    "es": "¿Desactivar la verificación en dos pasos?"
+  },
+  "O login voltará a pedir só a senha, e os códigos de recuperação deixarão de valer.": {
+    "en": "Signing in will ask only for the password again, and the recovery codes will stop working.",
+    "es": "El acceso volverá a pedir solo la contraseña y los códigos de recuperación dejarán de servir."
+  },
+  "Verificação em duas etapas desativada.": {
+    "en": "Two-step verification is off.",
+    "es": "Verificación en dos pasos desactivada."
+  },
+  "Sua senha": {
+    "en": "Your password",
+    "es": "Tu contraseña"
+  },
+  "Digite os 6 dígitos do código.": {
+    "en": "Enter the 6 digits of the code.",
+    "es": "Introduce los 6 dígitos del código."
+  },
+  "Código de verificação recusado": {
+    "en": "Verification code rejected",
+    "es": "Código de verificación rechazado"
+  },
+  "Código de recuperação usado": {
+    "en": "Recovery code used",
+    "es": "Código de recuperación usado"
+  },
+  "Verificação em duas etapas ativada": {
+    "en": "Two-step verification turned on",
+    "es": "Verificación en dos pasos activada"
+  },
+  "Verificação em duas etapas desativada": {
+    "en": "Two-step verification turned off",
+    "es": "Verificación en dos pasos desactivada"
+  },
+  "Outras sessões encerradas": {
+    "en": "Other sessions ended",
+    "es": "Otras sesiones cerradas"
+  },
+  "Códigos de recuperação restantes": {
+    "en": "Recovery codes left",
+    "es": "Códigos de recuperación restantes"
+  },
+  "A verificação expirou. Entre novamente.": {
+    "en": "Verification expired. Sign in again.",
+    "es": "La verificación caducó. Inicia sesión de nuevo."
+  },
+  "Código incorreto.": {
+    "en": "Incorrect code.",
+    "es": "Código incorrecto."
+  },
+  "Muitos códigos incorretos. Use um código de recuperação ou tente mais tarde.": {
+    "en": "Too many incorrect codes. Use a recovery code or try again later.",
+    "es": "Demasiados códigos incorrectos. Usa un código de recuperación o inténtalo más tarde."
+  },
+  "Informe o código de 6 dígitos": {
+    "en": "Enter the 6-digit code",
+    "es": "Indica el código de 6 dígitos"
+  },
+  "Informe um código de recuperação válido": {
+    "en": "Enter a valid recovery code",
+    "es": "Indica un código de recuperación válido"
+  },
+  "Informe o código do aplicativo ou um código de recuperação": {
+    "en": "Enter the authenticator code or a recovery code",
+    "es": "Indica el código de la aplicación o un código de recuperación"
+  },
+  "A verificação em duas etapas já está ativa.": {
+    "en": "Two-step verification is already on.",
+    "es": "La verificación en dos pasos ya está activada."
+  },
+  "A verificação em duas etapas não está ativa.": {
+    "en": "Two-step verification is not on.",
+    "es": "La verificación en dos pasos no está activada."
+  },
+  "Código incorreto. Confira o horário do celular e tente de novo.": {
+    "en": "Incorrect code. Check the time on your phone and try again.",
+    "es": "Código incorrecto. Revisa la hora del móvil e inténtalo de nuevo."
+  },
+  "A configuração expirou. Comece de novo.": {
+    "en": "Setup expired. Start again.",
+    "es": "La configuración caducó. Empieza de nuevo."
+  },
+  "Senha incorreta.": {
+    "en": "Incorrect password.",
+    "es": "Contraseña incorrecta."
+  },
+  "Emitidos em {0} para {1}": {
+    "en": "Issued on {0} for {1}",
+    "es": "Emitidos el {0} para {1}"
+  },
+  "Sair sem guardar os códigos?": {
+    "en": "Leave without saving the codes?",
+    "es": "¿Salir sin guardar los códigos?"
+  },
+  "Os códigos de recuperação não serão mostrados de novo. Saia só depois de copiá-los ou baixá-los.": {
+    "en": "The recovery codes will not be shown again. Leave only after copying or downloading them.",
+    "es": "Los códigos de recuperación no se volverán a mostrar. Sal solo después de copiarlos o descargarlos."
+  },
+  "Continuar aqui": {
+    "en": "Stay here",
+    "es": "Seguir aquí"
+  },
+  "Sair mesmo assim": {
+    "en": "Leave anyway",
+    "es": "Salir de todos modos"
+  },
+  "Sair antes de concluir?": {
+    "en": "Leave before finishing?",
+    "es": "¿Salir antes de terminar?"
+  },
+  "A ativação da verificação em duas etapas ainda não terminou. Se sair agora, volte ao perfil para concluí-la ou começar de novo.": {
+    "en": "Turning on two-step verification is not finished yet. If you leave now, come back to the profile to finish it or start again.",
+    "es": "La activación de la verificación en dos pasos aún no terminó. Si sales ahora, vuelve al perfil para completarla o empezar de nuevo."
+  },
+  "Mostrar link de configuração": {
+    "en": "Show setup link",
+    "es": "Mostrar enlace de configuración"
+  },
+  "Link de configuração": {
+    "en": "Setup link",
+    "es": "Enlace de configuración"
+  },
+  "Copiar link": {
+    "en": "Copy link",
+    "es": "Copiar enlace"
+  },
+  "Ativar a verificação em duas etapas": {
+    "en": "Turn on two-step verification",
+    "es": "Activar la verificación en dos pasos"
+  },
+  "Para proteger sua conta, confirme sua senha antes de ligar um aplicativo autenticador a ela.": {
+    "en": "To protect your account, confirm your password before linking an authenticator app to it.",
+    "es": "Para proteger tu cuenta, confirma tu contraseña antes de vincularle una aplicación de autenticación."
+  },
+  "Senha aceita, código pedido": {
+    "en": "Password accepted, code requested",
+    "es": "Contraseña aceptada, código solicitado"
+  },
+  "Código do aplicativo indisponível no momento. Use um código de recuperação.": {
+    "en": "Authenticator codes are unavailable right now. Use a recovery code.",
+    "es": "El código de la aplicación no está disponible en este momento. Usa un código de recuperación."
   }
 }

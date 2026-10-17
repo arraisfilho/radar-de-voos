@@ -42,7 +42,7 @@ PASSWORD_WAIT = 0.3
 BUSY = "Serviço temporariamente ocupado. Tente novamente em alguns segundos."
 # Server secret for the per-account limit key; created on first use, kept with the other secrets.
 LIMIT_SECRET_FILE = "login-limit-private.json"
-LIMIT_SECRET_LOCK = threading.Lock()
+SECRET_LOCK = threading.Lock()
 
 
 @contextmanager
@@ -280,16 +280,16 @@ def register(data, response, admin=False):
         raise HTTPException(409,"Não foi possível cadastrar esse telefone. Se já tem conta, entre.")
 
 
-def limit_secret():
-    """HMAC key of the login limits, from a private 0600 file in the data directory."""
-    path = store.DATA_DIR / LIMIT_SECRET_FILE
-    with LIMIT_SECRET_LOCK:
+def private_secret(name):
+    """32-byte server secret from a private 0600 file in the data directory."""
+    path = store.DATA_DIR / name
+    with SECRET_LOCK:
         try:
             value = bytes.fromhex(json.loads(path.read_text())["secret"])
             if len(value) >= 32:
                 return value
         except (FileNotFoundError, ValueError, KeyError, TypeError):
-            # Missing or unreadable: a new secret; earlier counters stop matching and expire.
+            # Missing or unreadable: a new secret; whatever came from the former one stops matching.
             pass
         value = secrets.token_bytes(32)
         store.DATA_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -299,6 +299,11 @@ def limit_secret():
             json.dump({"secret": value.hex()}, file)
         temp.replace(path)
         return value
+
+
+def limit_secret():
+    """HMAC key of the login limits; a new one makes earlier counters stop matching and expire."""
+    return private_secret(LIMIT_SECRET_FILE)
 
 
 def limit_key(value):
@@ -334,8 +339,13 @@ def limit_address(host):
 
 
 def clear_login_failures(c, phone):
-    """Forget the account's failures, and so its lock, after a password reset (as a successful login does)."""
+    """Forget the account's failures, and so its lock, after a password reset (as a successful login does).
+
+    Open second steps end too: they were opened with the former password. The budget of wrong
+    authenticator codes stays (two_factor.CODE_LIMIT): a reset must not grant more guesses.
+    """
     c.execute("DELETE FROM login_attempts WHERE account=?", (limit_key(phone),))
+    c.execute("DELETE FROM two_factor_challenges WHERE user_id IN (SELECT id FROM accounts WHERE phone=?)", (phone,))
 
 
 def account_lock_until(times):
@@ -398,12 +408,30 @@ def authenticate(data, request, response):
         with db() as c:
             c.execute("DELETE FROM login_attempts WHERE rowid=?", (attempt,))
         raise
+    challenge = None
     if valid:
+        from . import two_factor
         with db() as c:
             c.execute("BEGIN IMMEDIATE")
-            # Reset only this account; failures from this address against other accounts remain.
-            c.execute("DELETE FROM login_attempts WHERE account=?", (account,))
-            establish_session(c, row["id"], response)
+            if c.execute("SELECT password_hash FROM accounts WHERE id=?", (row["id"],)).fetchone()[0] != row["password_hash"]:
+                # A password reset during the check: the former password no longer signs in.
+                valid = False
+            elif two_factor.enabled(c, row["id"]):
+                # The password alone does not sign in. Its reservation stays for the address limit
+                # only, without the account: opening second steps (and their audit rows) is bounded
+                # per address, never locks the account, and earlier failures (wrong codes included)
+                # stay until the second step succeeds.
+                c.execute("UPDATE login_attempts SET account=NULL WHERE rowid=?", (attempt,))
+                challenge = two_factor.open_challenge(c, row["id"], address)
+            else:
+                # Reset only this account; failures from this address against other accounts remain.
+                c.execute("DELETE FROM login_attempts WHERE account=?", (account,))
+                establish_session(c, row["id"], response)
+    if challenge:
+        # Recorded on every correct password: the owner sees it even if the second step never ends.
+        record(request, "login_2fa_started", user_id)
+        two_factor.set_challenge_cookie(response, challenge)
+        return {"two_factor_required": True, "expires_in": two_factor.CHALLENGE_SECONDS}
     record(request, "login_success" if valid else "login_failed", user_id)
     if not valid:
         raise HTTPException(401, "Telefone ou senha incorretos")

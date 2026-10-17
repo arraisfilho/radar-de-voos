@@ -67,11 +67,11 @@ class WorldwideTests(unittest.TestCase):
 
     def test_bag_option_reaches_collector_subprocess(self):
         search=Search(origins=['LHR'],destinations=['JFK'],outbound=Leg(start='2090-11-05T00:00',end='2090-11-05T23:59'),checked_bags=2)
-        with patch('backend.engine.subprocess.run') as run:
-            run.return_value.returncode=0
-            run.return_value.stdout=json.dumps({'status':'empty','flights':[]})
+        with patch('backend.engine.subprocess.Popen') as popen:
+            popen.return_value.returncode=0
+            popen.return_value.communicate.return_value=(json.dumps({'status':'empty','flights':[]}),'')
             fetch(search,('outbound','LHR','JFK','2090-11-05'))
-            self.assertEqual(json.loads(run.call_args.kwargs['input'])['checked_bags'],2)
+            self.assertEqual(json.loads(popen.return_value.communicate.call_args.args[0])['checked_bags'],2)
 
 
 class LANTests(unittest.TestCase):
@@ -169,10 +169,10 @@ class CurrencyLifecycleTests(unittest.TestCase):
                 with self.assertRaises(RuntimeError):collector.collect(options)
                 self.assertEqual(create.call_args.kwargs['currency'],currency)
                 self.assertIn('curr='+currency,html.call_args.args[0].url())
-            with patch('backend.engine.subprocess.run') as run:
-                run.return_value.returncode=0;run.return_value.stdout=json.dumps({'status':'empty','flights':[]})
+            with patch('backend.engine.subprocess.Popen') as popen:
+                popen.return_value.returncode=0;popen.return_value.communicate.return_value=(json.dumps({'status':'empty','flights':[]}),'')
                 fetch(self.config(currency=currency),('outbound','THE','GRU','2090-11-05'))
-                self.assertEqual(json.loads(run.call_args.kwargs['input'])['currency'],currency)
+                self.assertEqual(json.loads(popen.return_value.communicate.call_args.args[0])['currency'],currency)
 
     def test_final_deadline_uses_return_and_origin_timezone(self):
         from backend.domain import monitoring_deadline

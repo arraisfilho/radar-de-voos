@@ -2,7 +2,7 @@ import { t } from "./i18n";
 import * as Dialog from "@radix-ui/react-dialog";
 import { CheckCircle2, CircleAlert, LoaderCircle, X } from "lucide-react";
 import { clsx } from "clsx";
-import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode, type RefObject } from "react";
 export function Button({
   className,
   variant = "primary",
@@ -125,6 +125,7 @@ export function Modal({
   wide = false,
   className = "",
   onClosed,
+  initialFocus,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -138,6 +139,12 @@ export function Modal({
    * hidden from assistive technology: the moment to show a success message.
    */
   onClosed?: () => void;
+  /**
+   * The field that takes the focus when the dialog opens, instead of the first
+   * control (the close button). `autoFocus` would focus it before the opener is
+   * remembered, and the focus could not go back to it.
+   */
+  initialFocus?: RefObject<HTMLElement | null>;
 }) {
   const origin = useRef<FocusOrigin | null>(null);
   return (
@@ -146,8 +153,12 @@ export function Modal({
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content
           className={clsx("dialog", wide && "dialog-wide", className)}
-          onOpenAutoFocus={() => {
+          onOpenAutoFocus={(event) => {
             origin.current = rememberFocus();
+            const target = initialFocus?.current;
+            if (!target) return;
+            event.preventDefault();
+            target.focus();
           }}
           onCloseAutoFocus={(event) => {
             // Without a trigger Radix would leave the focus on <body>.
@@ -191,6 +202,8 @@ export function ConfirmDialog({
   onClosed,
   cancelLabel,
   children,
+  initialFocus,
+  confirmVariant = "danger",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -198,6 +211,10 @@ export function ConfirmDialog({
   description: string;
   confirmLabel: string;
   onConfirm: () => void;
+  /** See Modal: a field in `children` that takes the focus when the dialog opens. */
+  initialFocus?: RefObject<HTMLElement | null>;
+  /** "primary" for a step that removes nothing (a password before turning something on). */
+  confirmVariant?: "danger" | "primary";
   /** While the request runs, the dialog stays open and both buttons wait. */
   busy?: boolean;
   /**
@@ -217,6 +234,7 @@ export function ConfirmDialog({
       title={title}
       description={description}
       onClosed={onClosed}
+      initialFocus={initialFocus}
     >
       {children}
       <Notice tone="error">{error}</Notice>
@@ -224,7 +242,12 @@ export function ConfirmDialog({
         <Button variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>
           {cancelLabel || t("Cancelar")}
         </Button>
-        <Button variant="danger" className="button-confirm" disabled={busy} onClick={onConfirm}>
+        <Button
+          variant={confirmVariant}
+          className={confirmVariant === "danger" ? "button-confirm" : undefined}
+          disabled={busy}
+          onClick={onConfirm}
+        >
           {busy && <LoaderCircle size={16} className="spin" aria-hidden="true" />}
           {confirmLabel}
         </Button>
@@ -243,17 +266,20 @@ export function Notice({
   tone = "success",
   children,
   onDismiss,
+  id,
 }: {
   tone?: "success" | "error";
   children?: ReactNode;
   onDismiss?: () => void;
+  /** Of the message, for a field that points to its error (aria-describedby). */
+  id?: string;
 }) {
   const error = tone === "error";
   const shown = children != null && children !== false && children !== "";
   return (
     <div className={clsx("notice", error ? "is-error" : "is-success", !shown && "is-empty")}>
       {shown && (error ? <CircleAlert size={18} aria-hidden="true" /> : <CheckCircle2 size={18} aria-hidden="true" />)}
-      <p role={error ? "alert" : "status"} aria-live={error ? "assertive" : "polite"} aria-atomic="true">
+      <p role={error ? "alert" : "status"} aria-live={error ? "assertive" : "polite"} aria-atomic="true" id={id}>
         {shown ? children : null}
       </p>
       {shown && onDismiss && (

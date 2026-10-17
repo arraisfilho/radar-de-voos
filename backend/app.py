@@ -1,4 +1,5 @@
 """HTTP API for flight monitoring and price alerts."""
+import asyncio
 import json
 import os
 import secrets
@@ -19,7 +20,7 @@ from .airports import airport_record, search_airports
 from .domain import Search, eligible, jobs, validate_future, monitoring_deadline, local_instant
 from .store import db, setup, decode_search, add_search, ping
 from .engine import Monitor
-from . import mail, accounts, google_mail, mail_discovery, audit, logos, recovery, revisions, retention, activity, airlines, deliveries, admin_accounts, whatsapp, whatsapp_receipts, source
+from . import mail, accounts, google_mail, mail_discovery, audit, logos, recovery, revisions, retention, activity, airlines, deliveries, admin_accounts, whatsapp, whatsapp_receipts, source, two_factor
 from .network import allowed_client, allowed_host, loopback_request, public_mode, public_origin, public_request_allowed
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,8 +36,11 @@ async def lifespan(app):
     retention.days()
     deliveries.days()
     monitor.start()
-    yield
-    monitor.stop()
+    try:
+        yield
+    finally:
+        # Monitor.stop blocks up to its deadline: wait off the event loop.
+        await asyncio.to_thread(monitor.stop)
 
 
 app = FastAPI(title="Radar de Voos", version="0.25.0", lifespan=lifespan,
@@ -464,6 +468,31 @@ def bootstrap(request: Request, response: Response, data: accounts.Registration)
 @app.post("/api/auth/login")
 def login(request: Request, response: Response, data: accounts.Login):
     return accounts.authenticate(data,request,response)
+
+
+@app.post("/api/auth/login/2fa")
+def login_second_step(request: Request, response: Response, data: two_factor.SecondStep):
+    return two_factor.verify_login(request,response,data)
+
+
+@app.get("/api/auth/2fa")
+def two_factor_status(request: Request):
+    return two_factor.status(accounts.require_admin(request))
+
+
+@app.post("/api/auth/2fa/setup")
+def two_factor_setup(request: Request, data: two_factor.Password):
+    return two_factor.begin(request,accounts.require_admin(request),data)
+
+
+@app.post("/api/auth/2fa/confirm")
+def two_factor_confirm(request: Request, data: two_factor.Code):
+    return two_factor.confirm(request,accounts.require_admin(request),data)
+
+
+@app.post("/api/auth/2fa/disable")
+def two_factor_disable(request: Request, data: two_factor.Password):
+    return two_factor.disable(request,accounts.require_admin(request),data)
 
 
 @app.post("/api/auth/logout")

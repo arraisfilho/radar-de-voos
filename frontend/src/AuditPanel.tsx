@@ -59,6 +59,9 @@ export function auditLabels(): Record<string, string> {
   return {
     login_success: t("Login realizado"),
     login_failed: t("Login recusado"),
+    login_2fa_started: t("Senha aceita, código pedido"),
+    login_2fa_failed: t("Código de verificação recusado"),
+    recovery_code_used: t("Código de recuperação usado"),
     login_throttled: t("Tentativas limitadas"),
     logout: t("Logout realizado"),
     register_success: t("Cadastro realizado"),
@@ -68,6 +71,8 @@ export function auditLabels(): Record<string, string> {
     admin_account_created: t("Cadastro criado pelo administrador"),
     admin_account_updated: t("Cadastro alterado pelo administrador"),
     admin_password_reset: t("Senha redefinida pelo administrador"),
+    admin_2fa_enabled: t("Verificação em duas etapas ativada"),
+    admin_2fa_disabled: t("Verificação em duas etapas desativada"),
     admin_monitoring_viewed: t("Monitoramento consultado pelo administrador"),
     admin_smtp_saved: t("SMTP salvo pelo administrador"),
     admin_smtp_removed: t("SMTP removido pelo administrador"),
@@ -122,6 +127,8 @@ const DETAIL_ORDER = [
   "connection_removed",
   "receipts_removed",
   "cancelled",
+  "sessions_revoked",
+  "remaining",
 ];
 const yesNo = (value: unknown) => (value ? t("Sim") : t("Não"));
 const scopeLabel = (value: unknown) =>
@@ -190,6 +197,12 @@ export function auditDetails(event: string, details: Details | null | undefined)
         break;
       case "connection_removed":
         rows.push([t("Conexão removida"), yesNo(value)]);
+        break;
+      case "sessions_revoked":
+        rows.push([t("Outras sessões encerradas"), typeof value === "number" ? formatNumber(value) : String(value)]);
+        break;
+      case "remaining":
+        rows.push([t("Códigos de recuperação restantes"), typeof value === "number" ? formatNumber(value) : String(value)]);
         break;
     }
   }

@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { LogOut, Shield } from "lucide-react";
+import { Component, lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { LogOut, RotateCw, Shield, Smartphone } from "lucide-react";
 import { useUnsavedChanges } from "./navigationGuard";
 import { AdditionalPhones } from "./AdditionalPhones";
 import { EmailFields } from "./EmailFields";
@@ -9,10 +9,77 @@ import { TimeZoneField, validTimeZone } from "./TimeZoneField";
 import { AuditPanel } from "./AuditPanel";
 import { SystemVersion } from "./SystemVersion";
 import { Avatar } from "./Avatar";
-import { Button } from "./ui";
+import { Button, Notice } from "./ui";
 import { getLanguage, t } from "./i18n";
 import { plainClick, routePath } from "./navigation";
 import type { User } from "./types";
+// Two-step verification is for administrators: its code and the QR code library
+// come in a chunk of their own, never downloaded by other accounts. A lazy
+// component keeps a failed download, so a retry needs a new one.
+const loadTwoFactor = () =>
+  lazy(() => import("./TwoFactorSettings").then((module) => ({ default: module.TwoFactorSettings })));
+let TwoFactorSettings = loadTwoFactor();
+
+/** The head of the two-step verification block, the same while it downloads or after a failure. */
+function TwoFactorShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="list-group two-factor">
+      <div className="list-row two-factor-heading">
+        <Smartphone size={18} aria-hidden="true" />
+        <span className="list-row-label two-factor-title">{t("Verificação em duas etapas")}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * The two-step verification block. A failure to download or show it stays in the
+ * block, with a retry, and the rest of the profile keeps working.
+ */
+export class TwoFactorBlock extends Component<{ token: string; userId: string }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error: Error) {
+    console.error(error);
+  }
+  retry = () => {
+    TwoFactorSettings = loadTwoFactor();
+    this.setState({ failed: false });
+  };
+  render() {
+    if (this.state.failed)
+      return (
+        <TwoFactorShell>
+          <div className="form-block two-factor-body">
+            <Notice tone="error">{t("Não foi possível carregar a verificação em duas etapas.")}</Notice>
+            <div className="two-factor-actions">
+              <Button type="button" variant="outline" size="small" onClick={this.retry}>
+                <RotateCw size={16} aria-hidden="true" />
+                {t("Tentar novamente")}
+              </Button>
+            </div>
+          </div>
+        </TwoFactorShell>
+      );
+    return (
+      <Suspense
+        fallback={
+          <TwoFactorShell>
+            <div className="form-block" role="status">
+              <span className="sr-only">{t("Carregando…")}</span>
+              <span className="skeleton skeleton-line two-factor-skeleton" aria-hidden="true" />
+            </div>
+          </TwoFactorShell>
+        }
+      >
+        <TwoFactorSettings token={this.props.token} userId={this.props.userId} />
+      </Suspense>
+    );
+  }
+}
 
 type Section = "account" | "contacts" | "preferences";
 const fields: Record<Section, (keyof User)[]> = {
@@ -289,6 +356,7 @@ export function Profile({
       </form>
       <section className="list-section profile-security">
         <h2 className="list-section-title">{t("Segurança")}</h2>
+        {user.role === "admin" && <TwoFactorBlock token={token} userId={user.id} />}
         <AuditPanel />
       </section>
       <div className="list-group profile-signout">
