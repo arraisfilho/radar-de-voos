@@ -61,13 +61,15 @@ def confirm_reset(request,data):
     # Validate before spending password hashing resources.
     with db() as c:row=c.execute('SELECT user_id FROM password_resets WHERE digest=? AND used=0 AND expires>?',(digest,time.time())).fetchone()
     if not row:raise HTTPException(422,'O link de recuperação expirou ou já foi usado')
-    password_hash=accounts.HASHER.hash(data.password)
+    password_hash=accounts.hash_password(data.password)
     with db() as c:
         c.execute('BEGIN IMMEDIATE')
         row=c.execute('SELECT user_id FROM password_resets WHERE digest=? AND used=0 AND expires>?',(digest,time.time())).fetchone()
         if not row:raise HTTPException(422,'O link de recuperação expirou ou já foi usado')
         uid=row['user_id']
         c.execute('UPDATE accounts SET password_hash=? WHERE id=?',(password_hash,uid))
+        # Proven ownership of the account lifts its login lock.
+        accounts.clear_login_failures(c,c.execute('SELECT phone FROM accounts WHERE id=?',(uid,)).fetchone()['phone'])
         c.execute('DELETE FROM sessions WHERE user_id=?',(uid,))
         c.execute('UPDATE password_resets SET used=1 WHERE user_id=?',(uid,))
         c.execute("UPDATE outbox SET status='cancelled' WHERE id IN (SELECT outbox_id FROM password_resets WHERE user_id=?) AND status='pending'",(uid,))

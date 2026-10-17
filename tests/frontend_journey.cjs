@@ -1,9 +1,9 @@
 // Exercise the search state transitions without browser automation or tariff queries.
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const fromFrontend=require('node:module').createRequire(path.join(__dirname,'../frontend/package.json')),React=fromFrontend('react'),ts=fromFrontend('typescript'),modules=new Map();
-let states=[],stateIndex=0,refIndex=0,focus=0,saved=null,config;const refs=[{current:false},{current:{reportValidity:()=>true,querySelector:()=>({focus:()=>focus++}),closest:()=>null}},{current:{focus:()=>focus++}}];
+let states=[],stateIndex=0,refIndex=0,focus=0,saved=null,config;const refs=[{current:false},{current:{reportValidity:()=>true,querySelector:()=>({focus:()=>focus++,closest:()=>null}),closest:()=>null}},{current:{focus:()=>focus++}}];
 const mockReact={...React,useId:()=> 'fixture',useState:initial=>{const i=stateIndex++;if(!(i in states))states[i]=initial;return [states[i],value=>states[i]=typeof value==='function'?value(states[i]):value];},useRef:initial=>{const i=refIndex++;return refs[i]||(refs[i]={current:initial});}};
-function load(file){if(modules.has(file))return modules.get(file);const out={};modules.set(file,out);const code=ts.transpileModule(fs.readFileSync(path.join(__dirname,'../frontend/src',file),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;vm.runInNewContext(code,{exports:out,requestAnimationFrame:cb=>cb(),require:name=>name.endsWith('.css')?{}:name==='react'?mockReact:name==='./i18n'?{getLocale:()=> 'pt-BR',t:(key,args=[])=>key.replace(/\{(\d+)\}/g,(_,i)=>String(args[Number(i)]))}:name==='./DatePicker'?{DatePicker:()=>null}:name==='./passengers'?load('passengers.ts'):name==='./tripSummary'?load('tripSummary.ts'):name==='./searchJourney'?load('searchJourney.ts'):name==='./currency'?{currencies:['BRL'],currencyLabel:()=> 'BRL'}:['./AirportPicker','./AirlinePicker'].includes(name)?{[name.slice(2)]:()=>null}:name==='./ui'?{Button:()=>null}:fromFrontend(name)});return out;}
+function load(file){if(modules.has(file))return modules.get(file);const out={};modules.set(file,out);const code=ts.transpileModule(fs.readFileSync(path.join(__dirname,'../frontend/src',file),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;vm.runInNewContext(code,{exports:out,requestAnimationFrame:cb=>cb(),require:name=>name.endsWith('.css')?{}:name==='react'?mockReact:name==='./i18n'?{getLocale:()=> 'pt-BR',t:(key,args=[])=>key.replace(/\{(\d+)\}/g,(_,i)=>String(args[Number(i)]))}:name==='./DatePicker'?{DatePicker:()=>null}:name==='./passengers'?load('passengers.ts'):name==='./tripSummary'?load('tripSummary.ts'):name==='./format'?load('format.ts'):name==='./searchJourney'?load('searchJourney.ts'):name==='./currency'?{currencies:['BRL'],currencyLabel:()=> 'BRL'}:['./AirportPicker','./AirlinePicker'].includes(name)?{[name.slice(2)]:()=>null}:name==='./RouteSummary'?{RouteCodes:()=>null,RoutePlaces:()=>null}:name==='./navigation'?{routePath:()=> '/perfil',plainClick:()=>false}:name==='./ui'?{Button:()=>null}:fromFrontend(name)});return out;}
 const leg={start:'2090-11-05T22:00',end:'2090-11-06T06:00',arrival_before:null,stops:[0,1,2],max_duration:1440,max_layover:null,airlines:[]};
 const base={name:'',origins:['THE'],destinations:['GRU'],outbound:leg,inbound:null,adults:1,children:0,infants_in_seat:0,infants_on_lap:0,cabin:'economy',checked_bags:0,currency:'BRL',language:'pt',min_drop_cents:5000,notify_email:false};
 const {SearchForm}=load('SearchForm.tsx'),{canPreview}=load('preview.ts');
@@ -38,7 +38,7 @@ reset({...base,outbound:{...leg,max_duration:480},inbound:{...leg,max_duration:9
 let range=find(render(),n=>n.type?.name==='NumberRange'&&n.props.label==='Duração máxima da viagem');range.props.onChange(360);submit();assert.equal(states[0],'inbound');assert.equal(states[1],1);
 range=find(render(),n=>n.type?.name==='NumberRange'&&n.props.label==='Duração máxima da viagem');assert.equal(range.props.value,960);range.props.onChange(600);submit();assert.equal(states[1],2);submit();assert.equal(saved.outbound.max_duration,360);assert.equal(saved.inbound.max_duration,600);
 reset({...base,outbound:{...leg,max_duration:null}});states=['outbound',1,''];
-const toggle=find(render(),n=>n.props?.className==='check-row duration-toggle');find(toggle,n=>n.type==='input').props.onChange({target:{checked:true}});assert.equal(config.outbound.max_duration,2880);find(find(render(),n=>n.props?.className==='check-row duration-toggle'),n=>n.type==='input').props.onChange({target:{checked:false}});assert.equal(config.outbound.max_duration,null);
+const toggle=find(render(),n=>String(n.props?.className).includes('duration-toggle'));find(toggle,n=>n.type==='input').props.onChange({target:{checked:true}});assert.equal(config.outbound.max_duration,2880);find(find(render(),n=>String(n.props?.className).includes('duration-toggle')),n=>n.type==='input').props.onChange({target:{checked:false}});assert.equal(config.outbound.max_duration,null);
 // Exercise actual date/time and Radix handlers, including changes committed before rerender.
 reset({...base,inbound:{...leg}});const Departure=departure().type;
 function windowFixture(){states=[];stateIndex=0;refIndex=0;refs.length=0;const updates=[],completed=[];const tree=Departure({leg:{...leg},onChange:v=>updates.push(v),onComplete:v=>completed.push(v)});return {tree,updates,completed};}
@@ -50,7 +50,7 @@ fixture=windowFixture();endTime=find(fixture.tree,n=>n.type==='input'&&n.props.t
 console.log('Automatic return: completion, latest range, untouched defaults, no advance during typing, one-way/edit guards and deliberate revisits passed.');
 // Page-based wizard keeps each direction's inputs while browser history owns the stage.
 reset({...base,inbound:{...leg,start:'2090-11-09T00:00',end:'2090-11-09T23:59'}});
-refs[1]={current:{reportValidity:()=>true,querySelector:()=>({focus:()=>{}}),scrollIntoView:()=>{}}};refs[2]={current:{focus:()=>{}}};
+refs[1]={current:{reportValidity:()=>true,querySelector:()=>({focus:()=>{},closest:()=>null}),scrollIntoView:()=>{}}};refs[2]={current:{focus:()=>{}}};
 let stage={step:0,direction:'outbound'};
 function page(){return render({journey:{...stage,onChange:(step,direction)=>stage={step,direction}}});}
 page().props.onSubmit({preventDefault(){}});assert.deepEqual(stage,{step:0,direction:'inbound'});
@@ -74,3 +74,12 @@ let revisited={step:0,direction:'outbound'};
 render({journey:{...revisited,maxStep:2,onChange:(step,direction)=>revisited={step,direction}}}).props.onSubmit({preventDefault(){}});
 assert.equal(revisited.step,1);
 console.log('Missing recipients, unavailable channels and completed-stage revisits passed.');
+
+// Trip filters: an error in a folded section (the collapsed filters card, "Horários e conexões") opens it before the field takes the focus.
+reset({...base,outbound:{...leg,stops:[]}});
+const filtersCard={open:false,parentElement:null},moreOptions={open:false,parentElement:{closest:selector=>selector==='details'?filtersCard:null}};
+const stopsControl={focus:()=>focus++,closest:selector=>selector==='details'?moreOptions:null};
+refs[1]={current:{reportValidity:()=>true,querySelector:()=>stopsControl,closest:()=>null}};
+render({general:false}).props.onSubmit({preventDefault(){}});
+assert.equal(saved,null);assert.ok(moreOptions.open&&filtersCard.open,'Every folded section around the field opens');assert.ok(focus>0,'The field takes the focus');
+console.log('Folded filter errors: the enclosing disclosures open before the focus moves passed.');

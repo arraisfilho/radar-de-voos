@@ -6,7 +6,7 @@ O [workflow de CI](../.github/workflows/checks.yml) executa:
 
 | Área | Verificação |
 |---|---|
-| Backend | Testes Python de regras, persistência, contas, autorização, filas e integrações |
+| Backend | Testes Python de regras, persistência, contas, limites de login, autorização, auditoria, filas, integrações, classificação de falhas da fonte, disjuntor, saúde e cabeçalhos HTTP |
 | Frontend | TypeScript, build Vite e fixtures de formulários, navegação, máscaras e idiomas |
 | Alertas | Formatos por canal, economia comparável, HTML escapado, MIME multipart e links com destino/expiração controlados |
 | Container | Validação Compose, build da imagem e callback OAuth em runtime isolado |
@@ -19,7 +19,7 @@ O teste de runtime executa sem rede e sem volumes: confere o catálogo de tradu�
 
 Após instalação ou alteração relevante:
 
-1. Confira versão e trabalhadores em `/api/health`.
+1. Confira em `/api/health`, pelo loopback do servidor ou com sessão de administrador, a versão, `ok`, `db_ok`, os trabalhadores, os `heartbeats` e o estado da fonte em `source` ([comando](DEPLOYMENT.md#verificação-inicial)). Externamente, sem essa sessão, a resposta traz só `ok`.
 2. Valide login, logout, permissões e recuperação de senha.
 3. Crie um monitoramento e confirme coleta, filtros e histórico.
 4. Autorize o remetente e solicite envios de teste para destinatários controlados.
@@ -27,4 +27,4 @@ Após instalação ou alteração relevante:
 6. Verifique layouts em Safari, Chrome, Firefox e dispositivo móvel.
 7. Teste backup e restauração em ambiente separado.
 
-Valide o layout nos navegadores de destino. A saúde do processo não comprova entrega de mensagens nem conectividade com a fonte.
+Valide o layout nos navegadores de destino. A saúde do processo não comprova entrega de mensagens; `source` reflete apenas as consultas já feitas à fonte.

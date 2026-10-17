@@ -31,7 +31,11 @@ O script gera o manifesto com identificador e tipo, descartando segredos. O mani
 - A autorização usa PKCE e estado de uso único vinculado à sessão administrativa ativa.
 - Se o retorno for recusado, confira domínio e URL autorizada. Se a conta for bloqueada, confira público, usuários de teste e consentimento no Google Cloud.
 - Autorização concluída não comprova entrega. Verifique o envio de teste e a caixa de destino.
+- `DELETE /api/google/client` apaga `google-oauth-private.json` (cliente e tokens), sem revogar a autorização na conta Google. Desconectar remove só os tokens.
+- Salvar ou remover o cliente, conectar e desconectar ficam na auditoria com o administrador e os nomes dos campos alterados, sem valores.
 
 ## Alternativa: SMTP
 
 Em **Administração → Canais → E-mail → Configuração manual SMTP**, informe servidor, porta, segurança, usuário e credencial exigida pelo provedor. Configure remetente, habilite e salve. Use o campo de teste para validar o transporte. As contas dos clientes não configuram SMTP.
+
+`DELETE /api/smtp` apaga `smtp-private.json`; uma conta Google conectada não é afetada. Salvar e remover o SMTP ficam na auditoria, sem a senha.

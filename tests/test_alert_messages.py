@@ -1,4 +1,5 @@
 """Synthetic alerts and redirects; no provider calls or real notification sends."""
+import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import copy
 import importlib
 import json

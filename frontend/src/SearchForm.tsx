@@ -1,43 +1,49 @@
-import { partyLabel, partyTotal, validParty } from "./passengers";
+import { partyLabel, validParty } from "./passengers";
 import { suggestedName, nextTripAction } from "./searchJourney";
-import { t, getLocale } from "./i18n";
-import { useId, useRef, useState } from "react";
+import { t } from "./i18n";
+import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import * as Slider from "@radix-ui/react-slider";
 import {
   ArrowLeft,
+  ArrowLeftRight,
   ArrowRight,
-  Bell,
   Check,
-  ChevronRight,
+  CircleAlert,
   LoaderCircle,
-  Save,
+  Mail,
+  MessageCircle,
+  Minus,
+  Plus,
+  Send,
   SlidersHorizontal,
+  UserRound,
+  type LucideIcon,
 } from "lucide-react";
+import { clsx } from "clsx";
 import { currencies, currencyLabel } from "./currency";
 import { DatePicker } from "./DatePicker";
 import { AirlinePicker } from "./AirlinePicker";
-import "./search-form.css";
 import { AirportPicker } from "./AirportPicker";
+import { RouteCodes, RoutePlaces } from "./RouteSummary";
 import { Button } from "./ui";
-import type { Config, Leg, State } from "./types";
+import { currencySymbol, formatDateTime, formatDuration, formatMoney } from "./format";
+import { plainClick, routePath } from "./navigation";
 import { legDates } from "./tripSummary";
-const duration = (n: number) =>
-  n < 60
-    ? t("{0} min", [n])
-    : t("{0} h{1}", [
-        Math.floor(n / 60),
-        n % 60 ? t(" {0} min", [n % 60]) : "",
-      ]);
-const windowStamp = (s: string) =>
-  new Date(s + "Z").toLocaleString(getLocale(), {
-    timeZone: "UTC",
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+import type { Config, Leg, State } from "./types";
+import "./search-form.css";
+
+type Side = "outbound" | "inbound";
+const SIDES: Side[] = ["outbound", "inbound"];
+// Departure windows are local wall-clock times: parsed and printed as UTC.
 const wall = (s: string) => Date.parse(s + "Z"),
   stamp = (n: number) => new Date(n).toISOString().slice(0, 16);
+/** This device's calendar day, "YYYY-MM-DD": no trip can start before it. */
+const localDay = (date = new Date()) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+/** The longest window spans seven calendar dates. */
+const MAX_WINDOW = 10079 * 60000;
+/** Shown first in the currency list. */
+const POPULAR_CURRENCIES = ["BRL", "USD", "EUR"];
 const newLeg = (day: string): Leg => ({
   start: day + "T00:00",
   end: day + "T23:59",
@@ -47,6 +53,78 @@ const newLeg = (day: string): Leg => ({
   max_layover: null,
   airlines: [],
 });
+/** Default return: a full day four days after the outbound window ends. */
+const returnAfter = (outbound: Leg) =>
+  newLeg(stamp(wall(outbound.end) + 4 * 86400000).slice(0, 10));
+const badWindow = (leg: Leg) =>
+  !leg.start ||
+  !leg.end ||
+  !Number.isFinite(wall(leg.start)) ||
+  !Number.isFinite(wall(leg.end)) ||
+  wall(leg.end) <= wall(leg.start) ||
+  wall(leg.end) - wall(leg.start) > MAX_WINDOW;
+const cabinName = (cabin: string) =>
+  ({
+    economy: t("Econômica"),
+    "premium-economy": t("Econômica premium"),
+    business: t("Executiva"),
+    first: t("Primeira classe"),
+  })[cabin] || cabin;
+const stopsName = (stops: number) =>
+  stops === 0 ? t("Direto") : stops === 1 ? t("1 escala") : t("2 ou mais");
+
+/** A field that can carry an error, its stage and, for leg settings, its leg. */
+type Field =
+  | "origins"
+  | "destinations"
+  | "party"
+  | "window"
+  | "stops"
+  | "target"
+  | "min-drop"
+  | "currency-review"
+  | "channels";
+type Problem = { field: Field; step: number; side?: Side; message: string };
+const TRIP_FIELDS: Field[] = ["origins", "destinations", "party", "window"];
+const ALERT_FIELDS: Field[] = ["target", "min-drop", "currency-review", "channels"];
+
+/** Problems of the trip itself, in the order its fields appear. */
+/**
+ * Opens every <details> around an element (the trip filters card, "Horários e
+ * conexões"), so that a field in a folded section shows its error and can
+ * take the focus.
+ */
+function unfold(element: Element | null | undefined) {
+  for (let fold = element?.closest("details"); fold; fold = fold.parentElement?.closest("details")) fold.open = true;
+}
+function tripProblems(trip: Config, outboundOnly = false): Problem[] {
+  const list: Problem[] = [];
+  if (!trip.origins.length)
+    list.push({ field: "origins", step: 0, message: t("Escolha ao menos um aeroporto de origem.") });
+  if (!trip.destinations.length)
+    list.push({ field: "destinations", step: 0, message: t("Escolha ao menos um aeroporto de destino.") });
+  else if (trip.origins.some((code) => trip.destinations.includes(code)))
+    list.push({ field: "destinations", step: 0, message: t("Origem e destino precisam ser aeroportos diferentes.") });
+  if (!validParty(trip))
+    list.push({ field: "party", step: 0, message: t("Até nove passageiros, com um adulto por bebê no colo.") });
+  const window = t("Cada janela deve ser crescente e abranger no máximo sete datas.");
+  if (badWindow(trip.outbound)) list.push({ field: "window", step: 0, side: "outbound", message: window });
+  if (!outboundOnly && trip.inbound) {
+    if (badWindow(trip.inbound)) list.push({ field: "window", step: 0, side: "inbound", message: window });
+    else if (trip.inbound.start < trip.outbound.start)
+      list.push({ field: "window", step: 0, side: "inbound", message: t("A volta precisa começar após o início da ida.") });
+  }
+  return list;
+}
+function stopsProblems(trip: Config): Problem[] {
+  return SIDES.filter((side) => trip[side] && !trip[side]!.stops.length).map((side) => ({
+    field: "stops" as const,
+    step: 1,
+    side,
+    message: t("Selecione ao menos uma categoria de escalas por trecho."),
+  }));
+}
+
 function NumberRange({
   label,
   value,
@@ -69,13 +147,12 @@ function NumberRange({
   timeInput?: boolean;
 }) {
   const id = useId();
+  const text = format ? format(value) : `${value} ${unit}`;
   return (
     <div className={"number-range" + (timeInput ? " time-range" : "")}>
       <div className="range-heading">
         <label htmlFor={id}>{label}</label>
-        {!timeInput && (
-          <strong>{format ? format(value) : `${value} ${unit}`}</strong>
-        )}
+        <strong aria-hidden="true">{text}</strong>
       </div>
       <div className="range-controls">
         <Slider.Root
@@ -89,11 +166,7 @@ function NumberRange({
           <Slider.Track className="slider-track">
             <Slider.Range className="slider-range" />
           </Slider.Track>
-          <Slider.Thumb
-            className="slider-thumb"
-            aria-label={label}
-            aria-valuetext={format ? format(value) : `${value} ${unit}`}
-          />
+          <Slider.Thumb className="slider-thumb" aria-label={label} aria-valuetext={text} />
         </Slider.Root>
         {timeInput ? (
           <div className="duration-inputs">
@@ -102,6 +175,7 @@ function NumberRange({
                 id={id}
                 aria-label={t("{0}: horas", [label])}
                 type="number"
+                inputMode="numeric"
                 required
                 min={0}
                 max={Math.floor(max / 60)}
@@ -109,23 +183,16 @@ function NumberRange({
                 value={Math.floor(value / 60)}
                 onChange={(e) => {
                   if (e.target.value)
-                    onChange(
-                      Math.max(
-                        min,
-                        Math.min(
-                          max,
-                          Number(e.target.value) * 60 + (value % 60),
-                        ),
-                      ),
-                    );
+                    onChange(Math.max(min, Math.min(max, Number(e.target.value) * 60 + (value % 60))));
                 }}
               />
-              <span>h</span>
+              <span aria-hidden="true">h</span>
             </label>
             <label>
               <input
                 aria-label={t("{0}: minutos", [label])}
                 type="number"
+                inputMode="numeric"
                 required
                 min={0}
                 max={59}
@@ -133,18 +200,10 @@ function NumberRange({
                 value={value % 60}
                 onChange={(e) => {
                   if (e.target.value)
-                    onChange(
-                      Math.max(
-                        min,
-                        Math.min(
-                          max,
-                          Math.floor(value / 60) * 60 + Number(e.target.value),
-                        ),
-                      ),
-                    );
+                    onChange(Math.max(min, Math.min(max, Math.floor(value / 60) * 60 + Number(e.target.value))));
                 }}
               />
-              <span>min</span>
+              <span aria-hidden="true">min</span>
             </label>
           </div>
         ) : (
@@ -152,6 +211,7 @@ function NumberRange({
             <input
               id={id}
               type="number"
+              inputMode="numeric"
               required
               min={min}
               max={max}
@@ -168,16 +228,25 @@ function NumberRange({
     </div>
   );
 }
+
 function DepartureWindow({
   leg,
   onChange,
   title,
   onComplete,
+  error,
+  earliest,
+  keepSaved = false,
 }: {
   leg: Leg;
   onChange: (v: Partial<Leg>) => void;
   title?: string;
   onComplete?: (leg: Leg) => void;
+  error?: string;
+  /** First day that can be chosen ("YYYY-MM-DD"). */
+  earliest?: string;
+  /** Editing a saved trip: its dates stay available even after they pass. */
+  keepSaved?: boolean;
 }) {
   const id = useId(),
     [bounds, setBounds] = useState({
@@ -186,76 +255,68 @@ function DepartureWindow({
     });
   const pending = useRef(leg);
   const changed = useRef(false);
+  // The dates this window opened with: a trip in progress keeps its past start.
+  const saved = useRef({ start: leg.start.slice(0, 10), end: leg.end.slice(0, 10) });
   pending.current = leg;
   const change = (part: Partial<Leg>) => {
     pending.current = { ...pending.current, ...part };
     changed.current = true;
     onChange(part);
   };
+  // Advancing to the return waits for a finished edit: blur, Enter or slider release.
   const complete = () => {
     if (!changed.current) return;
     const value = pending.current;
-    if (
-      !Number.isFinite(wall(value.start)) ||
-      !Number.isFinite(wall(value.end)) ||
-      wall(value.end) <= wall(value.start) ||
-      wall(value.end) - wall(value.start) > 10079 * 60000
-    )
-      return;
+    if (badWindow(value)) return;
     changed.current = false;
     onComplete?.(value);
   };
   const base = wall(bounds.start + "T00:00"),
-    max = Math.max(
-      1439,
-      Math.round((wall(bounds.end + "T23:59") - base) / 60000),
-    ),
+    max = Math.max(1439, Math.round((wall(bounds.end + "T23:59") - base) / 60000)),
     values = [
       Math.max(0, Math.round((wall(leg.start) - base) / 60000)),
       Math.max(1, Math.round((wall(leg.end) - base) / 60000)),
     ];
-  const label = (m: number) =>
-    new Date(base + m * 60000).toLocaleString(getLocale(), {
-      timeZone: "UTC",
-      day: "2-digit",
-      month: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const label = (m: number) => formatDateTime(stamp(base + m * 60000), "numeric");
+  const errorId = id + "-error";
   return (
-    <fieldset className="departure-window">
-      <legend>{title || t("Quando você pode sair?")}</legend>
-      <p className="help">
-        {t("Datas e horários locais de cada aeroporto de partida.")}
-      </p>
-      <div className="window-grid">
+    <fieldset
+      className="departure-window list-section"
+      data-field="window"
+      aria-describedby={error ? errorId : undefined}
+    >
+      <legend className="list-section-title">{title || t("Quando você pode sair?")}</legend>
+      <div className={clsx("list-group window-group", error && "is-invalid")}>
         {(["start", "end"] as const).map((key, i) => (
-          <div className="window-endpoint" key={key}>
-            <label htmlFor={id + key}>{i ? t("Até") : t("A partir de")}</label>
-            <DatePicker
-              id={id + key}
-              label={i ? t("Até") : t("A partir de")}
-              value={leg[key].slice(0, 10)}
-              onChange={(value) => {
-                if (value) {
-                  const changed = value + "T" + leg[key].slice(11, 16);
-                  if (key === "start" && wall(changed) >= wall(leg.end)) {
-                    const end = stamp(
-                      wall(leg.end) + wall(changed) - wall(leg.start),
-                    );
-                    setBounds({ start: value, end: end.slice(0, 10) });
-                    change({ start: changed, end });
-                  } else {
-                    setBounds({ ...bounds, [key]: value });
-                    change({ [key]: changed });
+          <div className="window-row" key={key}>
+            <label className="window-label" htmlFor={id + key}>
+              {i ? t("Até") : t("A partir de")}
+            </label>
+            <div className="window-date">
+              <DatePicker
+                id={id + key}
+                label={i ? t("Até") : t("A partir de")}
+                min={earliest}
+                allowed={keepSaved ? saved.current[key] : undefined}
+                value={leg[key].slice(0, 10)}
+                onChange={(value) => {
+                  if (value) {
+                    const next = value + "T" + leg[key].slice(11, 16);
+                    if (key === "start" && wall(next) >= wall(leg.end)) {
+                      const end = stamp(wall(leg.end) + wall(next) - wall(leg.start));
+                      setBounds({ start: value, end: end.slice(0, 10) });
+                      change({ start: next, end });
+                    } else {
+                      setBounds({ ...bounds, [key]: value });
+                      change({ [key]: next });
+                    }
                   }
-                }
-              }}
-            />
+                }}
+              />
+            </div>
             <input
-              aria-label={
-                i ? t("Horário limite de saída") : t("Horário inicial de saída")
-              }
+              className="window-time"
+              aria-label={i ? t("Horário limite de saída") : t("Horário inicial de saída")}
               type="time"
               onBlur={key === "end" ? complete : undefined}
               onKeyDown={(e) => {
@@ -275,52 +336,216 @@ function DepartureWindow({
             />
           </div>
         ))}
-      </div>
-      {values[1] > values[0] && max <= 10079 && (
-        <>
-          <Slider.Root
-            className="slider-root window-slider"
-            min={0}
-            max={max}
-            step={1}
-            minStepsBetweenThumbs={1}
-            value={values}
-            onValueCommit={complete}
-            onValueChange={(v) =>
-              change({
-                start: stamp(base + v[0] * 60000),
-                end: stamp(base + v[1] * 60000),
-              })
-            }
-          >
-            <Slider.Track className="slider-track">
-              <Slider.Range className="slider-range" />
-            </Slider.Track>
-            <Slider.Thumb
-              className="slider-thumb"
-              aria-label={t("Início da janela de saída")}
-              aria-valuetext={label(values[0])}
-            />
-            <Slider.Thumb
-              className="slider-thumb"
-              aria-label={t("Fim da janela de saída")}
-              aria-valuetext={label(values[1])}
-            />
-          </Slider.Root>
-          <div className="window-labels">
-            <span>{label(values[0])}</span>
-            <span>{label(values[1])}</span>
+        {values[1] > values[0] && max <= 10079 && (
+          <div className="window-slider-row">
+            <Slider.Root
+              className="slider-root window-slider"
+              min={0}
+              max={max}
+              step={1}
+              minStepsBetweenThumbs={1}
+              value={values}
+              onValueCommit={complete}
+              onValueChange={(v) =>
+                change({
+                  start: stamp(base + v[0] * 60000),
+                  end: stamp(base + v[1] * 60000),
+                })
+              }
+            >
+              <Slider.Track className="slider-track">
+                <Slider.Range className="slider-range" />
+              </Slider.Track>
+              <Slider.Thumb
+                className="slider-thumb"
+                aria-label={t("Início da janela de saída")}
+                aria-valuetext={label(values[0])}
+              />
+              <Slider.Thumb
+                className="slider-thumb"
+                aria-label={t("Fim da janela de saída")}
+                aria-valuetext={label(values[1])}
+              />
+            </Slider.Root>
+            <div className="window-labels" aria-hidden="true">
+              <span>{label(values[0])}</span>
+              <span>{label(values[1])}</span>
+            </div>
           </div>
-        </>
-      )}
-      <p className="help">
-        {t(
-          "Para atravessar a meia-noite, escolha o dia seguinte em “Até”. Máximo de sete datas.",
         )}
+      </div>
+      <p className="list-section-footer">
+        {t("Datas e horários locais de cada aeroporto de partida.")}{" "}
+        {t("Para atravessar a meia-noite, escolha o dia seguinte em “Até”. Máximo de sete datas.")}
       </p>
+      {error && <FieldError id={errorId}>{error}</FieldError>}
     </fieldset>
   );
 }
+
+function FieldError({ id, children }: { id?: string; children: ReactNode }) {
+  return (
+    <p className="field-error" id={id}>
+      <CircleAlert size={14} aria-hidden="true" />
+      <span>{children}</span>
+    </p>
+  );
+}
+
+/** − n + stepper in a list row, labelled for assistive technology. */
+function Counter({
+  label,
+  value,
+  canDecrease,
+  canIncrease,
+  decreaseLabel,
+  increaseLabel,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  canDecrease: boolean;
+  canIncrease: boolean;
+  decreaseLabel: string;
+  increaseLabel: string;
+  onChange: (value: number) => void;
+}) {
+  const id = useId();
+  // aria-disabled keeps the focus on a button that reaches its limit.
+  return (
+    <div className="list-row counter-row">
+      <span className="list-row-label" id={id}>
+        {label}
+      </span>
+      <div className="counter" role="group" aria-labelledby={id}>
+        <output className="counter-value">{value}</output>
+        <span className="counter-buttons">
+          <button
+            type="button"
+            className="counter-button"
+            aria-label={decreaseLabel}
+            aria-disabled={!canDecrease || undefined}
+            onClick={() => canDecrease && onChange(value - 1)}
+          >
+            <Minus size={18} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="counter-button"
+            aria-label={increaseLabel}
+            aria-disabled={!canIncrease || undefined}
+            onClick={() => canIncrease && onChange(value + 1)}
+          >
+            <Plus size={18} aria-hidden="true" />
+          </button>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Amount field with the currency sign as a prefix. Values travel in cents. */
+function MoneyField({
+  anchor,
+  field,
+  label,
+  currency,
+  cents,
+  required = false,
+  placeholder,
+  error,
+  describedBy,
+  onChange,
+}: {
+  /** Target of the error summary links. */
+  anchor: string;
+  field: Field;
+  label: string;
+  currency: string;
+  cents: number | null;
+  required?: boolean;
+  placeholder?: string;
+  error?: string;
+  describedBy: string;
+  onChange: (cents: number | null) => void;
+}) {
+  const id = useId();
+  return (
+    <div className="field money" id={anchor} data-field={field}>
+      <label className="field-label" htmlFor={id}>
+        {label}
+      </label>
+      <div className={clsx("field-frame money-field", error && "is-invalid")}>
+        <span className="money-prefix" aria-hidden="true">
+          {currencySymbol(currency)}
+        </span>
+        <input
+          id={id}
+          type="number"
+          inputMode="decimal"
+          min={1}
+          step="0.01"
+          required={required}
+          placeholder={placeholder}
+          aria-invalid={!!error || undefined}
+          aria-describedby={clsx(error && id + "-error", describedBy)}
+          value={cents == null ? "" : cents / 100}
+          onChange={(e) =>
+            onChange(e.target.value === "" ? null : Math.round(Number(e.target.value) * 100))
+          }
+        />
+      </div>
+      {error && <FieldError id={id + "-error"}>{error}</FieldError>}
+    </div>
+  );
+}
+
+/** One alert channel in the grouped list: icon, recipients and a switch. */
+function ChannelRow({
+  icon: Icon,
+  label,
+  detail,
+  checked,
+  disabled,
+  invalid,
+  action,
+  onChange,
+}: {
+  icon: LucideIcon;
+  label: string;
+  detail: string;
+  checked: boolean;
+  disabled: boolean;
+  invalid: boolean;
+  action?: ReactNode;
+  onChange: (checked: boolean) => void;
+}) {
+  const id = useId();
+  return (
+    <div className={clsx("list-row channel-row", disabled && "is-disabled", invalid && "is-invalid")}>
+      <span className="channel-icon" aria-hidden="true">
+        <Icon size={18} />
+      </span>
+      <span className="channel-text">
+        <label htmlFor={id}>{label}</label>
+        <small id={id + "-detail"}>{detail}</small>
+        {action}
+      </span>
+      <input
+        id={id}
+        type="checkbox"
+        role="switch"
+        className="switch"
+        checked={checked}
+        disabled={disabled}
+        aria-invalid={invalid || undefined}
+        aria-describedby={id + "-detail"}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+    </div>
+  );
+}
+
 type Props = {
   config: Config;
   setConfig: (v: Config) => void;
@@ -343,7 +568,16 @@ type Props = {
     direction: "outbound" | "inbound";
     onChange: (step: number, direction: "outbound" | "inbound") => void;
   };
+  /** Notes shown under the stepper (draft, preview), provided by the page. */
+  children?: ReactNode;
+  /** The page keeps this draft in the browser: the action bar says so, without moving the form. */
+  draftSaved?: boolean;
 };
+/**
+ * The trip form in three modes: the assistant (general: Viagem, Preferências,
+ * Revisão e alertas, also for editing), the trip filters (compact, saved by the
+ * page's pending bar) and the alert settings (alertsOnly).
+ */
 export function SearchForm({
   config,
   setConfig,
@@ -353,7 +587,6 @@ export function SearchForm({
   saving,
   general = false,
   editing = false,
-  dirty = false,
   emailRecipients = [],
   emailAvailable = true,
   onManageContacts,
@@ -361,33 +594,40 @@ export function SearchForm({
   whatsappAvailable = false,
   whatsappRecipients = [],
   journey,
+  children,
+  draftSaved = false,
 }: Props) {
   const baggageId = useId();
   const errorId = useId();
+  // Hook order matters to the tests: direction, step and error come first.
   const returnTouched = useRef(false);
-  const [localDirection, setLocalDirection] = useState<"outbound" | "inbound">(
-      "outbound",
-    ),
+  const [localDirection, setLocalDirection] = useState<Side>("outbound"),
     [localStep, setLocalStep] = useState(editing ? 1 : 0),
     [error, setError] = useState(""),
     form = useRef<HTMLFormElement>(null),
     heading = useRef<HTMLHeadingElement>(null);
   const autoAdvanced = useRef(false);
-  const [alertsRequested, setAlertsRequested] = useState(config.notify_email || !!config.notify_whatsapp);
-  const [currencyNeedsReview, setCurrencyNeedsReview] = useState(Boolean(savedCurrency && savedCurrency !== config.currency));
+  const [currencyNeedsReview, setCurrencyNeedsReview] = useState(
+    Boolean(savedCurrency && savedCurrency !== config.currency),
+  );
+  const uid = useId();
+  const ids = {
+    tripType: uid + "-type",
+    passengers: uid + "-party-title",
+    cabin: uid + "-cabin",
+    currency: uid + "-currency",
+    tabs: uid + "-leg",
+    panel: uid + "-panel",
+    name: uid + "-name",
+    values: uid + "-values",
+    arrival: uid + "-arrival",
+  };
   const emailReady = emailAvailable && emailRecipients.length > 0;
   const whatsappReady = whatsappAvailable && whatsappRecipients.length > 0;
   const maxStep = editing ? 2 : Math.max(journey?.maxStep || 0, journey?.step || 0);
-  function reportProblem(message: string) {
-    setError(message);
-    requestAnimationFrame(() => {
-      const target = !config.origins.length ? '[data-airport-field="origin"] input' : !config.destinations.length ? '[data-airport-field="destination"] input' : '[aria-invalid="true"], input:invalid, [data-form-error]';
-      form.current?.querySelector<HTMLElement>(target)?.focus();
-    });
-  }
   const direction = journey?.direction || localDirection,
     step = journey?.step ?? localStep;
-  const go = (nextStep: number, nextDirection = direction) => {
+  const go = (nextStep: number, nextDirection: Side = direction) => {
     if (journey) journey.onChange(nextStep, nextDirection);
     else {
       setLocalStep(nextStep);
@@ -395,8 +635,8 @@ export function SearchForm({
     }
   };
   const setStep = (next: number) => go(next);
-  const setDirection = (next: "outbound" | "inbound") => go(step, next);
-  const legDirection = config.inbound ? direction : "outbound";
+  const setDirection = (next: Side) => go(step, next);
+  const legDirection: Side = config.inbound ? direction : "outbound";
   const leg =
     (legDirection === "inbound" ? config.inbound : config.outbound) ||
     config.outbound;
@@ -405,36 +645,105 @@ export function SearchForm({
       setConfig({ ...config, [legDirection]: { ...leg, ...part } });
     },
     global = (part: Partial<Config>) => setConfig({ ...config, ...part });
-  function validateTrip(outboundOnly = false, trip = config) {
-    if (!validParty(trip))
-      return t("Até nove passageiros, com um adulto por bebê no colo.");
-    if (!trip.origins.length || !trip.destinations.length)
-      return t("Selecione ao menos uma origem e um destino.");
-    if (trip.origins.some((v) => trip.destinations.includes(v)))
-      return t("Origem e destino precisam ser aeroportos diferentes.");
-    for (const l of [trip.outbound, outboundOnly ? null : trip.inbound].filter(
-      Boolean,
-    ) as Leg[]) {
-      if (
-        !l.start ||
-        !l.end ||
-        !Number.isFinite(wall(l.start)) ||
-        !Number.isFinite(wall(l.end)) ||
-        wall(l.end) <= wall(l.start) ||
-        wall(l.end) - wall(l.start) > 10079 * 60000
-      )
-        return t(
-          "Cada janela deve ser crescente e abranger no máximo sete datas.",
-        );
-    }
-    if (
-      !outboundOnly &&
-      trip.inbound &&
-      trip.inbound.start < trip.outbound.start
-    )
-      return t("A volta precisa começar após o início da ida.");
-    return "";
+  const currency = config.currency || "BRL";
+
+  // ---- Validation: errors next to the fields, summarized when there are several.
+  const alertProblems = (): Problem[] => {
+    const list: Problem[] = [];
+    const least = t("Informe um valor de pelo menos {0}.", [formatMoney(100, currency)]);
+    if (config.target_cents != null && !(config.target_cents >= 100))
+      list.push({ field: "target", step: 2, message: least });
+    if (!(config.min_drop_cents >= 100)) list.push({ field: "min-drop", step: 2, message: least });
+    if (currencyNeedsReview)
+      list.push({ field: "currency-review", step: 2, message: t("Revise os valores de alerta após trocar a moeda.") });
+    if ((config.notify_email && !emailReady) || (config.notify_whatsapp && !whatsappReady))
+      list.push({
+        field: "channels",
+        step: 2,
+        message: t("Selecione um canal disponível com destinatário cadastrado, ou desative os alertas."),
+      });
+    return list;
+  };
+  const allProblems = () => [
+    ...tripProblems(config),
+    ...stopsProblems(config),
+    ...(general || alertsOnly ? alertProblems() : []),
+  ];
+  /** Fields this form shows at a stage. */
+  const fieldsAt = (at: number): Field[] =>
+    alertsOnly ? ALERT_FIELDS : !general ? ["window", "stops"] : at === 0 ? TRIP_FIELDS : at === 1 ? ["stops"] : ALERT_FIELDS;
+  const shows = (problem: Problem, at: number, side: Side) =>
+    fieldsAt(at).includes(problem.field) && (!problem.side || problem.side === side);
+  // After a failed attempt, the errors follow the fields live until fixed.
+  const live = error ? allProblems() : [];
+  const visible = live.filter((problem) => shows(problem, step, legDirection));
+  // The filters and the alert settings cannot show trip fields: their problems
+  // are listed as text. The assistant moves to the stage that shows them.
+  const offscreen = !general && !visible.length ? live.map((problem) => problem.message).join(" ") : "";
+  const problemOf = (field: Field) => visible.find((problem) => problem.field === field)?.message;
+  function focusField(field: Field) {
+    // The first usable control of the field, in document order, out of any folded section.
+    const box = `[data-field="${field}"]`;
+    const control = form.current?.querySelector<HTMLElement>(
+      `${box} input:not([disabled]), ${box} select:not([disabled]), ${box} button:not([disabled]), ${box} a[href]`,
+    );
+    unfold(control);
+    control?.focus();
   }
+  /** The browser's own check, after unfolding the section of the first invalid field so it can be shown. */
+  function validate() {
+    const root = form.current;
+    if (!root) return false;
+    unfold(root.querySelector("input:invalid, select:invalid, textarea:invalid"));
+    return root.reportValidity();
+  }
+  /** Focuses the first usable control after the element with this id, as Tab would. */
+  function focusAfter(id: string) {
+    const root = form.current,
+      anchor = root?.querySelector(`[id="${id}"]`);
+    if (!root || !anchor) return;
+    const controls = root.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), summary',
+    );
+    for (const control of Array.from(controls)) {
+      if (anchor.contains(control) || !(anchor.compareDocumentPosition(control) & Node.DOCUMENT_POSITION_FOLLOWING)) continue;
+      control.focus();
+      if (document.activeElement === control) return;
+    }
+  }
+  function report(list: Problem[]) {
+    let here = list.filter((problem) => shows(problem, step, legDirection));
+    if (!here.length && general && !alertsOnly && list.length) {
+      // The first problem is on another stage or leg: show it there.
+      const first = [...list].sort((a, b) => a.step - b.step)[0];
+      const side = first.side || (first.step === step ? legDirection : "outbound");
+      go(first.step, side);
+      here = list.filter((problem) => shows(problem, first.step, side));
+    }
+    setError(list.map((problem) => problem.message).join(" "));
+    requestAnimationFrame(() => {
+      const root = form.current;
+      if (!root) return;
+      // The errors show next to their fields: folded sections around them open
+      // (a collapsed trip filters card, "Horários e conexões").
+      for (const problem of here) unfold(root.querySelector(`[data-field="${problem.field}"]`));
+      if (here.length === 1) focusField(here[0].field);
+      else {
+        const summary = root.querySelector<HTMLElement>("[data-form-error]");
+        unfold(summary);
+        summary?.focus();
+      }
+    });
+  }
+  const focusHeading = () => requestAnimationFrame(() => heading.current?.focus());
+  const focusReturnDate = (preventScroll = false) =>
+    requestAnimationFrame(() =>
+      form.current
+        ?.querySelector<HTMLInputElement>(".departure-window [data-date-trigger]")
+        ?.focus({ preventScroll }),
+    );
+
+  // ---- Stages
   function completeOutbound(outbound: Leg) {
     if (
       !general ||
@@ -446,29 +755,16 @@ export function SearchForm({
       autoAdvanced.current
     )
       return;
-    if (!form.current?.reportValidity()) return;
+    if (!validate()) return;
     const next = { ...config, outbound };
-    const problem = validateTrip(true, next);
-    if (problem) {
-      reportProblem(problem);
-      return;
-    }
-    if (next.inbound!.start < outbound.start && !returnTouched.current) {
-      next.inbound = newLeg(
-        stamp(wall(outbound.end) + 4 * 86400000).slice(0, 10),
-      );
-    }
+    const list = tripProblems(next, true);
+    if (list.length) return report(list);
+    if (next.inbound!.start < outbound.start && !returnTouched.current) next.inbound = returnAfter(outbound);
     setConfig(next);
     autoAdvanced.current = true;
     setDirection("inbound");
     setError("");
-    requestAnimationFrame(() =>
-      form.current
-        ?.querySelector<HTMLInputElement>(
-          ".departure-window [data-date-trigger]",
-        )
-        ?.focus({ preventScroll: true }),
-    );
+    focusReturnDate(true);
   }
   function move(next: number) {
     if (
@@ -478,139 +774,144 @@ export function SearchForm({
       !editing &&
       nextTripAction(!!config.inbound, legDirection) === "return"
     ) {
-      if (!form.current?.reportValidity()) return;
-      const problem = validateTrip(true);
-      if (problem) {
-        reportProblem(problem);
-        return;
-      }
-      if (
-        config.inbound &&
-        config.inbound.start < config.outbound.start &&
-        !returnTouched.current
-      ) {
-        global({
-          inbound: newLeg(
-            stamp(wall(config.outbound.end) + 4 * 86400000).slice(0, 10),
-          ),
-        });
-      }
+      // First pass of a round trip: the return window comes before the preferences.
+      const list = tripProblems(config, true);
+      if (list.length) return report(list);
+      if (!validate()) return;
+      if (config.inbound && config.inbound.start < config.outbound.start && !returnTouched.current)
+        global({ inbound: returnAfter(config.outbound) });
       autoAdvanced.current = true;
       setDirection("inbound");
       setError("");
-      requestAnimationFrame(() =>
-        form.current
-          ?.querySelector<HTMLInputElement>(
-            ".departure-window [data-date-trigger]",
-          )
-          ?.focus(),
-      );
+      focusReturnDate();
       return;
     }
     if (next > step) {
-      if (!form.current?.reportValidity()) return;
-      const problem = validateTrip();
-      if (problem) {
-        reportProblem(problem);
-        return;
-      }
-      if (
-        !config.outbound.stops.length ||
-        (config.inbound && !config.inbound.stops.length)
-      ) {
-        setError(t("Selecione ao menos uma categoria de escalas por trecho."));
-        return;
-      }
+      const list = [...tripProblems(config), ...(next > 1 ? stopsProblems(config) : [])];
+      if (list.length) return report(list);
+      if (!validate()) return;
     }
-    if (
-      next > step &&
-      step === 1 &&
-      maxStep < 2 &&
-      !editing &&
-      config.inbound &&
-      legDirection === "outbound"
-    ) {
+    if (next > step && step === 1 && maxStep < 2 && !editing && config.inbound && legDirection === "outbound") {
       setDirection("inbound");
       setError("");
-      heading.current?.focus();
+      focusHeading();
       return;
     }
     setError("");
     go(next, next === 1 ? "outbound" : direction);
-    heading.current?.focus();
-    if (journey)
-      requestAnimationFrame(() =>
-        form.current?.scrollIntoView({ block: "start" }),
-      );
+    focusHeading();
   }
-  const directionTabs = config.inbound ? (
-    <div className="tabs small-tabs" aria-label={t("Trecho a configurar")}>
-      <button
-        type="button"
-        aria-pressed={direction === "outbound"}
-        className={direction === "outbound" ? "active" : ""}
-        onClick={() => setDirection("outbound")}
-      >
-        {t("Ida")}
-      </button>
-      {config.inbound && (
+  const setTripType = (round: boolean) => {
+    if (round === !!config.inbound) return;
+    global({ inbound: round ? returnAfter(config.outbound) : null });
+    setDirection("outbound");
+    returnTouched.current = false;
+    autoAdvanced.current = false;
+  };
+
+  // ---- Shared pieces
+  const tabKeys = (event: KeyboardEvent<HTMLDivElement>) => {
+    const target: Side | null =
+      event.key === "ArrowRight" || event.key === "ArrowLeft"
+        ? legDirection === "outbound"
+          ? "inbound"
+          : "outbound"
+        : event.key === "Home"
+          ? "outbound"
+          : event.key === "End"
+            ? "inbound"
+            : null;
+    if (!target) return;
+    event.preventDefault();
+    setDirection(target);
+    requestAnimationFrame(() =>
+      form.current?.querySelector<HTMLElement>(`[data-leg-tab="${target}"]`)?.focus(),
+    );
+  };
+  // Ida | Volta switches the leg panel: ARIA tabs with arrow keys.
+  const legTabs = config.inbound ? (
+    <div
+      className="segmented segmented-fill leg-tabs"
+      role="tablist"
+      aria-label={t("Trecho a configurar")}
+      onKeyDown={tabKeys}
+    >
+      {SIDES.map((side) => (
         <button
+          key={side}
           type="button"
-          aria-pressed={direction === "inbound"}
-          className={direction === "inbound" ? "active" : ""}
-          onClick={() => setDirection("inbound")}
+          role="tab"
+          id={`${ids.tabs}-${side}`}
+          data-leg-tab={side}
+          aria-selected={legDirection === side}
+          aria-controls={ids.panel}
+          tabIndex={legDirection === side ? 0 : -1}
+          onClick={() => setDirection(side)}
         >
-          {t("Volta")}
+          {side === "outbound" ? t("Ida") : t("Volta")}
+          <span className="leg-tab-dates">{legDates(config[side]!, true)}</span>
         </button>
-      )}
+      ))}
     </div>
   ) : null;
+  const panel = config.inbound
+    ? { role: "tabpanel", id: ids.panel, "aria-labelledby": `${ids.tabs}-${legDirection}` }
+    : {};
   const baggage = (
-    <fieldset className="baggage-field compact-baggage">
+    <fieldset className="baggage-field list-section">
       <legend>{t("Bagagem despachada")}</legend>
-      <label htmlFor={baggageId} className="sr-only">
-        {t("Taxas a incluir na pesquisa")}
-      </label>
-      <select
-        id={baggageId}
-        aria-describedby={baggageId + "-help"}
-        value={config.checked_bags || 0}
-        onChange={(e) => global({ checked_bags: Number(e.target.value) })}
-      >
-        <option value={0}>{t("Não adicionar taxas de bagagem")}</option>
-        <option value={1}>{t("Incluir 1 mala despachada")}</option>
-        <option value={2}>{t("Incluir 2 malas despachadas")}</option>
-      </select>
-      <p id={baggageId + "-help"} className="help">
+      <div className="list-group">
+        <div className="list-row select-row">
+          <label htmlFor={baggageId} className="sr-only">
+            {t("Taxas a incluir na pesquisa")}
+          </label>
+          <select
+            id={baggageId}
+            className="row-select"
+            aria-describedby={baggageId + "-help"}
+            value={config.checked_bags || 0}
+            onChange={(e) => global({ checked_bags: Number(e.target.value) })}
+          >
+            <option value={0}>{t("Não adicionar taxas de bagagem")}</option>
+            <option value={1}>{t("Incluir 1 mala despachada")}</option>
+            <option value={2}>{t("Incluir 2 malas despachadas")}</option>
+          </select>
+        </div>
+      </div>
+      <p id={baggageId + "-help"} className="list-section-footer">
         {t("Taxas estimadas nos dois trechos; franquia e peso a confirmar.")}
       </p>
     </fieldset>
   );
   const connections = (
-    <div className="details-content advanced-grid">
-      <div className="arrival-setting">
-        <label>
+    <div className="list-group connections-group">
+      <div className="list-row field-row arrival-setting">
+        <label className="field-label" htmlFor={ids.arrival}>
           {t("Chegar até (opcional)")}
-          <input
-            type="datetime-local"
-            value={leg.arrival_before || ""}
-            onChange={(e) => patch({ arrival_before: e.target.value || null })}
-          />
         </label>
-        <p className="help">{t("Horário local do destino.")}</p>
+        <input
+          id={ids.arrival}
+          type="datetime-local"
+          aria-describedby={ids.arrival + "-help"}
+          value={leg.arrival_before || ""}
+          onChange={(e) => patch({ arrival_before: e.target.value || null })}
+        />
+        <p className="field-help" id={ids.arrival + "-help"}>
+          {t("Horário local do destino.")}
+        </p>
       </div>
-      <div className="connection-setting">
-        <label className="check-row">
-          <input
-            type="checkbox"
-            checked={leg.max_layover !== null}
-            onChange={(e) =>
-              patch({ max_layover: e.target.checked ? 180 : null })
-            }
-          />
-          {t("Limitar espera por conexão")}
-        </label>
-        {leg.max_layover !== null && (
+      <label className="list-row switch-row layover-toggle">
+        <span>{t("Limitar espera por conexão")}</span>
+        <input
+          type="checkbox"
+          role="switch"
+          className="switch"
+          checked={leg.max_layover !== null}
+          onChange={(e) => patch({ max_layover: e.target.checked ? 180 : null })}
+        />
+      </label>
+      {leg.max_layover !== null && (
+        <div className="list-row range-row">
           <NumberRange
             timeInput
             label={t("Máximo por conexão")}
@@ -619,674 +920,712 @@ export function SearchForm({
             max={1440}
             step={15}
             unit="min"
-            format={duration}
+            format={formatDuration}
             onChange={(v) => patch({ max_layover: v })}
           />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
+  const stopsError = problemOf("stops");
   const preferences = (
     <div className="preference-sheet">
-      <div className="preference-basics">
-        <fieldset className="stops-field">
-          <legend>{t("Escalas permitidas")}</legend>
-          <div className="stops-options">
-            {[
-              [0, t("Direto")],
-              [1, t("1 escala")],
-              [2, t("2 ou mais")],
-            ].map(([value, label]) => (
-              <label className="check-row stop-choice" key={value}>
+      <fieldset
+        className="stops-field"
+        id={`${uid}-stops`}
+        data-field="stops"
+        aria-describedby={stopsError ? errorId + "-stops" : undefined}
+      >
+        <legend className="field-label">{t("Escalas permitidas")}</legend>
+        <div className="chip-group">
+          {[0, 1, 2].map((value) => {
+            const checked = leg.stops.includes(value);
+            return (
+              <label className={clsx("chip stop-choice", checked && "is-checked")} key={value}>
                 <input
                   type="checkbox"
-                  checked={leg.stops.includes(Number(value))}
+                  checked={checked}
+                  aria-invalid={!!stopsError || undefined}
                   onChange={(e) =>
                     patch({
                       stops: e.target.checked
-                        ? [...leg.stops, Number(value)].sort()
+                        ? [...leg.stops, value].sort()
                         : leg.stops.filter((v) => v !== value),
                     })
                   }
                 />
-                {label}
+                {stopsName(value)}
               </label>
-            ))}
-          </div>
-        </fieldset>
-        <div
-          className="duration-field"
-          title={t("Inclui os voos e a espera nas conexões.")}
-        >
-          <label className="check-row duration-toggle">
+            );
+          })}
+        </div>
+        {stopsError && <FieldError id={errorId + "-stops"}>{stopsError}</FieldError>}
+      </fieldset>
+      <div className="list-section duration-field">
+        <div className="list-group">
+          <label className="list-row switch-row duration-toggle">
+            <span>{t("Limitar duração da viagem")}</span>
             <input
               type="checkbox"
+              role="switch"
+              className="switch"
               checked={leg.max_duration != null}
-              onChange={(e) =>
-                patch({ max_duration: e.target.checked ? 2880 : null })
-              }
+              onChange={(e) => patch({ max_duration: e.target.checked ? 2880 : null })}
             />
-            {t("Limitar duração da viagem")}
           </label>
-          {leg.max_duration == null ? (
-            <p className="help">
-              {t("Sem limite de duração, incluindo conexões.")}
-            </p>
-          ) : (
-            <NumberRange
-              timeInput
-              label={t("Duração máxima da viagem")}
-              value={leg.max_duration}
-              min={60}
-              max={2880}
-              step={30}
-              unit="min"
-              format={duration}
-              onChange={(v) => patch({ max_duration: v })}
-            />
+          {leg.max_duration != null && (
+            <div className="list-row range-row">
+              <NumberRange
+                timeInput
+                label={t("Duração máxima da viagem")}
+                value={leg.max_duration}
+                min={60}
+                max={2880}
+                step={30}
+                unit="min"
+                format={formatDuration}
+                onChange={(v) => patch({ max_duration: v })}
+              />
+            </div>
           )}
         </div>
+        <p className="list-section-footer">
+          {leg.max_duration == null
+            ? t("Sem limite de duração, incluindo conexões.")
+            : t("Inclui os voos e a espera nas conexões.")}
+        </p>
       </div>
-      <div
-        className={general ? "preference-secondary" : "preference-airline-only"}
-      >
-        {general && baggage}
-        <AirlinePicker
-          key={legDirection}
-          values={leg.airlines}
-          onChange={(airlines) => patch({ airlines })}
-        />
-      </div>
+      <AirlinePicker key={legDirection} values={leg.airlines} onChange={(airlines) => patch({ airlines })} />
+      {baggage}
       {general && (
         <details className="advanced-options">
           <summary>
-            <SlidersHorizontal size={16} />
-            {t("Chegada e conexões")}
-            <ChevronRight size={15} />
+            <SlidersHorizontal size={18} aria-hidden="true" />
+            <span>{t("Chegada e conexões")}</span>
           </summary>
           {connections}
         </details>
       )}
-      {!general && baggage}
     </div>
   );
-  const currencySettings = (<section className="currency-settings">
-      <label>
-        {t("Moeda da pesquisa")}
-        <select
-          value={config.currency || "BRL"}
-          onChange={(e) => {
-            setCurrencyNeedsReview(true);
-            global({
-              currency: e.target.value,
-              target_cents: null,
-              min_drop_cents: 5000,
-            });
-          }}
-        >
-          {currencies.map((code) => (
-            <option key={code} value={code}>
-              {currencyLabel(code)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <p className="help">{t("Ao trocar a moeda, a meta é limpa e a queda mínima volta a 50 na nova moeda.")}</p>
-  </section>);
+  const contactLink = onManageContacts && (
+    <a
+      className="button button-outline button-small channel-action"
+      href={routePath({ view: "settings" })}
+      onClick={(event) => plainClick(event) && onManageContacts()}
+    >
+      <UserRound size={14} aria-hidden="true" />
+      {t("Configurar contato")}
+    </a>
+  );
+  const whatsappTo = [...new Set(whatsappRecipients)];
+  const channelsError = problemOf("channels");
   const alerts = (
     <>
-      <p className="help">{t("Valores em {0}. Altere a moeda na etapa Viagem.", [config.currency || "BRL"])}</p>
-      <div className="two-fields">
-        <label>
-          {t("Meta por trecho (")}
-          {config.currency || "BRL"})
-          <input
-            type="number"
-            min={1}
-            step="0.01"
+      <section className="alert-values" aria-labelledby={ids.values}>
+        <h3 className="sr-only" id={ids.values}>
+          {t("Meta e queda mínima")}
+        </h3>
+        <div className="two-fields">
+          <MoneyField
+            anchor={`${uid}-target`}
+            field="target"
+            label={t("Meta por trecho")}
+            currency={currency}
+            cents={config.target_cents}
             placeholder={t("Opcional")}
-            value={config.target_cents == null ? "" : config.target_cents / 100}
-            onChange={(e) =>
-              global({
-                target_cents: e.target.value
-                  ? Math.round(Number(e.target.value) * 100)
-                  : null,
-              })
-            }
+            error={problemOf("target")}
+            describedBy={ids.values + "-help"}
+            onChange={(target_cents) => global({ target_cents })}
           />
-        </label>
-        <label>
-          {t("Queda mínima (")}
-          {config.currency || "BRL"})
-          <input
+          <MoneyField
+            anchor={`${uid}-min-drop`}
+            field="min-drop"
+            label={t("Queda mínima")}
+            currency={currency}
+            cents={config.min_drop_cents}
             required
-            type="number"
-            min={1}
-            step="0.01"
-            value={config.min_drop_cents / 100}
-            onChange={(e) =>
-              global({
-                min_drop_cents: Math.round(Number(e.target.value) * 100),
-              })
-            }
+            error={problemOf("min-drop")}
+            describedBy={ids.values + "-help"}
+            onChange={(cents) => global({ min_drop_cents: cents ?? 0 })}
           />
-        </label>
-      </div>
-      <p className="help">
-        {t("Preço total para {0}, por trecho.", [partyLabel(config)])}
-      </p>
-      {currencyNeedsReview && <label className="check-row currency-review"><input type="checkbox" required checked={false} onChange={() => setCurrencyNeedsReview(false)} />{t("Revisei os valores de alerta na nova moeda.")}</label>}
-
-
-      <label className="check-row">
-        <input
-          type="checkbox"
-          checked={alertsRequested || config.notify_email || !!config.notify_whatsapp}
-          onChange={(e) => {
-            setAlertsRequested(e.target.checked);
-            global(e.target.checked
-              ? {notify_email: emailReady, notify_whatsapp: !emailReady && whatsappReady}
-              : {notify_email: false, notify_whatsapp: false});
-          }}
-        />
-        {t("Enviar alertas")}
-      </label>
-      {(alertsRequested || config.notify_email || config.notify_whatsapp) && (
-        <fieldset className="channel-picker">
-          <legend>{t("Como você quer receber?")}</legend>
-          <div className="channel-options">
-            {[
-              { id: "email", label: t("E-mail"), ready: emailReady },
-              {
-                id: "whatsapp",
-                label: t("WhatsApp"),
-                ready: whatsappReady,
-              },
-              { id: "telegram", label: t("Telegram"), ready: false },
-            ].map((channel) => (
-              <label
-                key={channel.id}
-                className={
-                  "channel-option " + (!channel.ready ? "coming-soon" : "")
-                }
-              >
-                <input
-                  type="checkbox"
-                  aria-invalid={channel.id === "email" && config.notify_email && !emailReady || channel.id === "whatsapp" && config.notify_whatsapp && !whatsappReady || undefined}
-                  checked={
-                    channel.id === "email"
-                      ? config.notify_email
-                      : channel.id === "whatsapp"
-                        ? !!config.notify_whatsapp
-                        : false
-                  }
-                  disabled={
-                    !channel.ready &&
-                    !(channel.id === "whatsapp" && config.notify_whatsapp) &&
-                    !(channel.id === "email" && config.notify_email)
-                  }
-                  onChange={(e) =>
-                    global(
-                      channel.id === "email"
-                        ? { notify_email: e.target.checked }
-                        : { notify_whatsapp: e.target.checked },
-                    )
-                  }
-                />
-                <span>
-                  {channel.label}
-                  {!channel.ready && (
-                    <small>
-                      {channel.id === "telegram"
-                        ? t("Em breve")
-                        : channel.id === "email" && !emailRecipients.length || channel.id === "whatsapp" && !whatsappRecipients.length
-                          ? t("Sem destinatário") : t("Indisponível")}
-                    </small>
-                  )}
-                </span>
-              </label>
-            ))}
+        </div>
+        <p className="field-help" id={ids.values + "-help"}>
+          {t("Valores em {0}. Altere a moeda na etapa Viagem.", [currency])}{" "}
+          {t("Preço total para {0}, por trecho.", [partyLabel(config)])}
+        </p>
+        {currencyNeedsReview && (
+          <div className="currency-review" id={`${uid}-currency-review`} data-field="currency-review">
+            <label className="check-row">
+              <input
+                type="checkbox"
+                required
+                checked={false}
+                aria-invalid={!!problemOf("currency-review") || undefined}
+                onChange={() => setCurrencyNeedsReview(false)}
+              />
+              {t("Revisei os valores de alerta na nova moeda.")}
+            </label>
+            {problemOf("currency-review") && <FieldError>{problemOf("currency-review")}</FieldError>}
           </div>
-          <p className="help">
-            {config.notify_email &&
-              (emailRecipients.length
-                ? t("Enviar para: {0}", [emailRecipients.join(", ")])
-                : t(
-                    "Adicione até quatro e-mails em Meu perfil. Você não precisa configurar um servidor.",
-                  ))}
-          </p>
-          {config.notify_whatsapp && (
-            <p className="help">
-              {whatsappRecipients.length
-                ? t("WhatsApp para: {0}", [
-                    [...new Set(whatsappRecipients)].join(", "),
-                  ])
-                : t("Cadastre o número WhatsApp em Meu perfil.")}
-            </p>
-          )}
-          {(!emailRecipients.length || !whatsappRecipients.length) && <div className="channel-warning">
-            <p>{t("Cadastre os contatos no perfil para habilitar os canais de alerta.")}</p>
-            {onManageContacts && <Button type="button" variant="outline" onClick={onManageContacts}>{t("Gerenciar contatos no perfil")}</Button>}
-          </div>}
-          {(!emailAvailable || !whatsappAvailable) && <p className="help">{t("Canais indisponíveis precisam ser configurados pela administração.")}</p>}
-          <p className="help">{t("Você pode selecionar mais de um canal.")}</p>
-        </fieldset>
-      )}
+        )}
+      </section>
+      <fieldset className="list-section channels-field" id={`${uid}-channels`} data-field="channels">
+        <legend className="list-section-title">{t("Enviar alertas")}</legend>
+        <div className={clsx("list-group", channelsError && "is-invalid")}>
+          <ChannelRow
+            icon={Mail}
+            label={t("E-mail")}
+            detail={
+              !emailAvailable
+                ? t("Indisponível")
+                : emailRecipients.length
+                  ? t("Enviar para: {0}", [emailRecipients.join(", ")])
+                  : config.notify_email
+                    ? t("Adicione até quatro e-mails em Meu perfil. Você não precisa configurar um servidor.")
+                    : t("Nenhum e-mail cadastrado.")
+            }
+            checked={config.notify_email}
+            disabled={!emailReady && !config.notify_email}
+            invalid={config.notify_email && !emailReady}
+            action={emailAvailable && !emailRecipients.length ? contactLink : undefined}
+            onChange={(notify_email) => global({ notify_email })}
+          />
+          <ChannelRow
+            icon={MessageCircle}
+            label={t("WhatsApp")}
+            detail={
+              !whatsappAvailable
+                ? t("Indisponível")
+                : whatsappTo.length
+                  ? t("WhatsApp para: {0}", [whatsappTo.join(", ")])
+                  : config.notify_whatsapp
+                    ? t("Cadastre o número WhatsApp em Meu perfil.")
+                    : t("Nenhum WhatsApp cadastrado.")
+            }
+            checked={!!config.notify_whatsapp}
+            disabled={!whatsappReady && !config.notify_whatsapp}
+            invalid={!!config.notify_whatsapp && !whatsappReady}
+            action={whatsappAvailable && !whatsappTo.length ? contactLink : undefined}
+            onChange={(notify_whatsapp) => global({ notify_whatsapp })}
+          />
+          <ChannelRow
+            icon={Send}
+            label={t("Telegram")}
+            detail={t("Em breve")}
+            checked={false}
+            disabled
+            invalid={false}
+            onChange={() => {}}
+          />
+        </div>
+        <p className="list-section-footer">
+          {t("Você pode selecionar mais de um canal.")}{" "}
+          {(!emailAvailable || !whatsappAvailable) &&
+            t("Canais indisponíveis precisam ser configurados pela administração.")}
+        </p>
+        {channelsError && <FieldError>{channelsError}</FieldError>}
+      </fieldset>
     </>
   );
+
+  // ---- Assistant chrome
+  const stages = [t("Viagem"), t("Preferências"), t("Revisão e alertas")];
+  const titles = [
+    t("Sua próxima viagem"),
+    t("O que faz um voo servir para você?"),
+    t("Revise sua viagem e escolha os alertas"),
+  ];
+  const subtitles = [
+    t("Escolha de onde sair e para onde ir. Você pode adicionar outros aeroportos se quiser."),
+    t("Escalas, duração, companhias e bagagem de cada trecho."),
+    t("Defina a meta de preço e como receber as oportunidades."),
+  ];
+  const toReturn = step <= 1 && !!config.inbound && legDirection === "outbound";
+  const advancing = general && !editing && step < 2;
+  const primary = saving
+    ? t("Salvando…")
+    : alertsOnly
+      ? t("Salvar alertas")
+      : editing
+        ? t("Salvar alterações")
+        : step < 2
+          ? toReturn
+            ? t("Continuar para a volta")
+            : t("Continuar")
+          : t("Criar monitoramento");
+  const back =
+    general && !editing && (step > 0 || legDirection === "inbound")
+      ? () => (step <= 1 && legDirection === "inbound" ? setDirection("outbound") : move(step - 1))
+      : undefined;
+  const infants = (config.infants_in_seat || 0) + (config.infants_on_lap || 0);
+  type PartyKey = "adults" | "children" | "infants_in_seat" | "infants_on_lap";
+  const partyValue = (key: PartyKey) => config[key] || 0;
+  const allowed = (key: PartyKey, n: number) =>
+    n >= (key === "adults" ? 1 : 0) && validParty({ ...config, [key]: n });
+  const counter = (key: PartyKey, label: string, decrease: string, increase: string) => (
+    <Counter
+      label={label}
+      value={partyValue(key)}
+      canDecrease={allowed(key, partyValue(key) - 1)}
+      canIncrease={allowed(key, partyValue(key) + 1)}
+      decreaseLabel={decrease}
+      increaseLabel={increase}
+      onChange={(n) => global({ [key]: n })}
+    />
+  );
+  const today = localDay();
+  const popular = POPULAR_CURRENCIES.filter((code) => currencies.includes(code));
+  const others = currencies.filter((code) => !POPULAR_CURRENCIES.includes(code)).sort();
+  const partyError = problemOf("party");
   return (
     <form
       id={!general && !alertsOnly ? "monitor-filters" : undefined}
       ref={form}
-      aria-describedby={error ? errorId : undefined}
-      className={
-        "filter-form " +
-        (alertsOnly
-          ? "alert-settings-form"
-          : general
-            ? "search-wizard" + (editing ? " compact-editor" : "")
-            : "compact-filters")
-      }
+      noValidate
+      className={clsx(
+        "filter-form",
+        alertsOnly ? "alert-settings-form" : general ? clsx("search-wizard", editing && "compact-editor") : "compact-filters",
+      )}
       onSubmit={(e) => {
         e.preventDefault();
         if (general && !editing && step < 2) {
           move(step + 1);
           return;
         }
-        if (currencyNeedsReview) {
-          if (general) setStep(2);
-          reportProblem(t("Revise os valores de alerta após trocar a moeda."));
+        const list = allProblems();
+        if (list.length) {
+          report(list);
           return;
         }
-        const problem = validateTrip();
-        if (problem) {
-          reportProblem(problem);
-          if (general) setStep(0);
-          return;
-        }
-        for (const side of ["outbound", "inbound"] as const) {
-          const selection = config[side];
-          if (selection && !selection.stops.length) {
-            setError(
-              t("Selecione ao menos uma categoria de escalas por trecho."),
-            );
-            setDirection(side);
-            if (general) setStep(1);
-            requestAnimationFrame(() =>
-              form.current
-                ?.querySelector<HTMLInputElement>(".stops-options input")
-                ?.focus(),
-            );
-            return;
-          }
-        }
-        if ((general || alertsOnly) && (config.notify_email && !emailReady || config.notify_whatsapp && !whatsappReady || alertsRequested && !config.notify_email && !config.notify_whatsapp)) {
-          if (general) setStep(2);
-          reportProblem(t("Selecione um canal disponível com destinatário cadastrado, ou desative os alertas."));
-          return;
-        }
-        onSave({
-          ...config,
-          name: config.name.trim() || suggestedName(config),
-        }, general && !currencyNeedsReview);
+        if (!validate()) return;
+        onSave(
+          {
+            ...config,
+            name: config.name.trim() || suggestedName(config),
+          },
+          general && !currencyNeedsReview,
+        );
       }}
     >
       {general && !alertsOnly && (
-        <>
-          <ol
-            className={editing ? "wizard-steps editor-tabs" : "wizard-steps"}
-            aria-label={t("Etapas do cadastro")}
-          >
-            {[
-              t("Viagem"),
-              t("Preferências"),
-              t("Revisão e alertas"),
-            ].map((name, i) => (
-              <li key={name} aria-current={step === i ? "step" : undefined}>
+        <ol className="wizard-stepper" aria-label={t("Etapas do cadastro")}>
+          {stages.map((name, i) => {
+            const done = !editing && i < step;
+            return (
+              <li key={name} className={clsx(i === step && "is-current", done && "is-done") || undefined}>
                 <button
                   type="button"
+                  aria-current={i === step ? "step" : undefined}
                   disabled={!editing && i > Math.max(step, maxStep)}
                   onClick={() => (editing ? setStep(i) : move(i))}
                 >
-                  {!editing && (
-                    <span>{i < step ? <Check size={15} /> : i + 1}</span>
-                  )}
-                  {name}
+                  <span className="wizard-step-mark" aria-hidden="true">
+                    {done ? <Check size={14} strokeWidth={3} /> : i + 1}
+                  </span>
+                  <span className="wizard-step-name">{name}</span>
+                  {done && <span className="sr-only">, {t("concluída")}</span>}
                 </button>
               </li>
-            ))}
-          </ol>
-          {!editing && (
-            <h3 className="wizard-title" tabIndex={-1} ref={heading}>
-              {
-                [
-                  t("Sua próxima viagem"),
-                  t("O que faz um voo servir para você?"),
-                  t("Revise sua viagem e escolha os alertas"),
-                ][step]
-              }
-            </h3>
-          )}
-        </>
+            );
+          })}
+        </ol>
       )}
-      {!alertsOnly && general && step === 0 && (
-        <div className="trip-fields">
-          <div className="two-fields airport-fields">
-            <AirportPicker
-              label={t("Origem")}
-              field="origin"
-              invalid={!!error && !config.origins.length}
-              describedBy={error && !config.origins.length ? errorId : undefined}
-              onSelected={() => {
-                const destination =
-                  form.current?.querySelector<HTMLInputElement>(
-                    '[data-airport-field="destination"] input',
-                  );
-                if (destination) destination.focus();
-              }}
-              values={config.origins}
-              onChange={(v) => global({ origins: v })}
-              airports={airports}
-            />
-            <AirportPicker
-              label={t("Destino")}
-              field="destination"
-              invalid={!!error && !config.destinations.length}
-              describedBy={error && !config.destinations.length ? errorId : undefined}
-              onSelected={() =>
-                form.current
-                  ?.querySelector<HTMLSelectElement>(".trip-fields select")
-                  ?.focus()
-              }
-              values={config.destinations}
-              onChange={(v) => global({ destinations: v })}
-              airports={airports}
-            />
-          </div>
-          <p className="help">
-            {t(
-              "Escolha de onde sair e para onde ir. Você pode adicionar outros aeroportos se quiser.",
-            )}
+      {children}
+      {general && !alertsOnly && (
+        <header className="wizard-heading">
+          <h2 className="wizard-title" tabIndex={-1} ref={heading}>
+            {titles[step]}
+          </h2>
+          <p>{subtitles[step]}</p>
+        </header>
+      )}
+      {visible.length > 1 && (
+        <div className="form-summary" id={errorId} role="alert" tabIndex={-1} data-form-error>
+          <p className="form-summary-title">
+            <CircleAlert size={18} aria-hidden="true" />
+            {t("Revise {0} campos para continuar.", [visible.length])}
           </p>
-          <div className="trip-options-row">
-            <label>
-              {t("Tipo de viagem")}
-              <select
-                value={config.inbound ? "round" : "one"}
-                onChange={(e) => {
-                  global({
-                    inbound:
-                      e.target.value === "round"
-                        ? newLeg(
-                            stamp(
-                              wall(config.outbound.end) + 4 * 86400000,
-                            ).slice(0, 10),
-                          )
-                        : null,
-                  });
-                  setDirection("outbound");
-                  returnTouched.current = false;
-                  autoAdvanced.current = false;
-                }}
-              >
-                <option value="one">{t("Somente ida")}</option>
-                <option value="round">{t("Ida e volta")}</option>
-              </select>
-            </label>
-            <label>
-              {t("Adultos")}
-              <select
-                value={config.adults}
-                onChange={(e) => global({ adults: Number(e.target.value) })}
-              >
-                {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
-                  <option
-                    key={n}
-                    value={n}
-                    disabled={!validParty({ ...config, adults: n })}
-                  >
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {t("Crianças")}
-              <select
-                value={config.children || 0}
-                onChange={(e) => global({ children: Number(e.target.value) })}
-              >
-                {Array.from({ length: 9 }, (_, n) => (
-                  <option
-                    key={n}
-                    value={n}
-                    disabled={partyTotal({ ...config, children: n }) > 9}
-                  >
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {t("Cabine")}
-              <select
-                value={config.cabin}
-                onChange={(e) => global({ cabin: e.target.value })}
-              >
-                <option value="economy">{t("Econômica")}</option>
-                <option value="premium-economy">
-                  {t("Econômica premium")}
-                </option>
-                <option value="business">{t("Executiva")}</option>
-                <option value="first">{t("Primeira classe")}</option>
-              </select>
-            </label>
-          </div>
-          {currencySettings}
-          <details className="infant-options">
-            <summary>
-              {t("Bebês (opcional)")}
-              {(config.infants_in_seat || 0) + (config.infants_on_lap || 0) >
-                0 && (
-                <span>
-                  {(config.infants_in_seat || 0) + (config.infants_on_lap || 0)}
-                </span>
-              )}
-            </summary>
-            <div className="two-fields">
-              {(["infants_in_seat", "infants_on_lap"] as const).map((key) => (
-                <label key={key}>
-                  {key === "infants_in_seat"
-                    ? t("Bebês com assento")
-                    : t("Bebês no colo")}
-                  <select
-                    value={config[key] || 0}
-                    onChange={(e) => global({ [key]: Number(e.target.value) })}
-                  >
-                    {Array.from({ length: 9 }, (_, n) => (
-                      <option
-                        key={n}
-                        value={n}
-                        disabled={!validParty({ ...config, [key]: n })}
-                      >
-                        {n}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ))}
-            </div>
-            <p className="help">
-              {t(
-                "Máximo de nove passageiros. Cada bebê no colo precisa de um adulto.",
-              )}
-            </p>
-          </details>
-          {directionTabs}
-          <DepartureWindow
-            key={legDirection}
-            leg={leg}
-            onChange={patch}
-            title={
-              legDirection === "inbound"
-                ? t("Intervalo de saída da volta")
-                : t("Intervalo de saída da ida")
-            }
-            onComplete={
-              config.inbound &&
-              !editing &&
-              !autoAdvanced.current &&
-              legDirection === "outbound"
-                ? completeOutbound
-                : undefined
-            }
-          />
+          <ul>
+            {visible.map((problem) => (
+              <li key={problem.field + (problem.side || "")}>
+                <a
+                  href={`#${uid}-${problem.field}`}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    focusField(problem.field);
+                  }}
+                >
+                  {problem.message}
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
-      {!alertsOnly && general && step === 1 && (
-        <>
-          {directionTabs}
-          {legDirection === "inbound" && (
-            <Button
-              type="button"
-              variant="ghost"
-              className="copy-preferences"
-              onClick={() =>
-                global({
-                  inbound: {
-                    ...leg,
-                    stops: [...config.outbound.stops],
-                    max_duration: config.outbound.max_duration,
-                    max_layover: config.outbound.max_layover,
-                    airlines: [...config.outbound.airlines],
-                  },
-                })
-              }
-            >
-              {t("Usar as preferências da ida")}
-            </Button>
-          )}
-          {preferences}
-        </>
+      {offscreen && (
+        <p className="form-error" id={errorId} role="alert" tabIndex={-1} data-form-error>
+          <CircleAlert size={16} aria-hidden="true" />
+          <span>{offscreen}</span>
+        </p>
       )}
-      {!alertsOnly && general && step === 2 && (
-        <>
-          <div className="search-review">
-            <strong>
-              {config.origins.join(" / ")} → {config.destinations.join(" / ")}
-            </strong>
-            <span>
-              {config.inbound ? t("Ida e volta") : t("Só ida")} ·{" "}
-              {partyLabel(config)} ·
-              {config.checked_bags
-                ? t(config.checked_bags === 1 ? "{0} mala na pesquisa" : "{0} malas na pesquisa", [config.checked_bags])
-                : t("Taxas de bagagem não adicionadas")}
+      {general && !alertsOnly && step === 0 && (
+        <div className="wizard-stage trip-fields">
+          <div className="field trip-type">
+            <span className="field-label" id={ids.tripType}>
+              {t("Tipo de viagem")}
             </span>
-            <span>{({economy: t("Econômica"), "premium-economy": t("Econômica premium"), business: t("Executiva"), first: t("Primeira classe")})[config.cabin]}</span>
-            {(["outbound", "inbound"] as const).map((side) => {
-              const selection = config[side];
-              if (!selection) return null;
-              return <section className="review-leg" key={side}>
-                <strong>{side === "outbound" ? t("Ida") : t("Volta")} · {legDates(selection, true)}</strong>
-                <p>{windowStamp(selection.start)} → {windowStamp(selection.end)}</p>
-                <p>{t("Escalas permitidas")}: {selection.stops.map((stops) => stops === 0 ? t("Direto") : stops === 1 ? t("1 escala") : t("2 ou mais")).join(" · ")}</p>
-                <p>{t("Duração máxima da viagem")}: {selection.max_duration == null ? t("Sem limite de duração") : duration(selection.max_duration)}</p>
-                <p>{t("Companhia aérea")}: {selection.airlines.length ? selection.airlines.join(" / ") : t("Todas as companhias")}</p>
-                <p>{t("Máximo por conexão")}: {selection.max_layover == null ? t("Sem limite") : duration(selection.max_layover)}</p>
-                {selection.arrival_before && <p>{t("Chegar até")}: {windowStamp(selection.arrival_before)}</p>}
-                <div className="wizard-actions">
-                  <Button type="button" variant="ghost" onClick={() => go(0, side)}>{t("Editar viagem")}</Button>
-                  <Button type="button" variant="ghost" onClick={() => go(1, side)}>{t("Editar preferências")}</Button>
-                </div>
-              </section>;
-            })}
+            <div className="segmented segmented-fill" role="group" aria-labelledby={ids.tripType}>
+              <button type="button" aria-pressed={!config.inbound} onClick={() => setTripType(false)}>
+                {t("Somente ida")}
+              </button>
+              <button type="button" aria-pressed={!!config.inbound} onClick={() => setTripType(true)}>
+                {t("Ida e volta")}
+              </button>
+            </div>
           </div>
-          <label className="monitor-name">
-            {t("Nome da viagem (opcional)")}
+          <div className="route-fields">
+            <div className="route-field" id={`${uid}-origins`}>
+              <AirportPicker
+                label={t("Origem")}
+                field="origin"
+                error={problemOf("origins")}
+                onSelected={() => {
+                  // On to the destination search, or past it when it is already filled.
+                  const next = form.current?.querySelector<HTMLInputElement>('[data-airport-field="destination"] input');
+                  if (next) next.focus();
+                  else focusAfter(`${uid}-destinations`);
+                }}
+                values={config.origins}
+                onChange={(v) => global({ origins: v })}
+                airports={airports}
+              />
+            </div>
+            <button
+              type="button"
+              className="swap-button"
+              aria-label={t("Inverter origem e destino")}
+              disabled={!config.origins.length && !config.destinations.length}
+              onClick={() => global({ origins: config.destinations, destinations: config.origins })}
+            >
+              <ArrowLeftRight size={18} aria-hidden="true" />
+            </button>
+            <div className="route-field" id={`${uid}-destinations`}>
+              <AirportPicker
+                label={t("Destino")}
+                field="destination"
+                error={problemOf("destinations")}
+                onSelected={() => focusAfter(`${uid}-destinations`)}
+                values={config.destinations}
+                onChange={(v) => global({ destinations: v })}
+                airports={airports}
+              />
+            </div>
+          </div>
+          <section
+            className="list-section passengers-field"
+            id={`${uid}-party`}
+            data-field="party"
+            aria-labelledby={ids.passengers}
+            aria-describedby={partyError ? errorId + "-party" : undefined}
+          >
+            <div className="list-section-heading">
+              <h3 className="list-section-title" id={ids.passengers}>
+                {t("Passageiros")}
+              </h3>
+              <span className="party-total">{partyLabel(config)}</span>
+            </div>
+            <div className={clsx("list-group", partyError && "is-invalid")}>
+              {counter("adults", t("Adultos"), t("Diminuir adultos"), t("Aumentar adultos"))}
+              {counter("children", t("Crianças"), t("Diminuir crianças"), t("Aumentar crianças"))}
+              <details className="infant-options" open={infants > 0}>
+                <summary className="list-row">
+                  <span className="list-row-label">{t("Bebês (opcional)")}</span>
+                  {infants > 0 && <span className="list-row-detail">{infants}</span>}
+                </summary>
+                {counter(
+                  "infants_in_seat",
+                  t("Bebês com assento"),
+                  t("Diminuir bebês com assento"),
+                  t("Aumentar bebês com assento"),
+                )}
+                {counter(
+                  "infants_on_lap",
+                  t("Bebês no colo"),
+                  t("Diminuir bebês no colo"),
+                  t("Aumentar bebês no colo"),
+                )}
+              </details>
+            </div>
+            <p className="list-section-footer">
+              {t("Máximo de nove passageiros. Cada bebê no colo precisa de um adulto.")}
+            </p>
+            {partyError && <FieldError id={errorId + "-party"}>{partyError}</FieldError>}
+          </section>
+          <div className="trip-options-row">
+            <div className="field">
+              <label className="field-label" htmlFor={ids.cabin}>
+                {t("Cabine")}
+              </label>
+              <select id={ids.cabin} value={config.cabin} onChange={(e) => global({ cabin: e.target.value })}>
+                {["economy", "premium-economy", "business", "first"].map((cabin) => (
+                  <option key={cabin} value={cabin}>
+                    {cabinName(cabin)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label className="field-label" htmlFor={ids.currency}>
+                {t("Moeda da pesquisa")}
+              </label>
+              <select
+                id={ids.currency}
+                value={currency}
+                aria-describedby={ids.currency + "-help"}
+                onChange={(e) => {
+                  setCurrencyNeedsReview(true);
+                  global({
+                    currency: e.target.value,
+                    target_cents: null,
+                    min_drop_cents: 5000,
+                  });
+                }}
+              >
+                {popular.length > 0 && (
+                  <optgroup label={t("Mais usadas")}>
+                    {popular.map((code) => (
+                      <option key={code} value={code}>
+                        {currencyLabel(code)}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {others.length > 0 && (
+                  <optgroup label={t("Todas as moedas")}>
+                    {others.map((code) => (
+                      <option key={code} value={code}>
+                        {currencyLabel(code)}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+              <p className="field-help" id={ids.currency + "-help"}>
+                {t("Ao trocar a moeda, a meta é limpa e a queda mínima volta a 50 na nova moeda.")}
+              </p>
+            </div>
+          </div>
+          <div className="dates-field" id={`${uid}-window`}>
+            {legTabs}
+            <div className="leg-panel" {...panel}>
+              <DepartureWindow
+                key={legDirection}
+                leg={leg}
+                onChange={patch}
+                error={problemOf("window")}
+                earliest={today}
+                keepSaved={editing}
+                title={legDirection === "inbound" ? t("Intervalo de saída da volta") : t("Intervalo de saída da ida")}
+                onComplete={
+                  config.inbound && !editing && !autoAdvanced.current && legDirection === "outbound"
+                    ? completeOutbound
+                    : undefined
+                }
+              />
+            </div>
+          </div>
+        </div>
+      )}
+      {general && !alertsOnly && step === 1 && (
+        <div className="wizard-stage">
+          {legTabs}
+          <div className="leg-panel" {...panel}>
+            {legDirection === "inbound" && (
+              <Button
+                type="button"
+                variant="outline"
+                size="small"
+                className="copy-preferences"
+                onClick={() =>
+                  global({
+                    inbound: {
+                      ...leg,
+                      stops: [...config.outbound.stops],
+                      max_duration: config.outbound.max_duration,
+                      max_layover: config.outbound.max_layover,
+                      airlines: [...config.outbound.airlines],
+                    },
+                  })
+                }
+              >
+                {t("Usar as preferências da ida")}
+              </Button>
+            )}
+            {preferences}
+          </div>
+        </div>
+      )}
+      {general && !alertsOnly && step === 2 && (
+        <div className="wizard-stage">
+          <section className="review-summary" aria-label={t("Resumo da viagem")}>
+            <RouteCodes config={config} className="review-codes" />
+            <RoutePlaces config={config} airports={airports} className="review-places" />
+            <ul className="review-chips">
+              <li className="info-chip">{config.inbound ? t("Ida e volta") : t("Somente ida")}</li>
+              <li className="info-chip">{partyLabel(config)}</li>
+              <li className="info-chip">{cabinName(config.cabin)}</li>
+              <li className="info-chip">
+                {config.checked_bags
+                  ? t(config.checked_bags === 1 ? "{0} mala na pesquisa" : "{0} malas na pesquisa", [
+                      config.checked_bags,
+                    ])
+                  : t("Taxas de bagagem não adicionadas")}
+              </li>
+            </ul>
+          </section>
+          {SIDES.map((side) => {
+            const selection = config[side];
+            if (!selection) return null;
+            return (
+              <section className="list-section review-leg" key={side} aria-labelledby={`${uid}-review-${side}`}>
+                <h3 className="list-section-title" id={`${uid}-review-${side}`}>
+                  {side === "outbound" ? t("Ida") : t("Volta")} · {legDates(selection, true)}
+                </h3>
+                <dl className="list-group review-list">
+                  <div className="list-row">
+                    <dt>{t("Janela de saída")}</dt>
+                    <dd>
+                      {formatDateTime(selection.start, "numeric")} – {formatDateTime(selection.end, "numeric")}
+                    </dd>
+                  </div>
+                  <div className="list-row">
+                    <dt>{t("Escalas permitidas")}</dt>
+                    <dd>{selection.stops.map(stopsName).join(" · ")}</dd>
+                  </div>
+                  <div className="list-row">
+                    <dt>{t("Duração máxima da viagem")}</dt>
+                    <dd>
+                      {selection.max_duration == null ? t("Sem limite de duração") : formatDuration(selection.max_duration)}
+                    </dd>
+                  </div>
+                  <div className="list-row">
+                    <dt>{t("Companhia aérea")}</dt>
+                    <dd>{selection.airlines.length ? selection.airlines.join(" / ") : t("Todas as companhias")}</dd>
+                  </div>
+                  <div className="list-row">
+                    <dt>{t("Máximo por conexão")}</dt>
+                    <dd>{selection.max_layover == null ? t("Sem limite") : formatDuration(selection.max_layover)}</dd>
+                  </div>
+                  {selection.arrival_before && (
+                    <div className="list-row">
+                      <dt>{t("Chegar até")}</dt>
+                      <dd>{formatDateTime(selection.arrival_before, "numeric")}</dd>
+                    </div>
+                  )}
+                </dl>
+                <div className="review-actions">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="small"
+                    onClick={() => {
+                      setError("");
+                      go(0, side);
+                    }}
+                  >
+                    {t("Editar viagem")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="small"
+                    onClick={() => {
+                      setError("");
+                      go(1, side);
+                    }}
+                  >
+                    {t("Editar preferências")}
+                  </Button>
+                </div>
+              </section>
+            );
+          })}
+          <div className="field monitor-name">
+            <label className="field-label" htmlFor={ids.name}>
+              {t("Nome da viagem (opcional)")}
+            </label>
             <input
+              id={ids.name}
               maxLength={70}
               value={config.name}
               placeholder={suggestedName(config)}
+              aria-describedby={ids.name + "-help"}
               onChange={(e) => global({ name: e.target.value })}
             />
-            <small>{t("Sem nome? Usaremos a rota e a data da viagem.")}</small>
-          </label>
+            <p className="field-help" id={ids.name + "-help"}>
+              {t("Sem nome? Usaremos a rota e a data da viagem.")}
+            </p>
+          </div>
+          <h3 className="wizard-section-title">{t("Alertas")}</h3>
           {alerts}
-        </>
+        </div>
       )}
       {!general && !alertsOnly && (
         <>
-          {directionTabs}
-          {preferences}
-          <details className="flight-more-options">
-            <summary>
-              <SlidersHorizontal size={15} />
-              {t("Horários e conexões")}
-              <span className="quick-window-summary">
-                {windowStamp(leg.start)} → {windowStamp(leg.end)}
-                {leg.arrival_before ? " · " + t("Chegada definida") : ""}
-                {leg.max_layover !== null
-                  ? " · " + t("Conexão até {0}", [duration(leg.max_layover)])
-                  : ""}
-              </span>
-              <ChevronRight size={15} />
-            </summary>
-            <div className="flight-more-grid">
-              <DepartureWindow key={legDirection} leg={leg} onChange={patch} />
-              <section>
-                <h3>{t("Chegada e conexões")}</h3>
-                {connections}
-              </section>
-            </div>
-          </details>
+          {legTabs}
+          <div className="leg-panel" {...panel}>
+            {preferences}
+            <details className="flight-more-options">
+              <summary>
+                <SlidersHorizontal size={18} aria-hidden="true" />
+                <span className="flight-more-title">
+                  <strong>{t("Horários e conexões")}</strong>
+                  <span className="quick-window-summary">
+                    {formatDateTime(leg.start, "numeric")} – {formatDateTime(leg.end, "numeric")}
+                    {leg.arrival_before ? " · " + t("Chegada definida") : ""}
+                    {leg.max_layover !== null ? " · " + t("Conexão até {0}", [formatDuration(leg.max_layover)]) : ""}
+                  </span>
+                </span>
+              </summary>
+              <div className="flight-more-grid">
+                <DepartureWindow
+                  key={legDirection}
+                  leg={leg}
+                  onChange={patch}
+                  error={problemOf("window")}
+                  earliest={today}
+                  keepSaved
+                />
+                <section className="list-section">
+                  <h3 className="list-section-title">{t("Chegada e conexões")}</h3>
+                  {connections}
+                </section>
+              </div>
+            </details>
+          </div>
         </>
       )}
-      {alertsOnly && alerts}
-      {error && (
-        <p id={errorId} className="form-error" role="alert" tabIndex={-1} data-form-error>
-          {error}
-        </p>
-      )}
+      {alertsOnly && <div className="wizard-stage">{alerts}</div>}
       {(general || alertsOnly) && (
-        <div className="filter-footer">
-          <div className="wizard-actions">
-            {general &&
-              !editing &&
-              (step > 0 || (step === 0 && legDirection === "inbound")) && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    (step === 0 || step === 1) && legDirection === "inbound"
-                      ? setDirection("outbound")
-                      : move(step - 1)
-                  }
-                >
-                  <ArrowLeft size={16} />
-                  {t("Voltar")}
-                </Button>
-              )}
-            <Button type="submit" size="large" disabled={saving} className="full">
-              {saving ? (
-                <LoaderCircle size={17} className="spin" />
-              ) : general && !editing && step < 2 ? (
-                <ArrowRight size={17} />
-              ) : (
-                <Save size={17} />
-              )}{" "}
-              {alertsOnly
-                ? t("Salvar alertas")
-                : general
-                  ? !editing && step < 2
-                    ? (step === 0 || step === 1) &&
-                      config.inbound &&
-                      legDirection === "outbound"
-                      ? t("Continuar para a volta")
-                      : t("Continuar")
-                    : t("Salvar viagem")
-                  : t("Salvar filtros")}
+        <div className={clsx("wizard-footer", draftSaved && "has-note")}>
+          {back && (
+            <Button type="button" variant="outline" size="large" className="wizard-back" onClick={back}>
+              <ArrowLeft size={18} aria-hidden="true" />
+              {t("Voltar")}
             </Button>
-          </div>
+          )}
+          {draftSaved && (
+            <span className="wizard-saved">
+              <Check size={14} aria-hidden="true" />
+              {t("Rascunho salvo neste navegador")}
+            </span>
+          )}
+          <Button type="submit" size="large" disabled={saving} className="wizard-next">
+            {saving && <LoaderCircle size={18} className="spin" aria-hidden="true" />}
+            <span>{primary}</span>
+            {!saving && advancing && <ArrowRight size={18} aria-hidden="true" />}
+          </Button>
         </div>
       )}
     </form>

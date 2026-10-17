@@ -1,547 +1,1273 @@
-/* Administrative workspace: bounded lists and progressive configuration. */
+/* =============================================================================
+   Administration (F4): sections as a segmented control, fare source health,
+   deliveries, channels (grouped list), users, retention and the task pages.
+   Loaded with AdminPanel: every administration rule lives here, so the order
+   in which the lazy chunks arrive never changes the result. Tables, filters
+   and pagination come from data-view.css; base components from style.css.
+   Tokens from theme.css only. Breakpoints: <=479 / 480-767 / 768-1023 / >=1024.
+   ============================================================================= */
+
+/* ---------- Workspace and sections --------------------------------------------- */
 .admin-workspace {
-  max-width: 1400px;
+  display: grid;
+  gap: 20px;
+  min-width: 0;
 }
-.admin-tabs,
-.admin-channel-tabs {
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--border);
+.admin-panel {
+  min-width: 0;
+}
+/* A result above the section's card (AdminUsers keeps it across its views). */
+.admin-panel > .notice:not(.is-empty) {
   margin-bottom: 16px;
-  overflow-x: auto;
 }
-.admin-tabs > button,
-.admin-channel-tabs > button {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: transparent;
-  border: 0;
-  border-bottom: 3px solid transparent;
-  padding: 11px 16px;
-  color: var(--muted);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
+.admin-panel:focus-visible {
+  outline-offset: 4px;
+  border-radius: var(--radius-lg);
 }
-.admin-tabs > button[aria-selected="true"],
-.admin-channel-tabs > button[aria-selected="true"] {
-  color: var(--primary);
-  border-bottom-color: currentColor;
-}
-.admin-tabs > button:focus-visible,
-.admin-channel-tabs > button:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: -3px;
-}
-.admin-channel-tabs small {
-  font-size: 11px;
-  font-weight: 500;
-}
-.admin-log,
-.admin-retention,
-.admin-future-channel {
-  padding: 20px;
-}
-.admin-log .section-heading {
-  margin-bottom: 14px;
-}
-.admin-log h2,
-.admin-retention h2,
-.admin-future-channel h2 {
-  font-size: 18px;
-  margin: 0 0 6px;
-}
-.admin-log .section-heading p {
-  margin: 0;
-  font-size: 13px;
-}
-.admin-filters {
+.admin-stack {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 14px;
-}
-.admin-filters label,
-.admin-cleanup-form label {
-  display: grid;
-  gap: 5px;
-  font-size: 13px;
-  font-weight: 600;
+  gap: 20px;
   min-width: 0;
 }
-.admin-filters input,
-.admin-filters select,
-.admin-cleanup-form input {
-  width: 100%;
-  min-width: 0;
-  height: 38px;
-  padding: 6px 9px;
-  font-size: 14px;
-}
-.admin-filter-actions {
-  grid-column: span 2;
+/* Envios | Canais | Usuários | Auditoria | Retenção: ARIA tabs in the segmented style. */
+.admin-tabs {
   display: flex;
-  align-items: end;
-  justify-content: flex-end;
-  gap: 6px;
+  width: -webkit-fit-content;
+  width: -moz-fit-content;
+  width: fit-content;
+  max-width: 100%;
 }
-.admin-log-summary {
-  display: flex;
+.segmented.admin-tabs > button {
+  flex: 0 0 auto;
+  min-width: 104px;
+  padding: 0 18px;
+}
+/* Phones: the tabs scroll sideways and stop on each one. */
+@media (max-width: 767px) {
+  .admin-tabs {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 2px;
+    scrollbar-width: none;
+  }
+  .admin-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .segmented.admin-tabs > button {
+    min-width: 0;
+    padding: 0 16px;
+    scroll-snap-align: start;
+  }
+}
+
+/* ---------- Cards of the administration ------------------------------------------ */
+.admin-card {
+  display: grid;
   gap: 16px;
+  min-width: 0;
+}
+/* The grid gap spaces the parts; their own top margins would add up. */
+.admin-card > .table-frame,
+.admin-card > .pager,
+.admin-card > .pager-summary {
+  margin-top: 0;
+}
+.admin-card-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   justify-content: space-between;
-  font-size: 12px;
-  padding: 10px 0;
+  gap: 12px 16px;
 }
-.admin-log-scroll {
-  max-height: 520px;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+.admin-card-heading > div:first-child {
+  flex: 1 1 280px;
+  min-width: 0;
 }
-.admin-log-table {
-  width: 100%;
-  font-size: 13px;
-  border-collapse: collapse;
-}
-.admin-log-table th {
-  position: sticky;
-  top: 0;
-  background: var(--surface);
-  z-index: 1;
-  text-align: left;
-  white-space: nowrap;
-}
-.admin-log-table td,
-.admin-log-table th {
-  padding: 9px 10px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-}
-.admin-log-table td small,
-.admin-metadata small {
+.admin-card-heading h2 {
   display: block;
-  line-height: 1.45;
-  color: var(--muted);
   overflow-wrap: anywhere;
 }
-.admin-log-table td:nth-child(2) {
-  max-width: 220px;
+.admin-card-heading p {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
 }
-.admin-subject {
+.admin-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.admin-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.admin-summary strong {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 20px;
+}
+.admin-footnote {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* Facts in tiles: fare source, retention. */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 12px;
+}
+.admin-stats > div {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+.admin-stats dt {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+}
+.admin-stats dd {
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.admin-stats dd small {
   display: block;
-  max-width: 260px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
 }
-.admin-log-table .delivery-badge {
-  font-size: 11px;
-  white-space: nowrap;
+/* Disclosure inside a card: manual cleanup, Google setup, receipts, tests. */
+.admin-disclosure {
+  min-width: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
 }
-.delivery-warning {
+.admin-disclosure > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 16px;
+  border-radius: inherit;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  list-style: none;
+}
+.admin-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+.admin-disclosure > summary > svg {
+  flex-shrink: 0;
+  color: var(--action);
+}
+.admin-disclosure > summary > span {
+  flex: 1;
+  min-width: 0;
+}
+.admin-disclosure > summary::after {
+  content: "";
+  flex-shrink: 0;
+  width: 8px;
+  height: 14px;
+  margin-left: auto;
+  background-color: var(--tertiary);
+  -webkit-mask: var(--icon-chevron) center / contain no-repeat;
+  mask: var(--icon-chevron) center / contain no-repeat;
+  transform: rotate(90deg);
+  transition: transform var(--dur-fast) var(--ease-standard);
+}
+.admin-disclosure[open] > summary {
+  border-bottom: 1px solid var(--separator);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+.admin-disclosure[open] > summary::after {
+  transform: rotate(-90deg);
+}
+.admin-disclosure-body {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px 16px 16px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .admin-disclosure > summary:hover {
+    background: var(--fill-4);
+  }
+}
+.inline-icon {
+  display: inline-block;
+  margin-left: 4px;
+  vertical-align: -2px;
+}
+
+/* ---------- Fare source -------------------------------------------------------------- */
+.source-card {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.source-card-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.source-card-head > div {
+  flex: 1;
+  min-width: 0;
+}
+.source-card-head h2 {
+  display: block;
+  font-size: 17px;
+  line-height: 22px;
+}
+.source-card-head p {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+.source-card-head > .status-pill {
+  flex-shrink: 0;
+}
+.source-card-icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--fill-3);
+  color: var(--muted);
+}
+.source-card.is-active .source-card-icon {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+.source-card.is-warning .source-card-icon {
   background: var(--warning-bg);
   color: var(--warning-text);
 }
-.admin-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 12px;
+.source-card.is-danger .source-card-icon {
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
-.admin-pagination > div {
-  display: flex;
-  gap: 6px;
+.source-card-message {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 20px;
 }
-.admin-message {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font: inherit;
-  font-size: 13px;
-  line-height: 1.6;
-  max-height: 45vh;
-  overflow: auto;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  padding: 14px;
-  border-radius: 8px;
+.source-card.is-warning .source-card-message {
+  background: var(--warning-bg);
+  color: var(--warning-text);
 }
-.admin-detail-heading {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
+.source-card.is-danger .source-card-message {
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
-.admin-metadata {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin: 16px 0;
+.source-facts {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
-.admin-metadata dt {
-  font-size: 12px;
-  color: var(--muted);
-}
-.admin-metadata dd {
-  margin: 3px 0 0;
-  font-size: 13px;
-  overflow-wrap: anywhere;
-}
-.admin-email-settings {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  align-items: start;
-}
-.admin-email-settings .google-mail-card {
-  margin: 0;
-  padding: 18px;
-}
-.admin-email-settings .google-mail-heading p {
-  font-size: 13px;
-  margin: 5px 0;
-}
-.admin-email-settings .google-mail-heading {
-  gap: 10px;
-}
-.admin-email-settings .google-mail-icon {
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
-}
-.admin-email-settings .add-mail-account {
-  max-width: none;
-  gap: 8px;
-  margin-top: 14px;
-}
-.admin-email-settings .google-mail-actions {
-  margin: 10px 0;
-}
-.admin-email-settings .settings-card {
-  padding: 18px;
-}
-.admin-email-settings .help {
-  font-size: 12px;
-  line-height: 1.5;
-  margin: 8px 0;
-}
-.admin-email-settings .google-account {
+/* The last failure is a sentence: a smaller value keeps the tiles even. */
+.source-facts dd {
   font-size: 15px;
-  margin: 10px 0;
+  line-height: 20px;
 }
-.admin-policy {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  padding: 14px 0;
-  font-size: 13px;
-}
-.admin-retention {
-  max-width: 850px;
-}
-.admin-retention p {
-  font-size: 13px;
-  line-height: 1.6;
-}
-.admin-cleanup-form {
-  display: flex;
-  align-items: end;
-  gap: 12px;
-}
-.admin-cleanup-form label {
-  width: 210px;
-}
-.admin-cleanup-preview {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  padding: 16px;
-  border-radius: 8px;
-  margin-top: 16px;
-}
-.admin-cleanup-preview .button {
-  margin-top: 14px;
-}
-.admin-workspace .audit-panel {
-  margin: 0;
-}
-.admin-workspace .audit-panel .table-scroll {
-  max-height: 520px;
-  overflow: auto;
-}
-@media (max-width: 1100px) {
-  .admin-email-settings {
-    grid-template-columns: 1fr;
-  }
-  .admin-filters {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .admin-filter-actions {
-    grid-column: 1/-1;
-  }
-  .admin-log-table {
-    min-width: 780px;
+@media (max-width: 1023px) {
+  .source-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-@media (max-width: 600px) {
-  .admin-log,
-  .admin-retention,
-  .admin-future-channel {
-    padding: 14px;
-  }
-  .admin-tabs > button,
-  .admin-channel-tabs > button {
-    padding: 10px 12px;
-    font-size: 13px;
-  }
-  .admin-filters {
-    grid-template-columns: 1fr 1fr;
-  }
-  .admin-filter-actions {
-    justify-content: stretch;
-  }
-  .admin-filter-actions .button {
-    flex: 1;
-  }
-  .admin-log-summary,
-  .admin-pagination {
-    align-items: start;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .admin-pagination {
-    flex-direction: row;
-  }
-  .admin-log-scroll {
-    max-height: 420px;
-  }
-  .admin-metadata {
-    grid-template-columns: 1fr;
-  }
-  .admin-cleanup-form {
-    align-items: stretch;
-    flex-direction: column;
-  }
-  .admin-cleanup-form label {
-    width: 100%;
-  }
-  .admin-email-settings .google-mail-heading {
-    flex-wrap: wrap;
-  }
-  .admin-channel-tabs small {
-    display: none;
+@media (max-width: 479px) {
+  .source-card-head {
+    align-items: flex-start;
   }
 }
 
-@media (max-width: 600px) {
-  .admin-log-table {
-    min-width: 0;
-    display: block;
-  }
-  .admin-log-table thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-  .admin-log-table tbody {
-    display: block;
-  }
-  .admin-log-table tr {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 6px 10px;
-    padding: 12px;
-    border-bottom: 1px solid var(--border);
-  }
-  .admin-log-table td {
-    display: block;
-    padding: 0;
-    border: 0;
-    min-width: 0;
-  }
-  .admin-log-table td:nth-child(1) {
-    grid-column: 1;
-    grid-row: 1;
-    font-size: 12px;
-    color: var(--muted);
-  }
-  .admin-log-table td:nth-child(2) {
-    grid-column: 1/-1;
-    grid-row: 3;
-    max-width: none;
-  }
-  .admin-log-table td:nth-child(3) {
-    grid-column: 1/-1;
-    grid-row: 2;
-  }
-  .admin-log-table td:nth-child(4) {
-    grid-column: 1;
-    grid-row: 4;
-    font-size: 12px;
-  }
-  .admin-log-table td:nth-child(5) {
-    grid-column: 2;
-    grid-row: 4;
-  }
-  .admin-log-table td:nth-child(6) {
-    grid-column: 2;
-    grid-row: 1;
-    justify-self: end;
-  }
-  .admin-log-table .admin-subject {
-    max-width: none;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-  .admin-log-table td:nth-child(3) > small {
-    display: none;
-  }
-}
-.admin-users {
-  padding: 20px;
-}
-.admin-user-search {
-  display: flex;
-  gap: 8px;
-  margin: 14px 0;
-}
-.admin-user-search label {
-  flex: 1;
-  max-width: 480px;
-}
-.admin-user-search input {
-  width: 100%;
-}
-.admin-user-list {
-  max-height: 530px;
-  overflow: auto;
-}
-.admin-user-list article {
-  display: flex;
-  justify-content: space-between;
+/* ---------- Deliveries --------------------------------------------------------------- */
+.channel-name {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid var(--border);
-  padding: 12px 0;
+  gap: 6px;
+  max-width: 100%;
+  white-space: nowrap;
 }
-.admin-user-list article > div {
+.channel-name > svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.delivery-table .col-channel {
+  width: 116px;
+}
+.delivery-table .col-status {
+  width: 158px;
+}
+.delivery-table .col-when {
+  width: 120px;
+}
+.delivery-table .col-action {
+  width: 68px;
+}
+.delivery-table .cell-when {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+@media (min-width: 768px) and (max-width: 1279px) {
+  .delivery-table .col-channel {
+    width: 104px;
+  }
+  .delivery-table .col-status {
+    width: 136px;
+  }
+  .delivery-table .col-when {
+    width: 104px;
+  }
+  .delivery-table .col-action {
+    width: 60px;
+  }
+}
+/* Stacked: the subject (up to two lines) beside the chevron, the status on a
+   line of its own, the recipient, then channel and date as "name  value"
+   lines across the full width. */
+@media (max-width: 767px) {
+  .delivery-table tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "message action"
+      "status status"
+      "recipient recipient"
+      "channel channel"
+      "when when";
+  }
+  .delivery-table .cell-message {
+    grid-area: message;
+  }
+  .delivery-table .cell-status {
+    grid-area: status;
+    justify-self: start;
+  }
+  .delivery-table .cell-recipient {
+    grid-area: recipient;
+  }
+  .delivery-table .cell-recipient .cell-title {
+    font-weight: 500;
+  }
+  .delivery-table .cell-channel {
+    grid-area: channel;
+  }
+  .delivery-table .cell-when {
+    grid-area: when;
+    color: var(--text);
+  }
+  .delivery-table .cell-action {
+    grid-area: action;
+  }
+}
+
+/* Message details (task page). */
+.delivery-detail .task-body {
+  display: grid;
+  gap: 16px;
+}
+.delivery-summary,
+.delivery-message {
+  display: grid;
+  gap: 16px;
   min-width: 0;
 }
-.admin-user-list small {
+.delivery-summary-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.delivery-summary-head h2 {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.delivery-message h2 {
+  font-size: 17px;
+  line-height: 22px;
+}
+.delivery-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  font-size: 14px;
+  line-height: 20px;
+}
+.delivery-error > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.admin-message {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 21px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* Label and value rows; inside a card the group is tinted, as in macOS. */
+.detail-list > .list-row {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.detail-list dt {
+  flex-shrink: 0;
+  max-width: 45%;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 22px;
+}
+.detail-list dd {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.detail-list dd small {
   display: block;
   color: var(--muted);
   font-size: 13px;
+  line-height: 18px;
+}
+.card .detail-list {
+  background: var(--surface-soft);
+  box-shadow: none;
+}
+@media (max-width: 479px) {
+  .detail-list > .list-row {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .detail-list dt {
+    max-width: none;
+  }
+  .detail-list dd {
+    text-align: left;
+  }
+}
+
+/* ---------- Retention -------------------------------------------------------------------- */
+.retention-scope {
+  justify-self: start;
+}
+.retention-policy {
+  font-size: 15px;
+  line-height: 22px;
+}
+.retention-form,
+.cleanup-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+.retention-form > .field,
+.cleanup-form > .field {
+  flex: 1 1 200px;
+  max-width: 260px;
+}
+.manual-cleanup > summary > svg {
+  color: var(--danger-text);
+}
+.cleanup-preview {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--danger-border);
+}
+.cleanup-count {
+  color: var(--danger-text);
+}
+@media (max-width: 479px) {
+  .retention-scope {
+    justify-self: stretch;
+  }
+  .retention-scope > button {
+    flex-basis: 0;
+  }
+  .retention-form > .field,
+  .cleanup-form > .field {
+    max-width: none;
+  }
+  .retention-form > .button,
+  .cleanup-form > .button,
+  .cleanup-preview > .button {
+    width: 100%;
+  }
+}
+
+/* ---------- Channels ---------------------------------------------------------------------- */
+.admin-channels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+@media (min-width: 1024px) {
+  .admin-channels {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+  .channel-nav {
+    position: -webkit-sticky;
+    position: sticky;
+    top: calc(var(--shell-top) + 16px);
+  }
+}
+.channel-link {
+  gap: 12px;
+  color: var(--text);
+}
+/* The selected channel keeps its tint on hover and press. */
+.list-row.channel-link.is-selected {
+  background-color: var(--sidebar-selected);
+}
+.channel-link.is-selected .channel-link-name {
+  font-weight: 600;
+}
+.channel-link.is-disabled {
+  cursor: default;
+}
+.channel-link.is-disabled .channel-link-name {
+  color: var(--muted);
+}
+.channel-link-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.channel-link-name {
+  font-size: 15px;
+  line-height: 20px;
+}
+.channel-link-detail {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.channel-link > .status-pill {
+  flex-shrink: 0;
+}
+/* Icon tiles, as in the iOS Settings list. */
+.admin-channel-icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background: var(--action);
+  color: var(--on-accent);
+}
+.channel-link.is-disabled .admin-channel-icon {
+  background: var(--fill-2);
+  color: var(--muted);
+}
+.admin-channel-icon.is-large {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+}
+.channel-detail {
+  min-width: 0;
+}
+.channel-panel {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.channel-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.channel-panel-heading > div {
+  flex: 1;
+  min-width: 0;
+}
+.channel-panel-heading h2 {
+  display: block;
+  font-size: 22px;
+  line-height: 28px;
+  letter-spacing: -.015em;
+}
+.channel-panel-heading p {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+.channel-panel-heading > .status-pill {
+  flex-shrink: 0;
+}
+.channel-card {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.channel-card-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.channel-card-heading > div {
+  flex: 1;
+  min-width: 0;
+}
+.channel-card-heading h3 {
+  font-size: 17px;
+  line-height: 22px;
+}
+.channel-card-heading p {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+.channel-card-heading > .status-pill {
+  flex-shrink: 0;
+}
+.channel-card-icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-tint);
+  color: var(--action);
+}
+.channel-form,
+.channel-fields {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.channel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+/* Removing a configuration stands apart from saving it. */
+.channel-remove {
+  margin-left: auto;
+}
+.google-account-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.google-account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
-.admin-user-list .subtle-tag {
-  margin-left: 8px;
+.google-account > svg {
+  flex-shrink: 0;
+  color: var(--success-text);
 }
-.admin-user-actions {
-  display: flex;
-  gap: 6px;
+.mail-test {
+  padding-top: 16px;
+  border-top: 1px solid var(--separator);
 }
-.admin-account-fields {
-  border: 0;
-  padding: 0;
-  margin: 0;
+.mail-provider-choice {
   display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-tint);
+  font-size: 14px;
+  line-height: 20px;
+}
+.confirm-subject {
+  overflow-wrap: anywhere;
+}
+/* A card that opens in place (SMTP server, WhatsApp receipts and test): the
+   summary is the card's heading row. */
+.card.disclosure-card {
+  padding: 0;
+}
+.disclosure-card > details > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 14px 20px;
+  border-radius: var(--radius-lg);
+  list-style: none;
+}
+.disclosure-card > details > summary::-webkit-details-marker {
+  display: none;
+}
+.disclosure-card > details > summary::after {
+  content: "";
+  flex-shrink: 0;
+  width: 8px;
+  height: 14px;
+  margin-left: auto;
+  background-color: var(--tertiary);
+  -webkit-mask: var(--icon-chevron) center / contain no-repeat;
+  mask: var(--icon-chevron) center / contain no-repeat;
+  transform: rotate(90deg);
+  transition: transform var(--dur-fast) var(--ease-standard);
+}
+.disclosure-card > details[open] > summary {
+  border-bottom: 1px solid var(--separator);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.disclosure-card > details[open] > summary::after {
+  transform: rotate(-90deg);
+}
+.disclosure-summary {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.disclosure-summary > strong {
+  font-size: 17px;
+  line-height: 22px;
+}
+.disclosure-summary > small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+.disclosure-card > details > :not(summary) {
+  margin: 16px 20px;
+}
+.disclosure-card > details > :last-child {
+  margin-bottom: 20px;
+}
+.disclosure-card .admin-disclosure-body {
+  padding: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .disclosure-card > details > summary:hover {
+    background: var(--fill-4);
+  }
+}
+@media (max-width: 767px) {
+  .disclosure-card > details > summary {
+    padding: 12px 16px;
+  }
+  .disclosure-card > details > :not(summary) {
+    margin-right: 16px;
+    margin-left: 16px;
+  }
+}
+@media (max-width: 479px) {
+  .channel-panel-heading {
+    flex-wrap: wrap;
+  }
+  .channel-actions > .button,
+  .google-account-row > .channel-actions {
+    width: 100%;
+  }
+  .channel-remove {
+    margin-left: 0;
+  }
+}
+
+/* ---------- Users --------------------------------------------------------------------------- */
+.admin-search {
+  display: flex;
+  gap: 8px;
+  max-width: 560px;
+}
+.admin-search > .field-frame {
+  flex: 1;
+}
+.user-table .col-user {
+  width: auto;
+}
+.user-table .col-phone {
+  width: 172px;
+}
+.user-table .col-role {
+  width: 136px;
+}
+.user-table .cell-role .status-pill {
+  white-space: nowrap;
+}
+.user-table .col-quota {
+  width: 132px;
+}
+.user-table .col-monitorings {
+  width: 220px;
+}
+.user-table .col-actions {
+  width: 72px;
+}
+.user-identity {
+  display: flex;
+  align-items: center;
   gap: 12px;
   min-width: 0;
 }
-.admin-account-fields label {
+.user-identity-text {
   display: grid;
-  gap: 5px;
-  font-size: 14px;
+  min-width: 0;
 }
-.admin-account-fields .check-row {
-  display: flex;
+.cell-phone {
+  white-space: nowrap;
 }
-.admin-account-fields input,
-.admin-account-fields select {
-  width: 100%;
-}
-.admin-account-fields input[type="checkbox"] {
-  width: auto;
-}
-.admin-account-fields details > label {
-  margin: 10px 0;
-}
-.admin-user-dialog {
-  max-width: 680px;
-}
-.admin-form-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  position: sticky;
-  bottom: 0;
-  background: var(--surface);
-  padding: 14px 0 0;
-  margin-top: 10px;
-}
-.admin-cleanup-form {
-  flex-wrap: wrap;
-  margin: 14px 0;
-}
-.admin-log-scope {
+.quota {
   display: grid;
   gap: 6px;
-  max-width: 300px;
-  margin: 14px 0;
 }
-.admin-audit-actions {
+.quota-text {
+  font-size: 13px;
+  line-height: 18px;
+}
+.quota-bar {
+  display: block;
+  width: 100%;
+  max-width: 120px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--fill-2);
+}
+.quota-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--action);
+}
+.quota-bar.is-full > span {
+  background: var(--warning);
+}
+.cell-monitorings > .button {
+  max-width: 100%;
+}
+.button-count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.cell-actions {
+  text-align: right;
+}
+.cell-actions .context-menu {
+  display: inline-block;
+}
+.cell-actions .menu {
+  text-align: left;
+}
+/* 768-1279 px (from 1024 px with the sidebar), the fixed columns would leave
+   the user column a few pixels wide: the table keeps a minimum width that
+   gives it about 200 px, and its frame scrolls sideways instead. */
+@media (min-width: 768px) and (max-width: 1279px) {
+  .user-table-frame {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .user-table {
+    min-width: 820px;
+  }
+  .user-table .col-phone {
+    width: 140px;
+  }
+  .user-table .col-role {
+    width: 128px;
+  }
+  .user-table .col-quota {
+    width: 104px;
+  }
+  .user-table .col-monitorings {
+    width: 180px;
+  }
+  .user-table .col-actions {
+    width: 64px;
+  }
+}
+@media (max-width: 767px) {
+  .admin-search {
+    max-width: none;
+  }
+  .user-table tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "user actions"
+      "phone phone"
+      "role role"
+      "quota quota"
+      "monitorings monitorings";
+    gap: 6px 12px;
+  }
+  .user-table .cell-user {
+    grid-area: user;
+  }
+  .user-table .cell-actions {
+    grid-area: actions;
+  }
+  .user-table .cell-phone,
+  .user-table .cell-role,
+  .user-table .cell-quota,
+  .user-table .cell-monitorings {
+    padding-left: 44px;
+  }
+  .user-table .cell-phone {
+    grid-area: phone;
+  }
+  .user-table .cell-role {
+    grid-area: role;
+  }
+  .user-table .cell-quota {
+    grid-area: quota;
+  }
+  .user-table .cell-monitorings {
+    display: grid;
+    grid-area: monitorings;
+    justify-items: start;
+    gap: 6px;
+  }
+}
+
+/* Account forms: grouped lists as in the profile, with a sticky action bar. */
+.admin-form {
+  display: grid;
+  gap: 20px;
+  max-width: 760px;
+}
+.admin-form-sections {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+.admin-form .form-row > .field-help {
+  margin-top: 2px;
+}
+.admin-confirm {
+  align-items: flex-start;
+  padding: 0 4px;
+}
+.admin-confirm > input {
+  margin-top: 1px;
+}
+.admin-form-footer {
+  position: -webkit-sticky;
+  position: sticky;
+  bottom: calc(max(var(--shell-bottom), env(safe-area-inset-bottom, 0px)) + 12px);
+  z-index: 5;
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 10px;
-}
-@media (max-width: 600px) {
-  .admin-users {
-    padding: 14px;
-  }
-  .admin-user-list article {
-    align-items: start;
-    flex-direction: column;
-  }
-  .admin-user-actions {
-    align-self: flex-end;
-  }
-  .admin-users > .section-heading {
-    align-items: start;
-  }
-  .admin-users > .section-heading h2 {
-    font-size: 17px;
-  }
-}
-.admin-log > .section-heading,
-.admin-users > .section-heading {
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--radius-lg);
+  background: var(--material-popover);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: var(--shadow-popover);
 }
-.admin-log > .section-heading > div:first-child {
-  flex: 1 1 280px;
+@media (max-width: 479px) {
+  .admin-form-footer > .button {
+    flex: 1 1 0;
+  }
 }
-.whatsapp-panel{padding:20px;max-width:850px}.whatsapp-panel>form{margin:16px 0;max-width:650px}.whatsapp-panel .help{font-size:13px;line-height:1.6;margin:8px 0;overflow-wrap:anywhere}.whatsapp-panel .help>svg{display:inline;vertical-align:middle;margin-right:5px}.whatsapp-test{border-top:1px solid var(--border);margin-top:14px;padding-top:10px}.whatsapp-test>summary{font-size:14px;font-weight:600;cursor:pointer;padding:6px 0}.whatsapp-test>form{display:grid;gap:12px;max-width:650px}.whatsapp-panel .settings-actions{flex-wrap:wrap}.admin-message{overflow-wrap:anywhere}
 
-.admin-user-monitor-counts{color:var(--primary)!important;font-weight:500}
-.admin-monitor-dialog{max-width:960px}.admin-monitor-dialog .dialog-body{min-width:0;overscroll-behavior:contain}
-.admin-readonly{display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:7px;background:var(--surface-tint);color:var(--primary);font-size:13px;margin:0 0 12px}
-.admin-readonly svg{flex-shrink:0}.admin-monitor-filter{display:flex;gap:8px;align-items:center;margin:0 0 12px;font-size:14px}.admin-monitor-filter select{max-width:220px;min-height:40px}
-.admin-monitor-list{display:grid;gap:8px}.admin-monitor-list>button{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);text-align:left;cursor:pointer}
-.admin-monitor-list>button:hover{background:var(--surface-tint)}.admin-monitor-list>button>div{flex:1;min-width:0}.admin-monitor-list strong,.admin-monitor-list span,.admin-monitor-list small{display:block;overflow-wrap:anywhere}.admin-monitor-list small{font-size:12px;color:var(--muted);margin-top:4px}.admin-monitor-list strong{font-size:14px}.admin-monitor-list svg{flex-shrink:0}
-.admin-monitor-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:14px 0}.admin-monitor-heading h2{display:block;margin:6px 0;overflow-wrap:anywhere}.admin-monitor-heading p{font-size:15px;font-weight:600;overflow-wrap:anywhere}
-.admin-monitor-general,.admin-monitor-leg dl{margin:10px 0;display:grid;gap:9px}.admin-monitor-general{grid-template-columns:1fr 1fr}.admin-monitor-general>div,.admin-monitor-leg dl>div{min-width:0}.admin-monitor-dialog dt{font-size:12px;color:var(--muted)}.admin-monitor-dialog dd{margin:1px 0 0;font-size:14px;overflow-wrap:anywhere}.admin-monitor-legs{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:14px 0}.admin-monitor-leg{border:1px solid var(--border);border-radius:7px;padding:12px}.admin-monitor-leg h3{margin:0 0 10px}.admin-monitor-flights{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}.admin-monitor-flights th,.admin-monitor-flights td{padding:9px 7px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}.admin-monitor-flights small{display:block;font-size:12px;color:var(--muted);white-space:normal}.admin-monitor-flights th:last-child,.admin-monitor-flights td:last-child{text-align:right;white-space:nowrap}
-@media(max-width:600px){.admin-monitor-general{grid-template-columns:1fr}.admin-monitor-legs{grid-template-columns:1fr}.admin-monitor-list>button{flex-wrap:wrap}.admin-monitor-list>button>div{flex-basis:100%}.admin-monitor-list .delivery-badge{margin-right:auto}.admin-monitor-dialog .table-scroll{overflow-x:auto}.admin-monitor-flights{min-width:560px}.admin-monitor-filter select{font-size:16px}.admin-user-actions{flex-wrap:wrap}}
+/* ---------- Monitorings (read only) ----------------------------------------------------------- */
+.admin-monitor-page .task-body {
+  display: grid;
+  gap: 16px;
+}
+.admin-readonly {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-tint);
+  color: var(--primary);
+  font-size: 14px;
+  line-height: 20px;
+}
+.admin-readonly > svg {
+  flex-shrink: 0;
+}
+.admin-monitor-filter {
+  justify-self: start;
+}
+.admin-monitor-table .col-route {
+  width: 26%;
+}
+.admin-monitor-table .col-dates {
+  width: 24%;
+}
+.admin-monitor-table .col-status {
+  width: 120px;
+}
+.admin-monitor-table .col-action {
+  width: 68px;
+}
+.admin-monitor-table .cell-dates {
+  font-size: 13px;
+  line-height: 18px;
+}
+.admin-monitor-summary {
+  display: grid;
+  gap: 16px;
+}
+.admin-monitor-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.admin-monitor-head > div {
+  min-width: 0;
+}
+.admin-monitor-head h2 {
+  display: block;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+.admin-monitor-route {
+  margin-top: 2px;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+.admin-monitor-legs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+}
+.admin-monitor-flights .col-flight {
+  width: 28%;
+}
+.admin-monitor-flights .col-duration {
+  width: 120px;
+}
+.admin-monitor-flights .col-price {
+  width: 160px;
+}
+@media (max-width: 767px) {
+  .admin-monitor-filter {
+    justify-self: stretch;
+  }
+  .admin-monitor-filter > button {
+    flex-basis: 0;
+    padding: 0 8px;
+  }
+  /* Stacked like the deliveries: the trip name beside the chevron, the
+     status on a line of its own. */
+  .admin-monitor-table tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "trip action"
+      "status status"
+      "route route"
+      "dates dates";
+  }
+  .admin-monitor-table .cell-trip {
+    grid-area: trip;
+  }
+  .admin-monitor-table .cell-status {
+    grid-area: status;
+    justify-self: start;
+  }
+  .admin-monitor-table .cell-route {
+    grid-area: route;
+    font-weight: 600;
+  }
+  .admin-monitor-table .cell-dates {
+    grid-area: dates;
+  }
+  .admin-monitor-table .cell-action {
+    grid-area: action;
+  }
+  .admin-monitor-flights tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "flight price"
+      "times duration";
+  }
+  .admin-monitor-flights .cell-flight {
+    grid-area: flight;
+  }
+  .admin-monitor-flights .cell-price {
+    grid-area: price;
+    text-align: right;
+  }
+  .admin-monitor-flights .cell-times {
+    grid-area: times;
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .admin-monitor-flights .cell-duration {
+    grid-area: duration;
+    font-size: 13px;
+    line-height: 18px;
+    text-align: right;
+  }
+}
 
-.whatsapp-receipts { margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px; }
-.whatsapp-receipts > summary { min-height: var(--control-height); display: list-item; cursor: pointer; font-weight: 600; }
-.whatsapp-receipts form, .whatsapp-receipts fieldset { display: grid; gap: 16px; min-width: 0; }
-.whatsapp-receipts fieldset { padding: 0; border: 0; }
-.whatsapp-receipts label { display: grid; gap: 8px; margin-block: 12px; }
-.whatsapp-receipts label.check-row { display: flex; }
-.whatsapp-receipts input:not([type="checkbox"]) { width: 100%; min-height: var(--control-height); }
-.channel-read > summary strong, .channel-delivered > summary strong { color: var(--success-text); }
-.channel-delivery_failed > summary strong { color: var(--danger-text); }
-.whatsapp-receipts fieldset > .button { justify-self: start; }
-@media (max-width: 760px) { .whatsapp-receipts fieldset > .button { justify-self: stretch; width: 100%; } }
+/* ---------- Task pages (TaskPage.tsx) --------------------------------------------------------- */
+.task-page {
+  width: 100%;
+  min-width: 0;
+}
+.task-heading {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  margin-bottom: 24px;
+}
+.task-back {
+  margin-left: -10px;
+  padding-left: 4px;
+}
+.task-heading h1 {
+  font-size: 34px;
+  line-height: 41px;
+  font-weight: 700;
+  letter-spacing: -.022em;
+  overflow-wrap: anywhere;
+}
+.task-heading h1:focus {
+  outline: none;
+}
+.task-heading p {
+  max-width: 64ch;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 22px;
+}
+.task-body {
+  min-width: 0;
+}
+@media (max-width: 767px) {
+  .task-heading {
+    margin-bottom: 16px;
+  }
+  .task-heading h1 {
+    font-size: 30px;
+    line-height: 36px;
+  }
+}
+
+/* ---------- Capability fallbacks ------------------------------------------------------------- */
+@media (pointer: coarse) {
+  .segmented.admin-tabs > button {
+    min-height: 44px;
+  }
+  .admin-disclosure > summary {
+    min-height: 52px;
+  }
+}
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .admin-form-footer {
+    background: var(--material-popover-solid);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .admin-form-footer {
+    background: var(--material-popover-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .admin-stats > div,
+  .admin-disclosure,
+  .source-card-message,
+  .mail-provider-choice,
+  .admin-readonly,
+  .admin-form-footer,
+  .admin-message,
+  .delivery-error,
+  .admin-channel-icon,
+  .channel-card-icon,
+  .source-card-icon {
+    border: 1px solid CanvasText;
+  }
+  .channel-link.is-selected {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  .quota-bar {
+    border: 1px solid CanvasText;
+  }
+  .quota-bar > span {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+  /* Masked chevrons paint with background-color, which forced colors erase. */
+  .admin-disclosure > summary::after,
+  .disclosure-card > details > summary::after {
+    forced-color-adjust: none;
+    background-color: CanvasText;
+  }
+}

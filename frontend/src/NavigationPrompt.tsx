@@ -25,7 +25,7 @@ export function NavigationPrompt() {
       title={t("Descartar alterações?")}
       description={t("Há informações não salvas neste formulário.")}
     >
-      <div className="google-mail-actions">
+      <div className="dialog-actions">
         <Button variant="outline" onClick={stay}>
           {t("Continuar editando")}
         </Button>

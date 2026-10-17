@@ -1,4 +1,5 @@
 """Bundled airline reference lookup; never performs external search or collects fares."""
+import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import importlib
 import tempfile
 import unittest

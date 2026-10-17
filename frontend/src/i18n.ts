@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import messages from "./messages.json";
 export type Language = "pt" | "en" | "es";
 const catalog = messages as Record<string, { en: string; es: string }>;
@@ -18,23 +18,25 @@ const listeners = new Set<() => void>();
 export const getLanguage = () => language;
 export const getLocale = () =>
   ({ pt: "pt-BR", en: "en-US", es: "es-ES" })[language];
+/** BCP 47 tag for <html lang>. Page titles are set per route (pageTitle.ts). */
+function applyDocumentLanguage() {
+  if (typeof document !== "undefined")
+    document.documentElement.lang = ({ pt: "pt-BR", en: "en", es: "es" })[language];
+}
+applyDocumentLanguage();
 export function setLanguage(next: Language) {
   language = next;
   try {
     localStorage.setItem("radar-language", next);
   } catch {}
+  applyDocumentLanguage();
   for (const notify of listeners) notify();
 }
 export function useLanguage() {
-  const value = useSyncExternalStore((listener) => {
+  return useSyncExternalStore((listener) => {
     listeners.add(listener);
     return () => listeners.delete(listener);
   }, getLanguage);
-  useEffect(() => {
-    document.documentElement.lang = value;
-    document.title = t("Radar de Voos");
-  }, [value]);
-  return value;
 }
 export function t(key: string, values: unknown[] = []): string {
   const text = language === "pt" ? key : catalog[key]?.[language] || key;

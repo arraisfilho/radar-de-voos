@@ -1,5 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { confirmNavigation, hasUnsavedChanges } from "./navigationGuard";
+
+/**
+ * For in-app links: true (and the default prevented) for a plain left click,
+ * which the app handles with navigate(); modified clicks keep the browser
+ * behavior (new tab, copy link).
+ */
+export function plainClick(event: MouseEvent<HTMLAnchorElement>): boolean {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
+  event.preventDefault();
+  return true;
+}
 
 export type View =
   | "home"
@@ -23,9 +34,17 @@ export type AppRoute = {
   monitorId?: string;
   deliveryId?: string;
 };
+export type NavigateOptions = {
+  /**
+   * The control that navigated keeps the focus (tabs and in-page lists whose
+   * page heading stays the same); otherwise the page <h1> takes it.
+   */
+  keepFocus?: boolean;
+};
 export type Navigate = (
   next: AppRoute | ((current: AppRoute) => AppRoute),
   replace?: boolean,
+  options?: NavigateOptions,
 ) => void;
 const sections = {
   envios: "deliveries",
@@ -156,9 +175,76 @@ export function routePath(r: AppRoute): string {
     const q = new URLSearchParams();
     if (r.step) q.set("etapa", String(r.step));
     if (r.leg === "inbound") q.set("trecho", "volta");
-    if (q.size) path += "?" + q;
+    // URLSearchParams.size needs Safari 17, Chrome 113 and Firefox 112.
+    const query = q.toString();
+    if (query) path += "?" + query;
   }
   return path;
+}
+
+/** How long after a navigation the page heading may still take the focus. */
+const HEADING_FOCUS_WINDOW = 3000;
+let headingFocus: { trigger: Element | null; until: number } | null = null;
+/** The heading that last took the focus after a navigation. */
+let focusedHeading: HTMLElement | null = null;
+function cancelHeadingFocus() {
+  headingFocus = null;
+  document.removeEventListener("keydown", cancelHeadingFocus, true);
+  document.removeEventListener("pointerdown", cancelHeadingFocus, true);
+}
+/**
+ * After a navigation, moves focus to the page <h1> once that content exists.
+ * The request expires after a short time or at the next key or pointer press,
+ * and it only takes the focus from the page itself or from the link that
+ * navigated (or the menu that held it). A later refresh of the view never
+ * pulls the focus away from a control.
+ */
+export function focusPageHeading() {
+  if (!headingFocus) return;
+  if (Date.now() > headingFocus.until) {
+    cancelHeadingFocus();
+    return;
+  }
+  const heading = document.querySelector<HTMLElement>("main h1");
+  if (!heading) return;
+  const { trigger } = headingFocus;
+  cancelHeadingFocus();
+  const active = document.activeElement;
+  const idle =
+    !active ||
+    active === document.body ||
+    active === heading.closest("main") ||
+    active === trigger ||
+    !!trigger?.closest(".context-menu")?.contains(active);
+  if (idle) {
+    heading.focus({ preventScroll: true });
+    focusedHeading = heading;
+  }
+}
+/**
+ * A view whose heading is replaced as it loads (a placeholder title, then the
+ * task page) keeps the reading position on the title: when the heading that
+ * took the focus has left the page and nothing else holds the focus, the new
+ * <h1> takes it.
+ */
+export function restoreHeadingFocus() {
+  const previous = focusedHeading;
+  if (!previous || previous.isConnected) return;
+  focusedHeading = null;
+  const active = document.activeElement;
+  if (active && active !== document.body) return;
+  const heading = document.querySelector<HTMLElement>("main h1");
+  if (!heading) return;
+  heading.focus({ preventScroll: true });
+  focusedHeading = heading;
+}
+function requestHeadingFocus() {
+  cancelHeadingFocus();
+  headingFocus = { trigger: document.activeElement, until: Date.now() + HEADING_FOCUS_WINDOW };
+  // The key or pointer press that started the navigation has already happened.
+  document.addEventListener("keydown", cancelHeadingFocus, true);
+  document.addEventListener("pointerdown", cancelHeadingFocus, true);
+  requestAnimationFrame(focusPageHeading);
 }
 
 export function useNavigation() {
@@ -204,6 +290,7 @@ export function useNavigation() {
       requestAnimationFrame(() =>
         window.scrollTo(0, window.history.state?.radarScroll || 0),
       );
+      requestHeadingFocus();
     };
     const moved = () => {
       index = window.history.state?.radarIndex || 0;
@@ -215,7 +302,7 @@ export function useNavigation() {
       window.removeEventListener("radar:moved", moved);
     };
   }, []);
-  const navigate: Navigate = (next, replace = false) => {
+  const navigate: Navigate = (next, replace = false, options) => {
     const current = read(),
       resolved = typeof next === "function" ? next(current) : next;
     const url = routePath(resolved);
@@ -245,13 +332,13 @@ export function useNavigation() {
       window.dispatchEvent(new Event("radar:moved"));
       pendingScroll.current = top;
       setRoute(resolved);
-      requestAnimationFrame(() => {
-        window.scrollTo(0, top);
-        if (!top)
-          document
-            .querySelector<HTMLElement>("main h1")
-            ?.focus({ preventScroll: true });
-      });
+      requestAnimationFrame(() => window.scrollTo(0, top));
+      // The stages of one editor move the focus to their own stage title.
+      const sameEditor =
+        !!current.editor &&
+        current.editor === resolved.editor &&
+        current.searchId === resolved.searchId;
+      if (!top && !sameEditor && !options?.keepFocus) requestHeadingFocus();
     });
   };
   return { route, navigate, restoreScroll };

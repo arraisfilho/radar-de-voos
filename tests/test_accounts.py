@@ -1,4 +1,5 @@
 """Accounts and access boundaries use temporary data, without messages or collectors."""
+import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import importlib
 import json
 import tempfile
@@ -111,14 +112,19 @@ class AccountTests(unittest.TestCase):
             self.assertIn('direction,kind,cycle_id',c.execute("SELECT sql FROM sqlite_master WHERE name='alerts'").fetchone()[0])
             self.assertEqual(c.execute('PRAGMA foreign_key_check').fetchall(),[])
 
-    def test_access_audit_prunes_old_events_without_recording_credentials(self):
+    def test_access_audit_prunes_old_events_in_maintenance_without_recording_credentials(self):
         from backend import audit
         from types import SimpleNamespace
         request=SimpleNamespace(client=SimpleNamespace(host='192.168.3.10'),headers={'user-agent':'Firefox/130.0'})
         audit.record(request,'login_failed')
         with store.db() as c:c.execute('UPDATE access_audit SET created=?',(time.time()-91*86400,))
         audit.record(request,'login_failed')
-        with store.db() as c:self.assertEqual(c.execute('SELECT COUNT(*) FROM access_audit').fetchone()[0],1)
+        # Recording never prunes; the hourly maintenance applies the 90-day retention.
+        with store.db() as c:self.assertEqual(c.execute('SELECT COUNT(*) FROM access_audit').fetchone()[0],2)
+        audit.cleanup()
+        with store.db() as c:
+            rows=[dict(r) for r in c.execute('SELECT * FROM access_audit')]
+        self.assertEqual(len(rows),1);self.assertNotIn('password',json.dumps(rows))
 
     def test_language_preference_is_validated_and_owned(self):
         self.register();self.register(self.b,phone='02079460018',country='GB')
@@ -301,9 +307,13 @@ class AccountTests(unittest.TestCase):
     def test_login_failures_are_rate_limited(self):
         with patch.object(accounts,'HASHER') as hasher:
             hasher.verify.return_value=False
-            for _ in range(10):
+            for _ in range(5):
                 self.assertEqual(self.a.post('/api/auth/login',json={'country':'US','phone':'6502530000','password':'wrong'},headers=self.headers).status_code,401)
-            self.assertEqual(self.a.post('/api/auth/login',json={'country':'US','phone':'6502530000','password':'wrong'},headers=self.headers).status_code,429)
+            # The fifth failure in 15 minutes locks the account for one minute.
+            limited=self.a.post('/api/auth/login',json={'country':'US','phone':'6502530000','password':'wrong'},headers=self.headers)
+            self.assertEqual(limited.status_code,429);self.assertEqual(limited.json()['detail'],accounts.THROTTLED)
+            self.assertTrue(55<=int(limited.headers['retry-after'])<=60)
+            self.assertEqual(hasher.verify.call_count,5)
 
     def test_queue_uses_account_emails_and_never_global_test_recipient(self):
         emails=['one@example.org','two@example.org','three@example.org','four@example.org']

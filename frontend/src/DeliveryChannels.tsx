@@ -24,6 +24,13 @@ const labels = (): Record<string, string> => ({
   in_app: t("Somente no painel"),
   unknown: t("Estado indisponível"),
 });
+/** True when a channel had no recipient, so the person should add a contact in the profile. */
+export function needsContact(event: Pick<Alert, "status" | "channels">): boolean {
+  const channels = event.channels || [];
+  return channels.length
+    ? channels.some((item) => (item.counts.waiting_contact || 0) > 0)
+    : event.status === "waiting_contact";
+}
 export function channelState(counts: Record<string, number>): string {
   const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
   if (!total) return "unknown";

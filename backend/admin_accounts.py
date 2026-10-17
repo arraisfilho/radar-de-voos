@@ -74,7 +74,7 @@ def get(uid,c):
 
 
 def create(request,actor,data):
-    uid=secrets.token_hex(16);hashed=accounts.HASHER.hash(data.password)
+    uid=secrets.token_hex(16);hashed=accounts.hash_password(data.password)
     try:
         with db() as c:
             c.execute("INSERT INTO accounts(id,name,role,country,phone,password_hash,created) VALUES(?,?,'user',?,?,?,?)",(uid,data.name,data.country,data.phone,hashed,time.time()))
@@ -111,10 +111,12 @@ def update(request,actor,uid,data):
 
 def password(request,actor,uid,data):
     with db() as c:get(uid,c)
-    hashed=accounts.HASHER.hash(data.password)
+    hashed=accounts.hash_password(data.password)
     with db() as c:
-        c.execute('BEGIN IMMEDIATE');get(uid,c)
+        c.execute('BEGIN IMMEDIATE');target=get(uid,c)
         c.execute('UPDATE accounts SET password_hash=? WHERE id=?',(hashed,uid))
+        # The new password works at once: the account's login lock is lifted.
+        accounts.clear_login_failures(c,target['phone'])
         c.execute('DELETE FROM sessions WHERE user_id=?',(uid,))
         invalidate_recovery(c,uid)
     audit.record(request,'admin_password_reset',uid,actor['id'])

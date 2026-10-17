@@ -1,0 +1,255 @@
+/* =============================================================================
+   Access audit (F4): the administration tab (a card with every account) and
+   the personal list in the profile (Segurança, a disclosure row). Loaded with
+   AuditPanel; the table, filters and pagination come from data-view.css.
+   Tokens from theme.css only.
+   ============================================================================= */
+
+/* ---------- Table ----------------------------------------------------------------- */
+.audit-table .col-event {
+  width: auto;
+}
+.audit-table.is-admin .col-account {
+  width: 22%;
+}
+.audit-table .col-when {
+  width: 190px;
+}
+.audit-table .col-origin {
+  width: 20%;
+}
+.audit-table .col-details {
+  width: 132px;
+}
+.audit-table .cell-when {
+  font-size: 13px;
+  line-height: 18px;
+}
+.audit-count {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: var(--radius-pill);
+  background: var(--fill-3);
+  color: var(--muted-on-fill);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.audit-ip {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 18px;
+}
+.cell-details {
+  text-align: right;
+}
+.audit-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  color: var(--primary);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.audit-toggle > svg {
+  flex-shrink: 0;
+  transition: transform var(--dur-fast) var(--ease-standard);
+}
+.audit-toggle[aria-expanded="true"] > svg {
+  transform: rotate(180deg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .audit-toggle:hover {
+    background: var(--fill-4);
+  }
+}
+@media (pointer: coarse) {
+  .audit-toggle {
+    min-height: 44px;
+  }
+}
+/* The open row and its details read as one block. */
+.audit-table tr.is-expanded > td {
+  border-bottom: 0;
+}
+.audit-details-row > td {
+  padding-top: 0;
+}
+.audit-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  font-size: 13px;
+  line-height: 18px;
+}
+.audit-details > div {
+  min-width: 0;
+}
+.audit-details dt {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+}
+.audit-details dd {
+  overflow-wrap: anywhere;
+}
+.audit-agent {
+  grid-column: 1 / -1;
+}
+.audit-agent dd {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 17px;
+}
+.audit-note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+@media (min-width: 768px) and (max-width: 1279px) {
+  .audit-table .col-when {
+    width: 150px;
+  }
+  .audit-table .col-details {
+    width: 116px;
+  }
+}
+/* Stacked: one column, so the origin (an IPv6 address can be long) gets the
+   full width; the details toggle closes the block. The personal list has no
+   account line. */
+@media (max-width: 767px) {
+  .audit-table tr {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "event"
+      "when"
+      "origin"
+      "details";
+  }
+  .audit-table.is-admin tr {
+    grid-template-areas:
+      "event"
+      "account"
+      "when"
+      "origin"
+      "details";
+  }
+  .audit-table .cell-event {
+    grid-area: event;
+  }
+  .audit-table .cell-account {
+    grid-area: account;
+  }
+  /* "Conta" above the account name: the column header is hidden when rows stack. */
+  .audit-table .cell-account > .cell-label {
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .audit-table .cell-when {
+    grid-area: when;
+  }
+  .audit-table .cell-origin {
+    grid-area: origin;
+  }
+  .audit-table .cell-details {
+    grid-area: details;
+    justify-self: start;
+    margin-left: -10px;
+  }
+  .audit-table tr.audit-details-row {
+    display: block;
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
+/* ---------- Personal list (profile, Segurança) ------------------------------------------ */
+.audit-panel.is-personal > details > summary {
+  list-style: none;
+}
+.audit-panel.is-personal > details > summary::-webkit-details-marker {
+  display: none;
+}
+.audit-summary {
+  min-height: 48px;
+}
+.audit-summary > svg {
+  color: var(--action);
+}
+.audit-summary::after {
+  content: "";
+  flex-shrink: 0;
+  width: 8px;
+  height: 14px;
+  margin-left: auto;
+  background-color: var(--tertiary);
+  -webkit-mask: var(--icon-chevron) center / contain no-repeat;
+  mask: var(--icon-chevron) center / contain no-repeat;
+  transform: rotate(90deg);
+  transition: transform var(--dur-fast) var(--ease-standard);
+}
+.audit-panel.is-personal > details[open] > .audit-summary {
+  border-bottom: 1px solid var(--separator);
+}
+.audit-panel.is-personal > details[open] > .audit-summary::after {
+  transform: rotate(-90deg);
+}
+.audit-body {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px 16px 16px;
+}
+.audit-body > .table-frame {
+  margin: 0 -16px;
+}
+.audit-body .data-table th:first-child,
+.audit-body .data-table td:first-child {
+  padding-left: 16px;
+}
+.audit-body .data-table th:last-child,
+.audit-body .data-table td:last-child {
+  padding-right: 16px;
+}
+.audit-body > .pager,
+.audit-body > .pager-summary {
+  margin-top: 0;
+}
+@media (max-width: 767px) {
+  .audit-body > .table-frame {
+    margin: 0;
+  }
+  .audit-body .data-table td:first-child,
+  .audit-body .data-table td:last-child {
+    padding: 0;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .audit-summary:hover {
+    background-color: var(--fill-4);
+  }
+}
+
+@media (forced-colors: active) {
+  .audit-count,
+  .audit-details {
+    border: 1px solid CanvasText;
+  }
+  .audit-summary::after {
+    forced-color-adjust: none;
+    background-color: CanvasText;
+  }
+}

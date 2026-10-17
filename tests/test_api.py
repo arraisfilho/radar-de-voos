@@ -1,4 +1,5 @@
 """Local API lifecycle and privacy, with temporary SQLite and no collector threads."""
+import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import importlib
 import json
 import tempfile

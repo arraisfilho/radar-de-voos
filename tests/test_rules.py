@@ -1,4 +1,5 @@
 """Tests use synthetic fixtures and temporary storage; no network or real email."""
+import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import json
 import os
 import tempfile

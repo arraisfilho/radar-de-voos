@@ -85,7 +85,7 @@ export function PhoneField({
       </div>
       <p
         id={`${id}-help`}
-        className={invalid ? "form-error" : "help"}
+        className={invalid ? "field-error" : "help"}
         role={invalid ? "alert" : undefined}
       >
         {invalid

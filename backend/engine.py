@@ -1,22 +1,28 @@
 """Persistent scheduling, versioned comparisons and a bounded SMTP outbox."""
 import json
+import logging
 import math
+import random
 import subprocess
 import sys
 import threading
 import time
 import uuid
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from .domain import Search, jobs, eligible, local_instant, monitoring_deadline, ADAPTER_VERSION as SOURCE_VERSION
 from .store import db
-from . import mail,whatsapp
+from . import mail,whatsapp,source
 from .notifications import sync_alerts,link
 from .query_gate import QueryGate
 from .alert_messages import money
 
 ROOT = Path(__file__).resolve().parents[1]
+logger = logging.getLogger("radar.engine")
+# Seconds without a loop iteration before /api/health reports the worker as stale.
+HEARTBEAT_LIMITS = {"collector": 120, "email_sender": 300, "whatsapp_sender": 300}
 
 
 def make_event(search, flight, previous, last_floor=None, last_alerted=None, now=None):
@@ -57,9 +63,11 @@ def fetch(search, job):
         if process.returncode and result.get("status") != "error":
             raise ValueError("Consulta não concluída")
     except subprocess.TimeoutExpired:
-        result = {"status": "error", "error": "A consulta excedeu 35 segundos", "flights": []}
+        result = {"status": "error", "error": "A consulta excedeu 35 segundos", "kind": "timeout", "flights": []}
     except Exception:
-        result = {"status": "error", "error": "Não foi possível processar a resposta da fonte", "flights": []}
+        result = {"status": "error", "error": "Não foi possível processar a resposta da fonte", "kind": "unknown", "flights": []}
+    if result.get("status") == "error":
+        result["kind"] = source.failure_kind(result)
     result.update({"origin": origin, "destination": destination, "date": date,
                    "direction": direction, "collected_at": time.time(),
                    "elapsed_seconds": round(time.monotonic()-started, 2)})
@@ -78,8 +86,9 @@ def persist_snapshots(c, sid, version, cid, search, results):
         if leg is None:
             continue
         part = [r for r in results if r["direction"] == direction]
-        complete = bool(part) and all(r["status"] != "error" for r in part)
-        options = [f for r in part if r["status"] != "error" for f in r.get("flights", []) if eligible(f, leg) and local_instant(f["departure"],f["origin"]).timestamp()>time.time()]
+        # A skipped route (source paused, or search changed meanwhile) leaves the direction incomplete.
+        complete = bool(part) and all(r["status"] not in ("error", "skipped") for r in part)
+        options = [f for r in part if r["status"] not in ("error", "skipped") for f in r.get("flights", []) if eligible(f, leg) and local_instant(f["departure"],f["origin"]).timestamp()>time.time()]
         best = min(options, key=lambda f:f["price_cents"], default=None)
         c.execute("INSERT INTO snapshots(search_id,version,cycle_id,direction,collected,complete,price,flight,count) VALUES(?,?,?,?,?,?,?,?,?)",
                   (sid, version, cid, direction, time.time(), int(complete), best["price_cents"] if best else None,
@@ -124,9 +133,23 @@ def persist_snapshots(c, sid, version, cid, search, results):
         sync_alerts(c,ids)
 
 
-def next_collection_due(start, end, interval):
-    """Keep the saved cadence, without exponential delays after route failures."""
-    return start + (math.floor((end-start)/interval)+1)*interval
+def next_collection_due(start, end, interval, failures=0, rng=random):
+    """Next start on the saved cadence, stretched after repeated failed cycles.
+
+    With n consecutive cycles without any successful query (see Monitor.run_cycle), the
+    step is interval*min(2**(n-1), 12) with +/-20% jitter, never below the interval.
+    Without such cycles (n=0, reset by any successful query) the cadence is kept.
+    """
+    step = interval
+    if failures > 0:
+        step = max(interval, interval*source.backoff_factor(failures)*rng.uniform(1-source.JITTER, 1+source.JITTER))
+    return start + (math.floor((end-start)/step)+1)*step
+
+
+def dominant_kind(kinds):
+    """Most frequent failure kind of a cycle; ties follow source.KINDS order."""
+    counts = Counter(kinds)
+    return min(counts, key=lambda kind: (-counts[kind], source.KINDS.index(kind) if kind in source.KINDS else len(source.KINDS))) if counts else None
 
 
 class Monitor:
@@ -136,14 +159,28 @@ class Monitor:
         self.worker = threading.Thread(target=self.loop, daemon=True, name="radar-collector")
         self.sender = threading.Thread(target=self.send_loop, daemon=True, name="radar-smtp")
         self.whatsapp_sender=threading.Thread(target=self.whatsapp_loop,daemon=True,name="radar-whatsapp")
+        self.threads = {"collector": self.worker, "email_sender": self.sender, "whatsapp_sender": self.whatsapp_sender}
+        self.heartbeats = {}
 
     def start(self):
+        now = time.monotonic()
+        for name in self.threads:
+            self.heartbeats[name] = now
         self.worker.start()
         self.sender.start()
         self.whatsapp_sender.start()
 
     def stop(self):
         self.stop_event.set()
+
+    def beat(self, name):
+        self.heartbeats[name] = time.monotonic()
+
+    def status(self, now=None):
+        """Liveness and seconds since the last loop iteration of each worker."""
+        now = time.monotonic() if now is None else now
+        return {name: {"alive": thread.is_alive(), "age": max(0.0, now-self.heartbeats[name]) if name in self.heartbeats else None,
+                       "limit": HEARTBEAT_LIMITS[name]} for name, thread in self.threads.items()}
 
     def cycle_error(self,row):
         with db() as c:
@@ -155,6 +192,7 @@ class Monitor:
         maintenance_due=0
         with ThreadPoolExecutor(max_workers=2,thread_name_prefix='radar-cycle') as pool:
             while not self.stop_event.is_set():
+                self.beat("collector")
                 if time.monotonic()>=maintenance_due:
                     try:
                         from .retention import cleanup
@@ -163,32 +201,49 @@ class Monitor:
                         delivery_cleanup()
                         from .audit import cleanup as audit_cleanup
                         audit_cleanup()
-                    except Exception as exc:print('Retenção: '+type(exc).__name__,flush=True)
+                    except Exception:logger.exception('Falha na manutenção de retenção')
                     maintenance_due=time.monotonic()+3600
                 for future,row in list(running.items()):
                     if future.done():
                         del running[future]
                         try:future.result()
                         except Exception:
+                            logger.exception('Falha inesperada na coleta',extra={'search_id':row['id']})
                             if not self.stop_event.is_set():self.cycle_error(row)
                 owners={row['owner_id'] or row['id'] for row in running.values()}
-                if len(running)<2:
-                    try:
+                try:
+                    # While the source breaker is open nothing starts; when it may be tested, one cycle at a time.
+                    limit={'closed':2,'probe':1}.get(source.gate(),0)
+                    if len(running)<limit:
                         with db() as c:due=c.execute("SELECT * FROM searches WHERE active=1 AND archived=0 AND next_due<=? ORDER BY next_due,id",(time.time(),)).fetchall()
-                        for source in due:
-                            row=dict(source);owner=row['owner_id'] or row['id']
+                        for item in due:
+                            row=dict(item);owner=row['owner_id'] or row['id']
                             if owner in owners:continue
                             running[pool.submit(self.run_cycle,row)]=row;owners.add(owner)
-                            if len(running)>=2:break
-                    except Exception as exc:print('Scheduler: '+type(exc).__name__,flush=True)
+                            if len(running)>=limit:break
+                except Exception:logger.exception('Falha no agendador de coletas')
                 self.stop_event.wait(.25)
 
+    def skipped(self,job):
+        return {'status':'skipped','flights':[],'direction':job[0],'origin':job[1],'destination':job[2],'date':job[3],'collected_at':time.time()}
+
     def gated_fetch(self,search,job,row):
+        # Do not wait for a gate slot while the source is paused; during a probe, wait for its result.
+        if source.gate()=='paused':return self.skipped(job)
         with self.query_gate.slot(row.get('owner_id') or row['id'],self.stop_event):
             with db() as c:current=c.execute('SELECT active,archived,version FROM searches WHERE id=?',(row['id'],)).fetchone()
+            # Paused, archived or edited meanwhile: the route was not queried, so it is skipped (no result row).
             if not current or not current['active'] or current['archived'] or current['version']!=row['version']:
-                return {'status':'error','error':'Consulta cancelada','flights':[],'direction':job[0],'origin':job[1],'destination':job[2],'date':job[3],'collected_at':time.time()}
-            return fetch(search,job)
+                return self.skipped(job)
+            admission=source.admit()
+            if admission is None:return self.skipped(job)
+            try:result=fetch(search,job)
+            except BaseException:
+                source.release(admission);raise
+            source.observe(result,admission,route=job[1]+'-'+job[2])
+            if result.get('status')=='error':
+                logger.warning('Consulta à fonte falhou',extra={'search_id':row['id'],'kind':result.get('kind')})
+            return result
 
     def run_cycle(self, row):
         search = Search.model_validate_json(row["config"])
@@ -206,7 +261,7 @@ class Monitor:
             if not current or current["version"] != version or not current["active"] or current["archived"]:
                 return
             cid = c.execute("INSERT INTO cycles(search_id,version,started,status,total) VALUES(?,?,?,?,?)", (sid,version,start,"running",len(tasks))).lastrowid
-            c.execute("UPDATE searches SET state='collecting',last_started=?,progress=0,total=?,error=NULL WHERE id=?", (start,len(tasks),sid))
+            c.execute("UPDATE searches SET state='collecting',last_started=?,progress=0,total=?,error=NULL,error_kind=NULL WHERE id=?", (start,len(tasks),sid))
         results = []
         with ThreadPoolExecutor(max_workers=2) as pool:
             futures = [pool.submit(self.gated_fetch,search,job,row) for job in tasks]
@@ -217,40 +272,52 @@ class Monitor:
                 with db() as c:
                     if not c.execute("SELECT 1 FROM searches WHERE id=?",(sid,)).fetchone():
                         return
-                    c.execute("INSERT INTO results(cycle_id,search_id,version,direction,route_key,collected,status,data) VALUES(?,?,?,?,?,?,?,?)",
-                              (cid,sid,version,result["direction"],key,result["collected_at"],result["status"],json.dumps(result)))
+                    # Skipped routes were never queried: no result row, the previous one stays current.
+                    if result["status"] != "skipped":
+                        c.execute("INSERT INTO results(cycle_id,search_id,version,direction,route_key,collected,status,data) VALUES(?,?,?,?,?,?,?,?)",
+                                  (cid,sid,version,result["direction"],key,result["collected_at"],result["status"],json.dumps(result)))
                     c.execute("UPDATE searches SET progress=? WHERE id=? AND version=?", (len(results),sid,version))
-        successes = sum(r["status"] != "error" for r in results)
-        failures = len(results)-successes
+        performed = [r for r in results if r["status"] != "skipped"]
+        skipped = len(results)-len(performed)
+        successes = sum(r["status"] != "error" for r in performed)
+        failures = len(performed)-successes
+        kinds = [r.get("kind") or "unknown" for r in performed if r["status"] == "error"]
+        # Route kinds always count for this search; source-wide kinds only while the breaker
+        # stays closed (a single route never opens it), otherwise the pause covers them.
+        breaker_closed = source.gate() == "closed"
+        counted = sum(kind in source.ROUTE_KINDS or (breaker_closed and kind in source.GLOBAL_KINDS) for kind in kinds)
         state = "scheduled" if not failures else "partial" if successes else "error"
         end = time.time()
         with db() as c:
-            c.execute("UPDATE cycles SET finished=?,status=?,successes=?,failures=? WHERE id=?", (end,state,successes,failures,cid))
+            c.execute("UPDATE cycles SET finished=?,status=?,successes=?,failures=? WHERE id=?", (end,"interrupted" if skipped else state,successes,failures,cid))
             current = c.execute("SELECT * FROM searches WHERE id=?", (sid,)).fetchone()
             if not current or current["version"] != version:
                 return
             if not current["active"] or current["archived"]:
                 c.execute("UPDATE searches SET state=CASE WHEN archived=1 THEN state ELSE 'paused' END,last_finished=? WHERE id=?", (end,sid))
                 return
-            failed_count = current["failures"]+1 if failures else 0
-            due = min(next_collection_due(start, end, search.interval), monitoring_deadline(search))
-            c.execute("UPDATE searches SET state=?,last_finished=?,last_success=CASE WHEN ?=0 THEN ? ELSE last_success END,next_due=?,failures=?,error=? WHERE id=?",
-                      (state,end,failures,end,due,failed_count,f"{failures} consulta(s) falharam" if failures else None,sid))
+            # Any successful query keeps the normal cadence; only cycles without one back off.
+            failed_count = 0 if successes else current["failures"]+1 if counted else current["failures"]
+            due = min(next_collection_due(start, end, search.interval, failed_count), monitoring_deadline(search))
+            c.execute("UPDATE searches SET state=?,last_finished=?,last_success=CASE WHEN ?=0 THEN ? ELSE last_success END,next_due=?,failures=?,error=?,error_kind=? WHERE id=?",
+                      (state,end,int(bool(failures or skipped)),end,due,failed_count,f"{failures} consulta(s) falharam" if failures else None,dominant_kind(kinds),sid))
             persist_snapshots(c,sid,version,cid,search,results)
-        print(f"Coleta {cid}: {successes}/{len(results)} consultas válidas; próxima em {max(0,int(due-end))}s", flush=True)
+        logger.info("Coleta concluída",extra={"search_id":sid,"cycle_id":cid,"successes":successes,"failures":failures,"skipped":skipped,"kind":dominant_kind(kinds),"next_in":max(0,int(due-end))})
 
     def send_loop(self):
         while not self.stop_event.is_set():
+            self.beat("email_sender")
             try:
                 self.send_one()
-            except Exception as exc:
-                print(f"Fila de e-mail: {type(exc).__name__}", flush=True)
+            except Exception:
+                logger.exception("Falha inesperada na fila de e-mail")
             self.stop_event.wait(2)
 
     def whatsapp_loop(self):
         while not self.stop_event.is_set():
+            self.beat("whatsapp_sender")
             try:whatsapp.send_one()
-            except Exception as exc:print('Fila WhatsApp: '+type(exc).__name__,flush=True)
+            except Exception:logger.exception('Falha inesperada na fila WhatsApp')
             self.stop_event.wait(2)
 
     def send_one(self):
@@ -297,6 +364,8 @@ class Monitor:
             status,error = "sent",None
         except Exception as exc:
             status,error = "failed",mail.safe_error(exc)
+            # Transport errors can echo addresses: log only identifiers and the error type.
+            logger.warning("Envio de e-mail não confirmado",extra={"outbox_id":row["id"],"search_id":row["search_id"],"kind":type(exc).__name__})
         with db() as c:
             # No blind SMTP retries after an ambiguous transport failure.
             c.execute("UPDATE outbox SET status=?,error=?,sent=? WHERE id=?", (status,error,time.time() if status=="sent" else None,row["id"]))

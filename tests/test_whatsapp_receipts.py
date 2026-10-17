@@ -1,4 +1,5 @@
 """Signed receipt fixtures; isolated databases and no network transports."""
+import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import hashlib
 import hmac
 import importlib

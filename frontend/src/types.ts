@@ -27,6 +27,29 @@ export type Config = {
   notify_email: boolean;
   notify_whatsapp?: boolean;
 };
+/**
+ * Kind of the last fare-source failure (API contract, sections 2 and 5).
+ * "no_results": the source answered without usable flights for that query.
+ */
+export type SourceKind =
+  | "rate_limited"
+  | "blocked"
+  | "format"
+  | "timeout"
+  | "network"
+  | "server"
+  | "no_results"
+  | "unknown";
+/** Fare-source health shared by every trip (`/api/state` → `source`). */
+export type SourceStatus = {
+  status: "ok" | "degraded" | "paused";
+  kind: SourceKind | null;
+  consecutive_failures: number;
+  last_success_at: number | null;
+  last_failure_at: number | null;
+  /** Only while paused: when a test query is allowed. May be past while it runs. */
+  retry_at: number | null;
+};
 export type SearchRecord = {
   summary?: Partial<Record<"outbound"|"inbound",{price:number;collected:number}>>;
   ends_at: number;
@@ -42,6 +65,8 @@ export type SearchRecord = {
   progress: number;
   total: number;
   error: string | null;
+  /** Prevailing failure kind of the last cycle; older servers omit it. */
+  error_kind?: SourceKind | null;
 };
 export type Flight = {
   airline_codes?: string[];
@@ -86,6 +111,8 @@ export type Route = {
   raw_count: number;
   stale: boolean;
   error: string | null;
+  /** Set when `stale` is true; older servers omit it. */
+  error_kind?: SourceKind | null;
   latency: number;
 };
 export type Snapshot = {
@@ -165,11 +192,14 @@ export type State = {
   mail_test_recipient: string | null;
   deliveries: Delivery[];
   airports: Airport[];
+  /** Fare-source health; `null` only when the database is unavailable, absent on older servers. */
+  source?: SourceStatus | null;
   cycles: {
     id: number;
     version: number;
     started: number;
     finished: number | null;
+    /** Includes "interrupted" when queries were skipped while the source was paused. */
     status: string;
     total: number;
     successes: number;
@@ -181,6 +211,8 @@ export type Airport = {
   code: string;
   city: string;
   name: string;
+  /** `name` without " International Airport"/" Intl Airport"/" Airport"; older servers omit it. */
+  label?: string;
   country: string;
   timezone: string;
 };
@@ -200,6 +232,8 @@ export type User = {
   role: "user" | "admin";
   country: string;
   phone: string;
+  /** Formatted for display by the backend; older servers send only `phone`. */
+  phone_display?: string;
   phone_verified: boolean;
   telegram_username: string;
   emails: string[];

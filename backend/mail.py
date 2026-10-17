@@ -11,6 +11,7 @@ from typing import Literal
 from .store import DATA_DIR
 
 SETTINGS_FILE = DATA_DIR / "smtp-private.json"
+FIELDS = ("enabled", "host", "port", "security", "username", "password", "sender", "recipient")
 
 
 class SMTPSettings(BaseModel):
@@ -66,6 +67,13 @@ def save_settings(config):
         json.dump(data, file)
     temp.replace(SETTINGS_FILE)
     os.chmod(SETTINGS_FILE, 0o600)
+
+
+def remove_settings():
+    """Delete the private SMTP file; a connected Google account is not affected."""
+    existed = SETTINGS_FILE.exists()
+    SETTINGS_FILE.unlink(missing_ok=True)
+    return existed
 
 
 def delivery_settings():

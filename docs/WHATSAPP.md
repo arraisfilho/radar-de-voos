@@ -16,7 +16,7 @@ Ative **WhatsApp** nas configurações de alerta de cada monitoramento. Os desti
 
 A fila tem tentativas independentes por destinatário e trabalhador separado do e-mail. Antes do envio, confere monitoramento, versão dos filtros, contatos, horário de silêncio e integração ativa. Alertas com mais de 30 minutos não são enviados.
 
-Trocar a identidade da integração ou desativá-la cancela mensagens pendentes. Operações em andamento não podem ser retiradas. Timeout e resultado ambíguo não geram reenvio automático. **Aceito pelo provedor** registra a aceitação do pedido. Entrega e leitura dependem das confirmações descritas abaixo.
+Trocar a identidade da integração, desativá-la ou removê-la (`DELETE /api/admin/whatsapp`, que também apaga o segredo das confirmações) cancela mensagens pendentes. Operações em andamento não podem ser retiradas. Salvar e remover a integração e trocar o segredo das confirmações ficam na auditoria com os nomes dos campos alterados, sem valores. Timeout e resultado ambíguo não geram reenvio automático. **Aceito pelo provedor** registra a aceitação do pedido. Entrega e leitura dependem das confirmações descritas abaixo.
 
 O token fica em `whatsapp-private.json`, no diretório privado, com modo 0600; não é devolvido pela API. Campo vazio preserva a credencial da mesma URL/sessão/integrador. Ao trocar essa identidade, informe a credencial novamente.
 

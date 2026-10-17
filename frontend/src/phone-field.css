@@ -1,48 +1,199 @@
+/* Phone field: country picker and national number, label above. */
+.phone-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.phone-field > legend {
+  margin-bottom: 6px;
+  padding: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.phone-field > .help,
+.phone-field > .field-error {
+  margin: 0;
+}
+.phone-controls {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(180px, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+.phone-country,
+.phone-number {
+  display: block;
+  min-width: 0;
+}
 .phone-country-trigger {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   width: 100%;
   min-width: 0;
-  min-height: 46px;
-  padding: 10px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 7px;
-  background: var(--surface);
+  min-height: var(--field-height);
+  padding: 0 12px;
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-md);
+  background: var(--field-bg);
   color: var(--text);
-  font: inherit;
-  font-size: 16px;
+  font-size: 15px;
+  line-height: 22px;
   text-align: left;
-  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard);
 }
-.phone-country-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.phone-country-trigger > svg { flex-shrink: 0; color: var(--primary); }
-.phone-country-trigger:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-.phone-country-trigger:disabled { opacity: .6; cursor: default; }
+/* A transparent outline: the ring draws the focus, forced colors draw the outline. */
+.phone-country-trigger:focus-visible,
+.phone-country-trigger[data-state="open"] {
+  outline: 2px solid transparent;
+  outline-offset: 1px;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 1px var(--focus), 0 0 0 4px var(--focus-ring);
+}
+.phone-country-trigger:disabled {
+  opacity: .4;
+}
+.phone-country-trigger > span:first-child {
+  flex-shrink: 0;
+}
+.phone-country-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.phone-country-trigger > svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.phone-country-dial {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.phone-number input {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Country list popover. */
 .phone-country-popover {
   z-index: 1200;
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   width: var(--radix-popover-trigger-width);
-  min-width: min(300px, calc(100vw - 24px));
+  min-width: min(320px, calc(100vw - 24px));
   max-width: calc(100vw - 24px);
-  max-height: min(420px, var(--radix-popover-content-available-height));
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--surface-raised);
-  color: var(--text);
-  box-shadow: 0 8px 28px var(--shadow-color);
+  max-height: min(440px, var(--radix-popover-content-available-height));
   overflow: hidden;
+  border-radius: 14px;
+  background: var(--material-popover);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: var(--shadow-popover);
+  color: var(--text);
+  animation: menu-in var(--dur-fast) var(--ease-emphasized);
 }
-.phone-country-search { display: flex; align-items: center; gap: 7px; padding: 8px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
-.phone-country-search > svg { flex: 0 0 17px; color: var(--muted); }
-.phone-country-search input { flex: 1; width: 0; min-width: 0; min-height: 44px; box-sizing: border-box; font-size: 16px; padding: 8px; border: 1px solid var(--border-strong); border-radius: 6px; }
-.phone-country-close { display: grid; place-items: center; flex: 0 0 36px; min-height: 44px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
-.phone-country-count { margin: 0; padding: 7px 12px; font-size: 12px; color: var(--muted); flex-shrink: 0; }
-.phone-country-list { overflow-y: auto; overscroll-behavior: contain; min-height: 0; max-height: min(310px, 45dvh); padding: 4px; touch-action: pan-y; }
-.phone-country-list > button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 9px; min-height: 44px; border: 0; border-radius: 5px; background: var(--surface); color: var(--text); font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
-.phone-country-list > button:hover, .phone-country-list > button[data-active="true"] { background: var(--surface-tint); }
-.phone-country-list > button[aria-selected="true"] { font-weight: 600; }
-.phone-country-code { color: var(--muted); white-space: nowrap; }
-.phone-country-list > button > svg { flex: 0 0 16px; color: var(--primary); }
+.phone-country-popover:focus {
+  outline: none;
+}
+.phone-country-search {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 14px;
+  border-bottom: 1px solid var(--separator);
+}
+.phone-country-search > svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.phone-country-search input {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-color: transparent;
+  background-color: var(--fill-4);
+}
+.phone-country-close {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--fill-3);
+  color: var(--muted);
+}
+.phone-country-count {
+  flex-shrink: 0;
+  padding: 8px 14px 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+.phone-country-list {
+  min-height: 0;
+  max-height: min(320px, 45vh);
+  max-height: min(320px, 45dvh);
+  padding: 4px 6px 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+/* Options use the shared .combo-option (style.css); the current country is bold. */
+.phone-country-list > .is-current {
+  font-weight: 600;
+}
+.phone-country-code {
+  margin-left: auto;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.phone-country-list > .combo-option > svg {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+@media (hover: hover) and (pointer: fine) {
+  .phone-country-close:hover {
+    background: var(--fill-2);
+  }
+}
+@media (pointer: coarse) {
+  .phone-country-close {
+    width: 44px;
+    height: 44px;
+  }
+}
+@media (max-width: 479px) {
+  .phone-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .phone-country-popover {
+    background: var(--material-popover-solid);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .phone-country-popover {
+    background: var(--material-popover-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .phone-country-trigger,
+  .phone-country-popover {
+    border: 1px solid CanvasText;
+  }
+  .phone-country-trigger:focus-visible {
+    outline-color: Highlight;
+  }
+}

@@ -1,4 +1,5 @@
 """Admin log and retention tests: temporary databases, no external sends."""
+import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import importlib
 import json
 import tempfile

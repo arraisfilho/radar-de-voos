@@ -30,7 +30,72 @@ for (const dark of [false, true]) {
     const a = luminance(colors[plot]), b = luminance(colors['--surface']);
     assert.ok((Math.max(a, b) + .05) / (Math.min(a, b) + .05) >= 3, `${plot} must remain visible on the chart`);
   }
+  // The solid focus outline must stand out from every background it is drawn on (WCAG 2.4.11 / 1.4.11).
+  for (const background of ['--page', '--surface']) {
+    const a = luminance(colors['--focus']), b = luminance(colors[background]);
+    assert.ok((Math.max(a, b) + .05) / (Math.min(a, b) + .05) >= 3, `${dark ? 'Dark' : 'Light'} focus outline on ${background}`);
+  }
 }
+// Translucent tokens (#rrggbbaa) are composited over what lies beneath them before measuring.
+function over(foreground, background) {
+  const [r, g, b, a = 255] = foreground.slice(1).match(/../g).map(value => parseInt(value, 16));
+  const base = background.slice(1).match(/../g).slice(0, 3).map(value => parseInt(value, 16));
+  return '#' + [r, g, b].map((value, i) => Math.round(value * a / 255 + base[i] * (1 - a / 255)).toString(16).padStart(2, '0')).join('');
+}
+const contrast = (x, y) => { const a = luminance(x), b = luminance(y); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); };
+for (const dark of [false, true]) {
+  const colors = palette(dark), mode = dark ? 'Dark' : 'Light';
+  // The final destructive button: white on the strong red.
+  assert.ok(contrast(colors['--on-accent'], colors['--danger-strong']) >= 4.5, `${mode} --on-accent on --danger-strong`);
+  // Tab bar: the current label in --primary and the others in --muted, on the bar over any page background.
+  for (const bar of [colors['--material-bar-solid'], over(colors['--material-bar'], colors['--page']), over(colors['--material-bar'], colors['--surface'])])
+    for (const label of ['--primary', '--muted']) assert.ok(contrast(colors[label], bar) >= 4.5, `${mode} tab bar label ${label}`);
+  for (const background of ['--page', '--surface', '--surface-raised']) {
+    // Segmented control: the ring of the selected item stands 3:1 out of the track (WCAG 1.4.11).
+    const track = over(colors['--segmented-bg'], colors[background]);
+    assert.ok(contrast(colors['--segmented-thumb-border'], track) >= 3, `${mode} selected segment ring on the track over ${background}`);
+    // Pills, counters and step marks: secondary text on a gray fill at 4.5:1.
+    for (const fill of ['--fill-3', '--fill-4'])
+      assert.ok(contrast(colors['--muted-on-fill'], over(colors[fill], colors[background])) >= 4.5, `${mode} --muted-on-fill on ${fill} over ${background}`);
+    // A counter inside an unselected segment sits on two fills.
+    assert.ok(contrast(colors['--text'], over(colors['--fill-3'], track)) >= 4.5, `${mode} segment count on the track over ${background}`);
+  }
+}
+// The stylesheets use those tokens where the pairs apply.
+const sheets = Object.fromEntries(['style.css', 'pages.css', 'search-form.css', 'audit.css'].map(file => [file, postcss.parse(fs.readFileSync(path.join(directory, file), 'utf8'))]));
+function declarations(file, selector, media = null) {
+  const found = {};
+  sheets[file].walkRules(rule => {
+    const inside = rule.parent.type === 'atrule' ? rule.parent.params : null;
+    if (inside === media && rule.selectors.includes(selector)) rule.walkDecls(d => { found[d.prop] = d.value; });
+  });
+  return found;
+}
+assert.equal(declarations('style.css', '.button-danger.button-confirm').background, 'var(--danger-strong)');
+assert.equal(declarations('style.css', '.dialog .button-danger').background, 'var(--danger-strong)');
+const tab = declarations('style.css', '.mobile-nav a.selected', '(max-width: 1023px)');
+assert.equal(tab.color, 'var(--primary)');
+assert.equal(tab['font-weight'], '600', 'The current tab is also semibold, not told by color alone');
+assert.ok(parseFloat(declarations('style.css', '.mobile-nav a.selected > svg', '(max-width: 1023px)')['stroke-width']) > 2, 'The current tab icon has a bolder stroke');
+for (const selector of ['.segmented > [aria-pressed="true"]', '.segmented > [aria-selected="true"]', '.segmented > [aria-current="page"]']) {
+  const thumb = declarations('style.css', selector);
+  assert.match(thumb['box-shadow'], /inset 0 0 0 1px var\(--segmented-thumb-border\)/, `${selector}: ring around the thumb`);
+  assert.equal(thumb['font-weight'], '600', `${selector}: semibold label`);
+}
+assert.equal(declarations('style.css', '.segmented > button')['font-weight'], '500', 'Unselected segments stay lighter than the selected one');
+for (const [file, selector] of [['style.css', '.status-pill'], ['style.css', '.status-pill.is-paused'], ['style.css', '.status-pill.is-ended'], ['style.css', '.nav-count'], ['pages.css', '.live-pill'], ['search-form.css', '.wizard-step-mark'], ['audit.css', '.audit-count']])
+  assert.equal(declarations(file, selector).color, 'var(--muted-on-fill)', `${selector} text on its fill`);
+assert.equal(declarations('pages.css', '.segment-count').color, 'var(--text)');
+console.log('Contrast fixes: final destructive button, tab bar labels, segmented ring and secondary text on fills passed in both appearances.');
+// Focus not obscured (WCAG 2.4.11): the page scrolls focused content clear of the fixed bars.
+const root = declarations('style.css', 'html');
+assert.equal(root['scroll-padding-top'], 'var(--shell-top)');
+assert.equal(root['scroll-padding-bottom'], 'calc(var(--shell-bottom) + 16px)');
+for (const bar of ['html.with-pending-bar', 'html.with-form-bar'])
+  assert.match(declarations('style.css', bar)['scroll-padding-bottom'] || '', /var\(--bottom-bar-height\)/, `${bar} adds the bar over the tab bar`);
+assert.match(declarations('style.css', 'html.with-save-bar', '(max-width: 767px)')['scroll-padding-bottom'] || '', /var\(--bottom-bar-height\)/);
+assert.match(declarations('style.css', 'html.with-editor-bar', '(max-width: 767px)')['scroll-padding-bottom'] || '', /var\(--control-large\)/);
+console.log('Fixed bars: scroll padding for the shell bars, the pending-changes, form and save bars and the assistant footer passed.');
 assert.notEqual(palette(false)['--surface'], palette(true)['--surface']);
 assert.equal(palette(true)['color-scheme'], 'dark');
 for (const file of fs.readdirSync(directory).filter(file => file.endsWith('.css') && file !== 'theme.css')) {

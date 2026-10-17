@@ -14,6 +14,11 @@ for(const [key,translations] of Object.entries(catalog)) {
 }
 for(const file of fs.readdirSync(path.join(__dirname,'../frontend/src')).filter(f=>/\.tsx?$/.test(f))) {
  const source=ts.createSourceFile(file,fs.readFileSync(path.join(__dirname,'../frontend/src',file),'utf8'),ts.ScriptTarget.Latest,true,file.endsWith('.tsx')?ts.ScriptKind.TSX:ts.ScriptKind.TS);
- function visit(node){if(ts.isCallExpression(node)&&node.expression.getText(source)==='t'&&node.arguments[0]&&ts.isStringLiteral(node.arguments[0]))assert.ok(catalog[node.arguments[0].text],`${file} missing ${node.arguments[0].text}`);ts.forEachChild(node,visit);}visit(source);
+ function visit(node){if(ts.isCallExpression(node)&&node.expression.getText(source)==='t'&&node.arguments[0]&&ts.isStringLiteral(node.arguments[0]))assert.ok(catalog[node.arguments[0].text],`${file} missing ${node.arguments[0].text}`);
+  // plural(count, one, other): both forms are catalog keys as well.
+  if(ts.isCallExpression(node)&&node.expression.getText(source)==='plural')for(const form of node.arguments.slice(1,3))if(ts.isStringLiteral(form))assert.ok(catalog[form.text],`${file} missing plural form ${form.text}`);
+  // Placeholders are text too: only an IANA time zone name may stay a fixed literal.
+  if(ts.isJsxAttribute(node)&&node.name.getText(source)==='placeholder'&&node.initializer&&ts.isStringLiteral(node.initializer))assert.match(node.initializer.text,/^[A-Z][a-z]+\/[A-Za-z_]+$/,`${file}: placeholder "${node.initializer.text}" outside t()`);
+  ts.forEachChild(node,visit);}visit(source);
 }
 console.log('Language detection, switching, interpolation and complete UI catalogs passed.');

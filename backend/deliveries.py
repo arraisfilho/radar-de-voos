@@ -123,7 +123,8 @@ def retention_info(scope='deliveries'):
 
 
 def candidates(c,before,scope='deliveries'):
-    if scope=='access':return [r[0] for r in c.execute('SELECT id FROM access_audit WHERE created<? ORDER BY created,id LIMIT ?',(before,BATCH_SIZE+1))]
+    # Aggregated audit rows are removed only when their last occurrence is before the cutoff.
+    if scope=='access':return [r[0] for r in c.execute('SELECT id FROM access_audit WHERE COALESCE(last_seen,created)<? ORDER BY created,id LIMIT ?',(before,BATCH_SIZE+1))]
     return [r[0] for r in c.execute("SELECT id FROM outbox WHERE completed<? AND status IN ('sent','failed','uncertain','cancelled','expired','quiet','waiting_contact','waiting_service') ORDER BY completed,id LIMIT ?",(before,BATCH_SIZE+1))]
 
 
@@ -137,7 +138,7 @@ def preview(before,actor,secret,scope='deliveries'):
     with db() as c:
         c.execute('BEGIN')
         ids=candidates(c,before,scope)
-        totals=({'access':c.execute('SELECT COUNT(*) FROM access_audit WHERE created<?',(before,)).fetchone()[0]} if scope=='access' else {r['status']:r['n'] for r in c.execute("SELECT status,COUNT(*) n FROM outbox WHERE completed<? AND status IN ('sent','failed','uncertain','cancelled','expired','quiet','waiting_contact','waiting_service') GROUP BY status",(before,))})
+        totals=({'access':c.execute('SELECT COUNT(*) FROM access_audit WHERE COALESCE(last_seen,created)<?',(before,)).fetchone()[0]} if scope=='access' else {r['status']:r['n'] for r in c.execute("SELECT status,COUNT(*) n FROM outbox WHERE completed<? AND status IN ('sent','failed','uncertain','cancelled','expired','quiet','waiting_contact','waiting_service') GROUP BY status",(before,))})
     expires=int(time.time()+300)
     return {'count':min(len(ids),BATCH_SIZE),'total':sum(totals.values()),'totals':totals,'has_more':len(ids)>BATCH_SIZE,'before':before,'expires':expires,'proof':signature(ids,before,expires,actor,secret,scope)}
 

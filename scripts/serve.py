@@ -17,5 +17,9 @@ else:
     lan_network()
     trusted=''
 os.umask(0o077)
+from backend.logs import configure
+try:configure()
+except ValueError as exc:raise SystemExit(str(exc))
 import uvicorn
-uvicorn.run('backend.app:app',host='0.0.0.0',port=8765,workers=1,proxy_headers=bool(trusted),forwarded_allow_ips=trusted,access_log=False)
+# log_config=None: uvicorn's own messages also go through the JSON handler.
+uvicorn.run('backend.app:app',host='0.0.0.0',port=8765,workers=1,proxy_headers=bool(trusted),forwarded_allow_ips=trusted,access_log=False,log_config=None)

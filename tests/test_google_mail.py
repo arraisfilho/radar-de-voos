@@ -1,4 +1,5 @@
 """OAuth/Gmail tests are simulated: no Google sign-in and no external messages."""
+import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import hashlib
 import importlib
 import json
