@@ -30,6 +30,16 @@ export function parseCodes(text: string): string[] | null {
   return parts.filter((part, i) => parts.indexOf(part) === i);
 }
 
+/** Codes closed by a separator while typing ("GRU+", "GRU, CGH;", "GRU+camp") and the text still being
+ * typed after them, or null. Names such as "São Paulo+" are left alone. */
+export function typedCodes(text: string): { codes: string[]; rest: string } | null {
+  const match = /^(.*)[+,;/]\s*([^+,;/]*)$/.exec(text);
+  if (!match) return null;
+  const parts = match[1].trim().toUpperCase().split(/\s*[+,;/]\s*/).filter(Boolean);
+  if (!parts.length || !parts.every((part) => /^[A-Z]{3}$/.test(part))) return null;
+  return { codes: parts.filter((part, i) => parts.indexOf(part) === i), rest: match[2] };
+}
+
 /** Up to three airports for one side of the trip, searched in the world catalog. */
 export function AirportPicker({
   label,
@@ -64,6 +74,11 @@ export function AirportPicker({
     [browsing, setBrowsing] = useState(false),
     [batch, setBatch] = useState(false),
     [batchError, setBatchError] = useState("");
+  // The latest choice, for additions that finish after a catalog lookup.
+  const latest = useRef(values),
+    // Only the latest addition may reopen or refocus the field.
+    generation = useRef(0);
+  latest.current = values;
   airports.forEach((a) => cache.set(a.code, a));
   const full = values.length >= LIMIT;
   const codes = parseCodes(query);
@@ -139,9 +154,12 @@ export function AirportPicker({
     });
   }
   /** Adds every code of a "GRU+CGH+VCP" entry that the catalog knows, up to the limit. */
-  async function addCodes(list: string[]) {
-    const wanted = list.filter((code) => !values.includes(code));
-    setBatch(true);
+  /** With keep, the field stays open and focused for the next airport (codes typed with "+"). */
+  async function addCodes(list: string[], keep = false) {
+    const run = ++generation.current,
+      wanted = list.filter((code) => !latest.current.includes(code));
+    // Typing goes on while a "+" code is looked up; only Enter and paste lock the field.
+    if (!keep) setBatch(true);
     setBatchError("");
     try {
       const found: Airport[] = [],
@@ -158,22 +176,35 @@ export function AirportPicker({
         if (airport) found.push(airport);
         else missing.push(code);
       }
-      const room = Math.max(0, LIMIT - values.length),
-        added = found.slice(0, room),
+      const current = latest.current,
+        fresh = found.filter((a) => !current.includes(a.code)),
+        room = Math.max(0, LIMIT - current.length),
+        added = fresh.slice(0, room),
         problems = [
           missing.length ? t("Não encontrado: {0}.", [missing.join(", ")]) : "",
-          found.length > room ? t("Máximo de {0} aeroportos.", [LIMIT]) : "",
+          fresh.length > room ? t("Máximo de {0} aeroportos.", [LIMIT]) : "",
         ].filter(Boolean);
       if (added.length) {
         rememberAirports(added);
-        onChange([...values, ...added.map((a) => a.code)]);
+        latest.current = [...current, ...added.map((a) => a.code)];
+        onChange(latest.current);
       }
       if (problems.length) {
-        // The field stays open with the codes that were left out and why.
+        if (run !== generation.current) return;
+        // The field stays open with the codes that were left out and why; text typed meanwhile is kept.
         setAdding(added.length < room);
-        setQuery(added.length >= room ? "" : [...found.slice(room).map((a) => a.code), ...missing].join("+"));
+        if (!keep || added.length >= room) {
+          setQuery(added.length >= room ? "" : [...fresh.slice(room).map((a) => a.code), ...missing].join("+"));
+        }
         setOpen(true);
         setBatchError(problems.join(" "));
+        return;
+      }
+      if (run !== generation.current) return;
+      if (keep && current.length + added.length < LIMIT) {
+        setAdding(true);
+        setOpen(true);
+        requestAnimationFrame(() => input.current?.focus());
         return;
       }
       setQuery("");
@@ -186,10 +217,11 @@ export function AirportPicker({
         box.current?.querySelector<HTMLElement>(".airport-add, .airport-chip:last-child button")?.focus();
       });
     } catch (e) {
+      if (run !== generation.current) return;
       setOpen(true);
       setBatchError(e instanceof Error ? e.message : t("Falha na consulta"));
     } finally {
-      setBatch(false);
+      if (!keep) setBatch(false);
     }
   }
   /** After a removal the focus goes to the next chip, "Adicionar outro…", the previous chip or the search field. */
@@ -268,7 +300,10 @@ export function AirportPicker({
               onFocus={() => setOpen(true)}
               onChange={(e) => {
                 setBatchError("");
-                setQuery(e.target.value);
+                const closed = batch ? null : typedCodes(e.target.value);
+                // "GRU+" becomes a chip and the field is cleared for the next airport.
+                setQuery(closed ? closed.rest : e.target.value);
+                if (closed) void addCodes(closed.codes, true);
                 setOpen(true);
               }}
               onPaste={(e) => {
