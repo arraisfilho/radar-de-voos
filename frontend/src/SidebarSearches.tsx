@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, PlaneTakeoff, Plus } from "lucide-react";
+import { useEffect, useState, type MouseEvent } from "react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { t } from "./i18n";
 import { tripTitle, legDates } from "./tripSummary";
 import type { SearchRecord } from "./types";
@@ -27,27 +27,37 @@ export function SidebarSearches({
   }, [selectedId, ids]);
   const pages = Math.max(1, Math.ceil(searches.length / PAGE_SIZE)),
     current = Math.min(page, pages - 1);
+  const select = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
+    // Modified clicks keep the browser behavior (new tab, copy link).
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    onSelect(id);
+  };
   return (
     <div className="sidebar-searches">
-      <p className="eyebrow">
-        {t("SUAS VIAGENS")}
+      <h2 className="sidebar-section-title">
+        {t("Suas viagens")}
         <span>
           {searches.length}/{limit}
         </span>
-      </p>
+      </h2>
       {searches
         .slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE)
         .map((s) => {
           const summary = tripTitle(s.config);
           return (
-            <button
+            <a
               key={s.id}
-              onClick={() => onSelect(s.id)}
-              className={selectedId === s.id ? "current" : ""}
+              href={`/viagens/${encodeURIComponent(s.id)}`}
+              onClick={(event) => select(event, s.id)}
+              className={selectedId === s.id ? "sidebar-trip current" : "sidebar-trip"}
               aria-current={selectedId === s.id ? "page" : undefined}
               title={`${summary.title} · ${t("Ida")}: ${legDates(s.config.outbound)}${s.config.inbound ? ` · ${t("Volta")}: ${legDates(s.config.inbound)}` : ""}`}
             >
-              <PlaneTakeoff size={15} aria-hidden="true" />
+              <i
+                className={s.active ? "sidebar-trip-dot is-active" : "sidebar-trip-dot"}
+                aria-hidden="true"
+              />
               <span className="sidebar-trip-text">
                 <span className="sidebar-trip-name">
                   {summary.title}
@@ -77,14 +87,10 @@ export function SidebarSearches({
                   )}
                 </small>
               </span>
-              <i
-                className={s.active ? "active-dot" : "paused-dot"}
-                aria-hidden="true"
-              />
               <span className="sr-only">
                 {s.active ? t("Ativo") : t("Pausado")}
               </span>
-            </button>
+            </a>
           );
         })}
       {pages > 1 && (
@@ -98,7 +104,7 @@ export function SidebarSearches({
             onClick={() => setPage(current - 1)}
             aria-label={t("Buscas anteriores")}
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={16} aria-hidden="true" />
           </button>
           <span aria-live="polite">
             {current + 1} / {pages}
@@ -109,12 +115,12 @@ export function SidebarSearches({
             onClick={() => setPage(current + 1)}
             aria-label={t("Próximas buscas")}
           >
-            <ChevronRight size={16} />
+            <ChevronRight size={16} aria-hidden="true" />
           </button>
         </nav>
       )}
-      <button className="add-search" onClick={onNew}>
-        <Plus size={16} />
+      <button type="button" className="add-search" onClick={onNew}>
+        <Plus size={18} aria-hidden="true" />
         {t("Nova viagem")}
       </button>
     </div>

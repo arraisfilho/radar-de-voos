@@ -30,3 +30,17 @@ let validity='';main.props.onChange({currentTarget:{value:'22122026',selectionSt
 main.props.onChange({currentTarget:{value:'3112202',selectionStart:7,setSelectionRange(){},setCustomValidity:v=>validity=v}});assert.ok(validity);assert.equal(changes.length,1);
 let prevented=false;tree=render();main=find(tree,n=>n.type==='input'&&n.props.id==='date-start');main.props.onKeyDown({key:'Backspace',preventDefault(){prevented=true;},currentTarget:{value:'21/',selectionStart:3,selectionEnd:3,setSelectionRange(){},setCustomValidity(){}}});assert.equal(prevented,true);tree=render();main=find(tree,n=>n.type==='input'&&n.props.id==='date-start');assert.equal(main.props.value,'2');
 console.log('Date entry: direct masked input, separators, caret, deletion and invalid/incomplete form blocking passed.');
+
+// Little room above and below the field: the title row and "Digitar data" stay pinned while the month grid scrolls inside.
+const postcss=req('postcss'),sheet=postcss.parse(fs.readFileSync(path.join(__dirname,'../frontend/src/date-picker.css'),'utf8'));
+const css=selector=>{const found={};sheet.walkRules(r=>{if(r.parent.type!=='atrule'&&r.selectors.includes(selector))r.walkDecls(d=>{found[d.prop]=d.value;});});return found;};
+assert.equal(css('.calendar-manual').position,'sticky');assert.equal(css('.calendar-manual').bottom,'0');
+assert.equal(css('.calendar-top').position,'sticky');assert.equal(css('.calendar-top').top,'0');
+assert.match(css('.calendar-popover').padding,/^0 /,'The vertical padding lives in the pinned blocks');
+assert.equal(css('.calendar-popover')['max-height'],'var(--radix-popover-content-available-height)');assert.equal(css('.calendar-popover').overflow,'auto');
+// A window too short for the popover opens the calendar as the dialog, which scrolls inside.
+const shortWindow={};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(__dirname,'../frontend/src/DatePicker.tsx'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText,{exports:shortWindow,requestAnimationFrame:cb=>cb(),window:{matchMedia:query=>({matches:/max-height: 560px/.test(query),addEventListener(){},removeEventListener(){}})},require:n=>n.endsWith('.css')?{}:n==='react'?mockReact:n==='./calendarDate'?load('calendarDate.ts'):n==='./i18n'?{getLocale:()=>locale,t:k=>k}:req(n)});
+index=0;state=[];
+assert.equal(shortWindow.DatePicker({id:'date-short',value:'2026-12-21',label:'A partir de',onChange(){}}).type,req('@radix-ui/react-dialog').Root,'Short windows get the dialog');
+console.log('Calendar on little room: pinned title and typed date, dialog on short windows passed.');

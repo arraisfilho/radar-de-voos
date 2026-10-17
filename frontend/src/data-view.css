@@ -1,0 +1,313 @@
+/* =============================================================================
+   Data views (F4): filter toolbar (a sheet on phones), tables with thin
+   separators and a sticky header whose rows stack on phones, pagination and
+   the loading, empty and error states. Used by the administration and by the
+   access audit in the profile. Tokens from theme.css only. Breakpoints:
+   <=479 / 480-767 / 768-1023 / >=1024.
+   ============================================================================= */
+
+/* ---------- Filters ------------------------------------------------------------ */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+.filter-fields {
+  display: grid;
+  flex: 1 1 520px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 168px), 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+.filter-fields > .field {
+  min-width: 0;
+}
+.filter-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.filter-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.filter-count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--action);
+  color: var(--on-accent);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+/* In the phone sheet: one column and full-width actions. */
+.dialog .filter-bar {
+  display: grid;
+  gap: 20px;
+  padding: 0;
+  background: none;
+}
+.dialog .filter-fields {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.dialog .filter-actions {
+  margin: 0;
+}
+.dialog .filter-actions > .button {
+  flex: 1 1 0;
+  min-height: var(--control-large);
+  font-size: 17px;
+  line-height: 22px;
+}
+
+/* ---------- Tables --------------------------------------------------------------- */
+/* The table spans the card edge to edge, so separators and the sticky header
+   line up with the card. */
+.table-frame {
+  margin: 12px -20px 0;
+}
+.data-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.data-table th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: var(--shell-top);
+  z-index: 2;
+  padding: 10px 12px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--separator);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.data-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--separator);
+  color: var(--text);
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+.data-table th:first-child,
+.data-table td:first-child {
+  padding-left: 20px;
+}
+.data-table th:last-child,
+.data-table td:last-child {
+  padding-right: 20px;
+}
+.data-table tbody tr:last-child > td {
+  border-bottom: 0;
+}
+.data-table .numeric {
+  text-align: right;
+}
+.data-table .status-pill {
+  max-width: 100%;
+  white-space: normal;
+}
+.data-table tr.is-clickable {
+  cursor: pointer;
+}
+/* The previous rows while the next page or filter loads (they keep the pager's focus). */
+.data-table.is-stale tbody {
+  opacity: .55;
+  transition: opacity var(--dur-fast) var(--ease-standard);
+}
+.cell-title {
+  display: block;
+  color: var(--ink);
+  font-weight: 600;
+}
+.cell-secondary {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+.cell-truncate {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cell-action {
+  text-align: right;
+}
+.row-action {
+  color: var(--tertiary);
+}
+/* Field names inside the cells (CellLabel) show only when rows stack. */
+.cell-label {
+  display: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .data-table tr.is-clickable:hover > td {
+    background: var(--fill-4);
+  }
+  .data-table tr.is-clickable:hover .row-action {
+    color: var(--primary);
+  }
+}
+
+/* Phones: each row becomes a block of stacked fields, separated by a thin
+   line. The tables set their own grid areas: only the title shares its line,
+   with the row's action; the status and every other field take the full
+   width, so no column gets narrow. */
+@media (max-width: 767px) {
+  .table-frame {
+    margin: 8px 0 0;
+  }
+  .data-table,
+  .data-table tbody {
+    display: block;
+  }
+  .data-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .data-table tr {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    padding: 14px 0;
+  }
+  .data-table tr + tr {
+    border-top: 1px solid var(--separator);
+  }
+  /* A word or a number breaks only when it is longer than the whole line. */
+  .data-table td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    overflow-wrap: break-word;
+  }
+  .data-table td:first-child,
+  .data-table td:last-child {
+    padding: 0;
+  }
+  .data-table .numeric {
+    text-align: left;
+  }
+  /* Dates and times stay on one line. */
+  .data-table time {
+    white-space: nowrap;
+  }
+  /* The row's title wraps to a second line instead of being cut. */
+  .data-table .cell-clamp {
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  /* A secondary field: its name and its value on one full-width line; the
+     value moves under the name only when both do not fit. */
+  .data-table .cell-field {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0 12px;
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .data-table .cell-label {
+    display: block;
+    color: var(--muted);
+  }
+  /* The single action (a chevron) sits beside the title, centered on its
+     first line, without making the row taller. */
+  .data-table .cell-action {
+    align-self: start;
+    margin: calc((20px - var(--control-height)) / 2) calc((18px - var(--control-height)) / 2) calc((20px - var(--control-height)) / 2) 0;
+  }
+  /* A row with a single action opens anywhere it is touched. */
+  .data-table .row-action::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+}
+
+/* ---------- Pagination ------------------------------------------------------------ */
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.pager-summary {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.pager-summary.is-alone {
+  margin-top: 12px;
+}
+.pager-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------- States ------------------------------------------------------------------ */
+.table-skeleton {
+  display: grid;
+  gap: 10px;
+  padding: 12px 0;
+}
+.skeleton-table-row {
+  height: 44px;
+  border-radius: var(--radius-sm);
+}
+.load-error > svg:first-child {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+@media (forced-colors: active) {
+  .filter-bar,
+  .filter-count {
+    border: 1px solid CanvasText;
+  }
+  .dialog .filter-bar {
+    border: 0;
+  }
+}

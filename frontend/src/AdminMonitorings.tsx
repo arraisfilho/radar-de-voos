@@ -1,24 +1,29 @@
 import { TaskPage } from "./TaskPage";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ChevronLeft, ChevronRight, Eye } from "lucide-react";
-import { Button, Modal } from "./ui";
-import { t, getLocale } from "./i18n";
+import { clsx } from "clsx";
+import { ChevronRight, Eye, PlaneTakeoff } from "lucide-react";
+import { Button } from "./ui";
+import { t } from "./i18n";
+import { EmptyRows, LoadError, Pager, TableSkeleton, selectingText } from "./DataView";
+import { formatDateTime, formatDateTimeCompact, formatDuration, formatMoney, formatNumber } from "./format";
+import { legDates, tripRoute } from "./tripSummary";
+import { plural } from "./plural";
 import type { User, SearchRecord, Flight, Leg } from "./types";
 
 type Monitor = SearchRecord & { monitoring_number: number; archived: number };
-type Listing = { items: Monitor[]; total: number; page_size: number };
+type Listing = { items: Monitor[]; total: number; page_size?: number };
 type Detail = {
   search: Monitor;
   flights: Flight[];
   total: number;
-  page_size: number;
+  page_size?: number;
   readonly: boolean;
 };
 async function read<T>(path: string, signal: AbortSignal): Promise<T> {
   const response = await fetch("/api" + path, { signal, cache: "no-store" });
   if (!response.ok) {
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
     throw Error(
       typeof data.detail === "string"
         ? t(data.detail)
@@ -27,18 +32,17 @@ async function read<T>(path: string, signal: AbortSignal): Promise<T> {
   }
   return response.json();
 }
-const localDate = (value: string) =>
-  new Date(value).toLocaleString(getLocale(), {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-const duration = (value: number) =>
-  `${Math.floor(value / 60)}h${value % 60 ? String(value % 60).padStart(2, "0") : ""}`;
 const state = (item: Monitor) =>
   item.archived ? t("Encerrado") : item.active ? t("Ativo") : t("Pausado");
+const tone = (item: Monitor) =>
+  item.archived ? "is-ended" : item.active ? "is-active" : "is-paused";
+const cabins = (): Record<string, string> => ({
+  economy: t("Econômica"),
+  "premium-economy": t("Econômica premium"),
+  business: t("Executiva"),
+  first: t("Primeira classe"),
+});
+
 function LegPreferences({ leg, title }: { leg: Leg; title: string }) {
   const stops = leg.stops
     .map((n) =>
@@ -46,28 +50,28 @@ function LegPreferences({ leg, title }: { leg: Leg; title: string }) {
     )
     .join(" · ");
   return (
-    <section className="admin-monitor-leg">
-      <h3>{title}</h3>
-      <dl>
-        <div>
+    <section className="list-section admin-monitor-leg" aria-label={title}>
+      <h3 className="list-section-title">{title}</h3>
+      <dl className="list-group detail-list">
+        <div className="list-row">
           <dt>{t("Janela de saída")}</dt>
           <dd>
-            {localDate(leg.start)} → {localDate(leg.end)}
+            {formatDateTimeCompact(leg.start)} – {formatDateTimeCompact(leg.end)}
           </dd>
         </div>
-        <div>
+        <div className="list-row">
           <dt>{t("Escalas permitidas")}</dt>
           <dd>{stops}</dd>
         </div>
-        <div>
+        <div className="list-row">
           <dt>{t("Duração máxima da viagem")}</dt>
           <dd>
             {leg.max_duration == null
               ? t("Sem limite")
-              : duration(leg.max_duration)}
+              : formatDuration(leg.max_duration)}
           </dd>
         </div>
-        <div>
+        <div className="list-row">
           <dt>{t("Companhia aérea")}</dt>
           <dd>
             {leg.airlines.length
@@ -76,21 +80,22 @@ function LegPreferences({ leg, title }: { leg: Leg; title: string }) {
           </dd>
         </div>
         {leg.arrival_before && (
-          <div>
+          <div className="list-row">
             <dt>{t("Chegar até")}</dt>
-            <dd>{localDate(leg.arrival_before)}</dd>
+            <dd>{formatDateTimeCompact(leg.arrival_before)}</dd>
           </div>
         )}
         {leg.max_layover != null && (
-          <div>
+          <div className="list-row">
             <dt>{t("Espera máxima por conexão")}</dt>
-            <dd>{duration(leg.max_layover)}</dd>
+            <dd>{formatDuration(leg.max_layover)}</dd>
           </div>
         )}
       </dl>
     </section>
   );
 }
+/** One customer's monitorings, read only: list, then configuration and collected results. */
 export function AdminMonitorings({
   user,
   onClose,
@@ -102,6 +107,7 @@ export function AdminMonitorings({
   monitoringId?: string;
   onSelect?: (id?: string) => void;
 }) {
+  // Hook order matters to the tests: status, page, selection, flight page.
   const [status, setStatus] = useState("all"),
     [page, setPage] = useState(0),
     [localSelected, setLocalSelected] = useState<string | null>(null),
@@ -119,6 +125,8 @@ export function AdminMonitorings({
       ),
     enabled: !selected,
     refetchOnMount: "always",
+    // Another page of the same customer keeps the last rows while it loads: the pager keeps the focus.
+    placeholderData: (previous, previousQuery) => (previousQuery?.queryKey[1] === user.id ? previous : undefined),
   });
   const detail = useQuery<Detail>({
     queryKey: ["admin-monitoring", user.id, selected, flightPage],
@@ -129,6 +137,9 @@ export function AdminMonitorings({
       ),
     enabled: !!selected,
     refetchOnMount: "always",
+    // Another page of results of the same monitoring keeps the last rows while it loads.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[1] === user.id && previousQuery?.queryKey[2] === selected ? previous : undefined,
   });
   const search = detail.data?.search,
     config = search?.config;
@@ -139,45 +150,37 @@ export function AdminMonitorings({
   return (
     <TaskPage
       onBack={selected ? back : onClose}
+      backLabel={selected ? t("Voltar aos monitoramentos") : t("Voltar aos usuários")}
       title={t("Monitoramentos de {0}", [user.name])}
       description={t("Cliente #{0} · somente leitura", [
         user.client_number || "—",
       ])}
-      className="admin-monitor-dialog"
+      className="admin-monitor-page"
     >
       <p className="admin-readonly">
         <Eye size={16} aria-hidden="true" />
         {t("Somente leitura. Sua sessão de administrador será mantida.")}
       </p>
       {selected ? (
-        <>
-          <Button variant="ghost" onClick={back}>
-            <ArrowLeft size={16} />
-            {t("Voltar aos monitoramentos")}
-          </Button>
-          {detail.isError ? (
-            <p role="alert" className="form-error">
-              {detail.error.message}
-            </p>
-          ) : !search || !config ? (
-            <p role="status">{t("Carregando…")}</p>
-          ) : (
-            <>
-              <header className="admin-monitor-heading">
+        detail.isError ? (
+          <LoadError level={2} message={detail.error.message} onRetry={() => void detail.refetch()} />
+        ) : !search || !config ? (
+          <TableSkeleton rows={4} />
+        ) : (
+          <>
+            <section className="card admin-monitor-summary" aria-labelledby="monitor-title">
+              <div className="admin-monitor-head">
                 <div>
-                  <span className="subtle-tag">
+                  <span className="cell-secondary">
                     {t("Monitoramento #{0}", [search.monitoring_number])}
                   </span>
-                  <h2>{config.name}</h2>
-                  <p>
-                    {config.origins.join(" + ")} {config.inbound ? "↔" : "→"}{" "}
-                    {config.destinations.join(" + ")}
-                  </p>
+                  <h2 id="monitor-title">{config.name}</h2>
+                  <p className="admin-monitor-route">{tripRoute(config)}</p>
                 </div>
-                <span className="delivery-badge">{state(search)}</span>
-              </header>
-              <dl className="admin-monitor-general">
-                <div>
+                <span className={clsx("status-pill", tone(search))}>{state(search)}</span>
+              </div>
+              <dl className="list-group detail-list">
+                <div className="list-row">
                   <dt>{t("Passageiros")}</dt>
                   <dd>
                     {t("Adultos")}: {config.adults} · {t("Crianças")}:{" "}
@@ -186,24 +189,15 @@ export function AdminMonitorings({
                     {config.infants_on_lap || 0}
                   </dd>
                 </div>
-                <div>
+                <div className="list-row">
                   <dt>{t("Cabine")}</dt>
-                  <dd>
-                    {
-                      {
-                        economy: t("Econômica"),
-                        "premium-economy": t("Econômica premium"),
-                        business: t("Executiva"),
-                        first: t("Primeira classe"),
-                      }[config.cabin]
-                    }
-                  </dd>
+                  <dd>{cabins()[config.cabin] || config.cabin}</dd>
                 </div>
-                <div>
+                <div className="list-row">
                   <dt>{t("Moeda")}</dt>
                   <dd>{config.currency}</dd>
                 </div>
-                <div>
+                <div className="list-row">
                   <dt>{t("Bagagem despachada")}</dt>
                   <dd>
                     {config.checked_bags === 0
@@ -215,7 +209,7 @@ export function AdminMonitorings({
                           ])}
                   </dd>
                 </div>
-                <div>
+                <div className="list-row">
                   <dt>{t("Alertas")}</dt>
                   <dd>
                     {[
@@ -226,85 +220,85 @@ export function AdminMonitorings({
                       .join(" · ") || t("Somente no painel")}
                   </dd>
                 </div>
-                <div>
+                <div className="list-row">
                   <dt>{t("Meta por trecho")}</dt>
                   <dd>
                     {config.target_cents == null
                       ? t("Sem meta")
-                      : new Intl.NumberFormat(getLocale(), {
-                          style: "currency",
-                          currency: config.currency,
-                        }).format(config.target_cents / 100)}
+                      : formatMoney(config.target_cents, config.currency)}
                   </dd>
                 </div>
-                <div>
+                <div className="list-row">
                   <dt>{t("Queda mínima")}</dt>
-                  <dd>
-                    {new Intl.NumberFormat(getLocale(), {
-                      style: "currency",
-                      currency: config.currency,
-                    }).format(config.min_drop_cents / 100)}
-                  </dd>
+                  <dd>{formatMoney(config.min_drop_cents, config.currency)}</dd>
                 </div>
               </dl>
-              <div className="admin-monitor-legs">
-                <LegPreferences leg={config.outbound} title={t("Ida")} />
-                {config.inbound && (
-                  <LegPreferences leg={config.inbound} title={t("Volta")} />
-                )}
-              </div>
-              <p className="help">
-                {t(
-                  "Horários locais dos aeroportos. Valores referentes ao grupo por trecho.",
-                )}
-              </p>
-              <h3>{t("Resultados já coletados")}</h3>
+            </section>
+            <div className="admin-monitor-legs">
+              <LegPreferences leg={config.outbound} title={t("Ida")} />
+              {config.inbound && (
+                <LegPreferences leg={config.inbound} title={t("Volta")} />
+              )}
+            </div>
+            <p className="admin-footnote">
+              {t(
+                "Horários locais dos aeroportos. Valores referentes ao grupo por trecho.",
+              )}
+            </p>
+            <section className="card admin-card" aria-labelledby="monitor-results-title">
+              <header className="admin-card-heading">
+                <div>
+                  <h2 id="monitor-results-title">{t("Resultados já coletados")}</h2>
+                </div>
+              </header>
               {!detail.data?.flights.length ? (
-                <p className="small-empty">
-                  {t("Nenhuma opção disponível nos dados atuais.")}
-                </p>
+                <EmptyRows icon={PlaneTakeoff} title={t("Nenhuma opção disponível nos dados atuais.")} />
               ) : (
-                <div className="table-scroll">
-                  <table className="admin-monitor-flights">
-                    <thead>
-                      <tr>
-                        <th>{t("Voo")}</th>
-                        <th>{t("Partida e chegada")}</th>
-                        <th>{t("Duração")}</th>
-                        <th>{t("Preço")}</th>
+                <div className="table-frame">
+                  <table
+                    role="table"
+                    className={clsx("data-table admin-monitor-flights", detail.isPlaceholderData && "is-stale")}
+                    aria-busy={detail.isFetching || undefined}
+                  >
+                    <caption className="sr-only">
+                      {t("Resultados coletados: voo, partida e chegada, duração e preço")}
+                    </caption>
+                    <thead role="rowgroup">
+                      <tr role="row">
+                        <th scope="col" role="columnheader" className="col-flight">{t("Voo")}</th>
+                        <th scope="col" role="columnheader" className="col-times">{t("Partida e chegada")}</th>
+                        <th scope="col" role="columnheader" className="col-duration">{t("Duração")}</th>
+                        <th scope="col" role="columnheader" className="col-price numeric">{t("Preço")}</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody role="rowgroup">
                       {detail.data.flights.map((flight, index) => (
-                        <tr key={index}>
-                          <td>
-                            {flight.origin} → {flight.destination}
-                            <small>{flight.airlines.join(" / ")}</small>
+                        <tr role="row" key={index}>
+                          <td role="cell" className="cell-flight">
+                            <span className="cell-title">
+                              {flight.origin} → {flight.destination}
+                            </span>
+                            <span className="cell-secondary">{flight.airlines.join(" / ")}</span>
                           </td>
-                          <td>
-                            {localDate(flight.departure)}
-                            <small>→ {localDate(flight.arrival)}</small>
+                          <td role="cell" className="cell-times">
+                            {formatDateTimeCompact(flight.departure)}
+                            <span className="cell-secondary">→ {formatDateTimeCompact(flight.arrival)}</span>
                           </td>
-                          <td>
-                            {duration(flight.duration_minutes)}
-                            <small>
+                          <td role="cell" className="cell-duration">
+                            {formatDuration(flight.duration_minutes)}
+                            <span className="cell-secondary">
                               {flight.stops === 0
                                 ? t("Direto")
                                 : flight.stops === 1
                                   ? t("1 escala")
                                   : t("{0} escalas", [flight.stops])}
-                            </small>
+                            </span>
                           </td>
-                          <td>
-                            {new Intl.NumberFormat(getLocale(), {
-                              style: "currency",
-                              currency: flight.currency || config.currency,
-                            }).format(flight.price_cents / 100)}
-                            <small>
-                              {new Date(
-                                flight.collected_at * 1000,
-                              ).toLocaleString(getLocale())}
-                            </small>
+                          <td role="cell" className="cell-price numeric">
+                            <span className="cell-title">
+                              {formatMoney(flight.price_cents, flight.currency || config.currency)}
+                            </span>
+                            <span className="cell-secondary">{formatDateTime(flight.collected_at)}</span>
                           </td>
                         </tr>
                       ))}
@@ -312,139 +306,130 @@ export function AdminMonitorings({
                   </table>
                 </div>
               )}
-              <div className="admin-pagination">
-                <small>
-                  {t("Opções: {0} · Página {1}", [
-                    detail.data?.total || 0,
-                    flightPage + 1,
-                  ])}
-                </small>
-                <div>
-                  <Button
-                    variant="outline"
-                    disabled={!flightPage || detail.isFetching}
-                    onClick={() => setFlightPage((p) => p - 1)}
-                    aria-label={t("Página anterior")}
-                  >
-                    <ChevronLeft size={16} />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={
-                      detail.isFetching ||
-                      (flightPage + 1) * 40 >= (detail.data?.total || 0)
-                    }
-                    onClick={() => setFlightPage((p) => p + 1)}
-                    aria-label={t("Próxima página")}
-                  >
-                    <ChevronRight size={16} />
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </>
+              <Pager
+                page={flightPage}
+                pageSize={detail.data?.page_size || 40}
+                total={detail.data?.total || 0}
+                onPage={setFlightPage}
+                label={t("Páginas de resultados")}
+                summary={plural(detail.data?.total || 0, "{0} opção coletada", "{0} opções coletadas", formatNumber(detail.data?.total || 0))}
+              />
+            </section>
+          </>
+        )
       ) : (
-        <>
-          <label className="admin-monitor-filter">
-            {t("Situação")}
-            <select
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                setPage(0);
-              }}
-            >
-              {[
-                ["all", t("Todos")],
-                ["active", t("Ativos")],
-                ["paused", t("Pausados")],
-                ["ended", t("Encerrados")],
-              ].map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
+        <section className="card admin-card" aria-label={t("Monitoramentos")}>
+          <div className="segmented admin-monitor-filter" role="group" aria-label={t("Situação")}>
+            {[
+              ["all", t("Todos")],
+              ["active", t("Ativos")],
+              ["paused", t("Pausados")],
+              ["ended", t("Encerrados")],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={status === value}
+                onClick={() => {
+                  setStatus(value);
+                  setPage(0);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           {list.isError ? (
-            <p className="form-error" role="alert">
-              {list.error.message}
-            </p>
+            <LoadError level={2} message={list.error.message} onRetry={() => void list.refetch()} />
           ) : !list.data ? (
-            <p role="status">{t("Carregando…")}</p>
+            <TableSkeleton rows={4} />
+          ) : !list.data.items.length ? (
+            <EmptyRows level={2} icon={PlaneTakeoff} title={t("Nenhum monitoramento encontrado.")} />
           ) : (
-            <>
-              <div className="admin-monitor-list">
-                {list.data.items.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setSelected(item.id);
-                      setFlightPage(0);
-                    }}
-                  >
-                    <div>
-                      <strong>
-                        {t("Monitoramento #{0}", [item.monitoring_number])} ·{" "}
-                        {item.config.name}
-                      </strong>
-                      <span>
-                        {item.config.origins.join(" + ")}{" "}
-                        {item.config.inbound ? "↔" : "→"}{" "}
-                        {item.config.destinations.join(" + ")}
-                      </span>
-                      <small>
-                        {t("Ida")}: {localDate(item.config.outbound.start)}
-                        {item.config.inbound
-                          ? " · " +
-                            t("Volta") +
-                            ": " +
-                            localDate(item.config.inbound.start)
-                          : ""}
-                      </small>
-                    </div>
-                    <span className="delivery-badge">{state(item)}</span>
-                    <Eye size={17} aria-hidden="true" />
-                  </button>
-                ))}
-              </div>
-              {!list.data.items.length && (
-                <p className="small-empty">
-                  {t("Nenhum monitoramento encontrado.")}
-                </p>
-              )}
-              <div className="admin-pagination">
-                <small>
-                  {t("Monitoramentos: {0} · Página {1}", [
-                    list.data.total,
-                    page + 1,
-                  ])}
-                </small>
-                <div>
-                  <Button
-                    variant="outline"
-                    disabled={!page || list.isFetching}
-                    onClick={() => setPage((p) => p - 1)}
-                    aria-label={t("Página anterior")}
-                  >
-                    <ChevronLeft size={16} />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={
-                      list.isFetching || (page + 1) * 15 >= list.data.total
-                    }
-                    onClick={() => setPage((p) => p + 1)}
-                    aria-label={t("Próxima página")}
-                  >
-                    <ChevronRight size={16} />
-                  </Button>
-                </div>
-              </div>
-            </>
+            <div className="table-frame">
+              <table
+                role="table"
+                className={clsx("data-table admin-monitor-table", list.isPlaceholderData && "is-stale")}
+                aria-busy={list.isFetching || undefined}
+              >
+                <caption className="sr-only">
+                  {t("Monitoramentos: viagem, rota, datas e situação")}
+                </caption>
+                <thead role="rowgroup">
+                  <tr role="row">
+                    <th scope="col" role="columnheader" className="col-trip">{t("Viagem")}</th>
+                    <th scope="col" role="columnheader" className="col-route">{t("Rota")}</th>
+                    <th scope="col" role="columnheader" className="col-dates">{t("Datas")}</th>
+                    <th scope="col" role="columnheader" className="col-status">{t("Situação")}</th>
+                    <th scope="col" role="columnheader" className="col-action">
+                      <span className="sr-only">{t("Detalhes")}</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody role="rowgroup">
+                  {list.data.items.map((item) => (
+                    <tr
+                      role="row"
+                      key={item.id}
+                      className="is-clickable"
+                      onClick={() => {
+                        if (selectingText()) return;
+                        setSelected(item.id);
+                        setFlightPage(0);
+                      }}
+                    >
+                      <td role="cell" className="cell-trip">
+                        <span className="cell-title cell-truncate cell-clamp">{item.config.name}</span>
+                        <span className="cell-secondary">
+                          {t("Monitoramento #{0}", [item.monitoring_number])}
+                        </span>
+                      </td>
+                      <td role="cell" className="cell-route">{tripRoute(item.config)}</td>
+                      <td role="cell" className="cell-dates">
+                        <span>
+                          {t("Ida")}: {legDates(item.config.outbound)}
+                        </span>
+                        {item.config.inbound && (
+                          <span className="cell-secondary">
+                            {t("Volta")}: {legDates(item.config.inbound)}
+                          </span>
+                        )}
+                      </td>
+                      <td role="cell" className="cell-status">
+                        <span className={clsx("status-pill", tone(item))}>{state(item)}</span>
+                      </td>
+                      <td role="cell" className="cell-action">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="row-action"
+                          aria-label={t("Ver monitoramento #{0}", [item.monitoring_number])}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setSelected(item.id);
+                            setFlightPage(0);
+                          }}
+                        >
+                          <ChevronRight size={18} aria-hidden="true" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-        </>
+          {list.data && (
+            <Pager
+              page={page}
+              pageSize={list.data.page_size || 15}
+              total={list.data.total}
+              onPage={setPage}
+              label={t("Páginas de monitoramentos")}
+              summary={plural(list.data.total, "{0} monitoramento", "{0} monitoramentos", formatNumber(list.data.total))}
+            />
+          )}
+        </section>
       )}
     </TaskPage>
   );

@@ -1,10 +1,12 @@
 import { WhatsAppReceipts } from "./WhatsAppReceipts";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { t, getLocale } from "./i18n";
-import { Button, Card } from "./ui";
+import { t } from "./i18n";
+import { useUnsavedChanges } from "./navigationGuard";
+import { formatDateTime } from "./format";
+import { Button, Card, ConfirmDialog, Notice } from "./ui";
 import { PhoneField } from "./PhoneField";
-import { Save, Send } from "lucide-react";
+import { MessageCircle, Save, Send, ShieldCheck, Trash2 } from "lucide-react";
 type Field = {
   key: string;
   label: string;
@@ -30,7 +32,12 @@ type RequestFn = (
   body: unknown,
   method?: string,
 ) => Promise<unknown>;
+/**
+ * WhatsApp channel: integrator, connection, delivery receipts and a test
+ * message. Removing the integration asks for confirmation first.
+ */
 export function WhatsAppPanel({ request }: { request: RequestFn }) {
+  // Hook order matters to the tests: the draft comes first.
   const cache = useQueryClient(),
     [draft, setDraft] = useState<Draft | null>(null),
     [busy, setBusy] = useState(false),
@@ -43,7 +50,13 @@ export function WhatsAppPanel({ request }: { request: RequestFn }) {
     } | null>(null),
     [country, setCountry] = useState("BR"),
     [phone, setPhone] = useState(""),
-    [consent, setConsent] = useState(false);
+    [consent, setConsent] = useState(false),
+    [confirm, setConfirm] = useState(false),
+    [confirmError, setConfirmError] = useState(""),
+    [confirmSave, setConfirmSave] = useState(false);
+  const id = useId();
+  // A success from a confirmation waits for its dialog to close (see Modal.onClosed).
+  const closedMessage = useRef("");
   const query = useQuery<Settings>({
     queryKey: ["whatsapp-settings"],
     queryFn: async ({ signal }) => {
@@ -65,40 +78,70 @@ export function WhatsAppPanel({ request }: { request: RequestFn }) {
         values: { ...query.data.values },
       });
   }, [query.data, draft]);
-  const provider = query.data?.providers.find((p) => p.id === draft?.provider);
+  const data = query.data;
+  const provider = data?.providers.find((p) => p.id === draft?.provider);
   const identityUnchanged =
     !!draft &&
-    query.data?.provider === draft.provider &&
+    data?.provider === draft.provider &&
     provider?.fields
       .filter((f) => !f.secret)
       .every(
         (f) =>
-          (draft.values[f.key] || "") === (query.data?.values[f.key] || ""),
+          (draft.values[f.key] || "") === (data?.values[f.key] || ""),
       );
   const dirty =
     !!draft &&
-    !!query.data &&
-    (draft.provider !== query.data.provider ||
-      draft.enabled !== query.data.enabled ||
+    !!data &&
+    (draft.provider !== data.provider ||
+      draft.enabled !== data.enabled ||
       Object.entries(draft.values).some(([key, value]) =>
         provider?.fields.find((f) => f.key === key)?.secret
           ? !!value
-          : value !== (query.data?.values[key] || ""),
+          : value !== (data?.values[key] || ""),
       ));
-  async function run(action: () => Promise<void>) {
+  // Switching channel or tab with unsaved changes asks first (navigationGuard).
+  useUnsavedChanges(dirty);
+  // Something saved beyond the defaults: the integration can be removed.
+  const saved =
+    !!data &&
+    (data.enabled ||
+      Object.values(data.secrets_set).some(Boolean) ||
+      Object.values(data.values).some(Boolean));
+  /** Runs a request; its error shows next to the form, or in the confirmation that ran it. */
+  async function run(action: () => Promise<void>, fail: (message: string) => void = setError) {
     setBusy(true);
     setError("");
+    setConfirmError("");
     setMessage("");
     try {
       await action();
     } catch (e) {
-      setError(t((e as Error).message));
+      fail(t((e as Error).message));
     } finally {
       setBusy(false);
     }
   }
+  async function refreshShared() {
+    await cache.invalidateQueries({ queryKey: ["radar"] });
+    await cache.invalidateQueries({ queryKey: ["admin-deliveries"] });
+    await cache.invalidateQueries({ queryKey: ["whatsapp-receipts"] });
+  }
+  // Saving the enabled integration switched off, or with another integrator,
+  // URL or session, cancels the messages still queued (the server never
+  // redirects them): that save asks first.
+  const cancelsQueue = !!data?.enabled && !!draft && (!draft.enabled || !identityUnchanged);
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (!draft) return;
+    if (cancelsQueue) {
+      setConfirmError("");
+      setConfirmSave(true);
+      return;
+    }
+    await persist();
+  }
+  /** From the confirmation, a failure stays in the open dialog and the success waits for it to close. */
+  async function persist(confirming = false) {
     if (!draft) return;
     await run(async () => {
       const result = (await request(
@@ -113,13 +156,18 @@ export function WhatsAppPanel({ request }: { request: RequestFn }) {
       });
       cache.setQueryData(["whatsapp-settings"], result);
       setCheck(null);
-      setMessage(
-        t("Configuração WhatsApp salva. Use Verificar sessão antes do teste."),
-      );
-      await cache.invalidateQueries({ queryKey: ["radar"] });
-      await cache.invalidateQueries({ queryKey: ["admin-deliveries"] });
-      await cache.invalidateQueries({ queryKey: ["whatsapp-receipts"] });
-    });
+      const done = t("Configuração WhatsApp salva. Use Verificar sessão antes do teste.");
+      if (confirming) {
+        closedMessage.current = done;
+        setConfirmSave(false);
+      } else setMessage(done);
+      await refreshShared();
+    }, confirming ? setConfirmError : setError);
+  }
+  function showClosedMessage() {
+    if (!closedMessage.current) return;
+    setMessage(closedMessage.current);
+    closedMessage.current = "";
   }
   const states: Record<string, string> = {
     ready: t("Pronta para envio"),
@@ -131,107 +179,117 @@ export function WhatsAppPanel({ request }: { request: RequestFn }) {
     failed: t("Falha na sessão"),
   };
   return (
-    <Card className="whatsapp-panel">
-      <div className="section-heading">
+    <section className="channel-panel whatsapp-panel" aria-labelledby={id + "-title"}>
+      <header className="channel-panel-heading">
+        <span className="admin-channel-icon is-large" aria-hidden="true">
+          <MessageCircle size={22} />
+        </span>
         <div>
-          <h2>WhatsApp</h2>
+          <h2 id={id + "-title"}>WhatsApp</h2>
           <p>{t("Escolha o integrador e configure a conexão de envio.")}</p>
         </div>
-        <span className="subtle-tag">
-          {query.data?.available ? t("Habilitado") : t("Não configurado")}
+        <span className={data?.available ? "status-pill is-active" : "status-pill is-ended"}>
+          {data?.available ? t("Habilitado") : t("Não configurado")}
         </span>
-      </div>
-      {query.isError ? (
-        <p className="form-error" role="alert">
-          {query.error.message}
-        </p>
-      ) : !draft ? (
-        <p role="status">{t("Carregando…")}</p>
-      ) : (
-        <form onSubmit={save}>
-          <fieldset disabled={busy} className="admin-account-fields">
-            <label>
-              {t("Tipo de integração")}
-              <select
-                value={draft.provider}
-                onChange={(e) => {
-                  const next = query.data?.providers.find(
-                    (p) => p.id === e.target.value,
-                  );
-                  if (next) {
-                    setDraft({
-                      provider: next.id,
-                      enabled: false,
-                      values: Object.fromEntries(
-                        next.fields.map((f) => [f.key, f.default]),
-                      ),
-                    });
-                    setCheck(null);
-                  }
-                }}
-              >
-                {query.data?.providers.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {provider?.fields.map((field) => (
-              <label key={field.key}>
-                {t(field.label)}
-                <input
-                  type={field.type}
-                  autoComplete={field.secret ? "new-password" : "off"}
-                  required={
-                    draft.enabled &&
-                    (!field.secret ||
-                      !query.data?.secrets_set[field.key] ||
-                      !identityUnchanged)
-                  }
-                  maxLength={field.key === "session_id" ? 200 : 2000}
-                  value={draft.values[field.key] || ""}
-                  placeholder={
-                    field.secret &&
-                    identityUnchanged &&
-                    query.data?.secrets_set[field.key]
-                      ? t("Token salvo · deixe vazio para manter")
-                      : field.default
-                  }
+      </header>
+      <Card className="channel-card">
+        {query.isError ? (
+          <Notice tone="error">{query.error.message}</Notice>
+        ) : !draft ? (
+          <div className="table-skeleton" role="status">
+            <span className="sr-only">{t("Carregando…")}</span>
+            <span className="skeleton skeleton-table-row" aria-hidden="true" />
+            <span className="skeleton skeleton-table-row" aria-hidden="true" />
+          </div>
+        ) : (
+          <form className="channel-form" onSubmit={save}>
+            <fieldset disabled={busy} className="channel-fields">
+              <label className="field">
+                <span className="field-label">{t("Tipo de integração")}</span>
+                <select
+                  value={draft.provider}
                   onChange={(e) => {
-                    setDraft({
-                      ...draft,
-                      values: { ...draft.values, [field.key]: e.target.value },
-                    });
-                    setCheck(null);
+                    const next = data?.providers.find(
+                      (p) => p.id === e.target.value,
+                    );
+                    if (next) {
+                      setDraft({
+                        provider: next.id,
+                        enabled: false,
+                        values: Object.fromEntries(
+                          next.fields.map((f) => [f.key, f.default]),
+                        ),
+                      });
+                      setCheck(null);
+                    }
                   }}
+                >
+                  {data?.providers.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {provider?.fields.map((field) => (
+                <label className="field" key={field.key}>
+                  <span className="field-label">{t(field.label)}</span>
+                  <input
+                    type={field.type}
+                    autoComplete={field.secret ? "new-password" : "off"}
+                    required={
+                      draft.enabled &&
+                      (!field.secret ||
+                        !data?.secrets_set[field.key] ||
+                        !identityUnchanged)
+                    }
+                    maxLength={field.key === "session_id" ? 200 : 2000}
+                    value={draft.values[field.key] || ""}
+                    placeholder={
+                      field.secret &&
+                      identityUnchanged &&
+                      data?.secrets_set[field.key]
+                        ? t("Token salvo · deixe vazio para manter")
+                        : field.default
+                    }
+                    onChange={(e) => {
+                      setDraft({
+                        ...draft,
+                        values: { ...draft.values, [field.key]: e.target.value },
+                      });
+                      setCheck(null);
+                    }}
+                  />
+                </label>
+              ))}
+              {provider?.help && <p className="field-help">{t(provider.help)}</p>}
+              <label className="switch-row">
+                <span>{t("Habilitar envios por WhatsApp")}</span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  className="switch"
+                  checked={draft.enabled}
+                  onChange={(e) =>
+                    setDraft({ ...draft, enabled: e.target.checked })
+                  }
                 />
               </label>
-            ))}
-            {provider?.help && <p className="help">{t(provider.help)}</p>}
-            <label className="check-row">
-              <input
-                type="checkbox"
-                checked={draft.enabled}
-                onChange={(e) =>
-                  setDraft({ ...draft, enabled: e.target.checked })
-                }
-              />
-              {t("Habilitar envios por WhatsApp")}
-            </label>
-            <div className="settings-actions">
-              <Button type="submit">
-                <Save size={16} />
+            </fieldset>
+            <div className="channel-actions">
+              <Button type="submit" disabled={busy}>
+                <Save size={16} aria-hidden="true" />
                 {t("Salvar configuração")}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 disabled={
+                  busy ||
                   dirty ||
                   !provider?.fields
                     .filter((f) => f.secret)
-                    .every((f) => query.data?.secrets_set[f.key])
+                    .every((f) => data?.secrets_set[f.key])
                 }
                 onClick={() =>
                   void run(async () => {
@@ -252,95 +310,165 @@ export function WhatsAppPanel({ request }: { request: RequestFn }) {
                   })
                 }
               >
+                <ShieldCheck size={16} aria-hidden="true" />
                 {t("Verificar sessão")}
               </Button>
+              {saved && (
+                <Button
+                  type="button"
+                  variant="danger"
+                  className="channel-remove"
+                  disabled={busy}
+                  onClick={() => setConfirm(true)}
+                >
+                  <Trash2 size={15} aria-hidden="true" />
+                  {t("Remover integração")}
+                </Button>
+              )}
             </div>
             {dirty && (
-              <p className="help">
+              <p className="field-help">
                 {t(
                   "Salve as alterações antes de verificar ou enviar um teste.",
                 )}
               </p>
             )}
             {check && (
-              <p className="help" role="status">
-                {states[check.status] || check.status} ·{" "}
-                {new Date(check.checked_at * 1000).toLocaleString(getLocale())}
+              <p className="field-help" role="status">
+                {states[check.status] || check.status} · {formatDateTime(check.checked_at)}
               </p>
             )}
-          </fieldset>
-        </form>
-      )}
-      {error && (
-        <p className="form-error" role="alert">
+          </form>
+        )}
+        <Notice tone="error" onDismiss={() => setError("")}>
           {error}
-        </p>
-      )}
-      {message && (
-        <p className="profile-success" role="status">
-          {message}
-        </p>
-      )}
-      <WhatsAppReceipts request={request} />
-      <details className="whatsapp-test">
-        <summary>{t("Enviar mensagem de teste")}</summary>
-        <p className="help">
-          {t(
-            "O teste envia uma mensagem real apenas para o número informado. Consulte o resultado na aba Envios.",
-          )}
-        </p>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!consent) return;
-            void run(async () => {
-              await request("/admin/whatsapp/test", { country, phone });
-              setConsent(false);
-              setMessage(
-                t("Teste WhatsApp colocado na fila. Consulte a aba Envios."),
-              );
-              await cache.invalidateQueries({ queryKey: ["admin-deliveries"] });
-            });
-          }}
-        >
-          <PhoneField
-            label={t("Número para teste")}
-            country={country}
-            value={phone}
-            disabled={busy}
-            onChange={(c, p) => {
-              setCountry(c);
-              setPhone(p);
-              setConsent(false);
-            }}
-          />
-          <label className="check-row">
-            <input
-              type="checkbox"
-              required
-              checked={consent}
-              disabled={busy}
-              onChange={(e) => setConsent(e.target.checked)}
-            />
-            {t("Enviar uma mensagem de teste para este número.")}
-          </label>
-          <Button
-            type="submit"
-            variant="outline"
-            disabled={
-              busy || dirty || !query.data?.available || !phone || !consent
-            }
-          >
-            <Send size={15} />
-            {t("Enviar teste WhatsApp")}
-          </Button>
-        </form>
-      </details>
-      <p className="help">
+        </Notice>
+        <Notice onDismiss={() => setMessage("")}>{message}</Notice>
+      </Card>
+      <Card className="channel-card disclosure-card">
+        <WhatsAppReceipts request={request} />
+      </Card>
+      <Card className="channel-card disclosure-card">
+        <details className="whatsapp-test">
+          <summary>
+            <span className="channel-card-icon" aria-hidden="true">
+              <Send size={20} />
+            </span>
+            <span className="disclosure-summary">
+              <strong>{t("Enviar mensagem de teste")}</strong>
+              <small>{t("Mensagem real para um número informado por você.")}</small>
+            </span>
+          </summary>
+          <div className="admin-disclosure-body">
+            <p className="field-help">
+              {t(
+                "O teste envia uma mensagem real apenas para o número informado. Consulte o resultado na aba Envios.",
+              )}
+            </p>
+            <form
+              className="channel-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!consent) return;
+                void run(async () => {
+                  await request("/admin/whatsapp/test", { country, phone });
+                  setConsent(false);
+                  setMessage(
+                    t("Teste WhatsApp colocado na fila. Consulte a aba Envios."),
+                  );
+                  await cache.invalidateQueries({ queryKey: ["admin-deliveries"] });
+                });
+              }}
+            >
+              <PhoneField
+                label={t("Número para teste")}
+                country={country}
+                value={phone}
+                disabled={busy}
+                onChange={(c, p) => {
+                  setCountry(c);
+                  setPhone(p);
+                  setConsent(false);
+                }}
+              />
+              <label className="check-row">
+                <input
+                  type="checkbox"
+                  required
+                  checked={consent}
+                  disabled={busy}
+                  onChange={(e) => setConsent(e.target.checked)}
+                />
+                {t("Enviar uma mensagem de teste para este número.")}
+              </label>
+              <div className="channel-actions">
+                <Button
+                  type="submit"
+                  variant="outline"
+                  disabled={
+                    busy || dirty || !data?.available || !phone || !consent
+                  }
+                >
+                  <Send size={15} aria-hidden="true" />
+                  {t("Enviar teste WhatsApp")}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </details>
+      </Card>
+      <p className="admin-footnote">
         {t(
           "Aceitação pelo integrador não confirma entrega ou leitura. Falhas ambíguas não são reenviadas automaticamente.",
         )}
       </p>
-    </Card>
+      <ConfirmDialog
+        open={confirm}
+        onOpenChange={(open) => {
+          setConfirm(open);
+          if (!open) setConfirmError("");
+        }}
+        title={t("Remover a integração WhatsApp?")}
+        description={t(
+          "Remove a integração e o segredo das confirmações; mensagens pendentes são canceladas. Os números cadastrados pelos usuários são preservados.",
+        )}
+        confirmLabel={t("Remover integração")}
+        busy={busy}
+        error={confirm ? confirmError : ""}
+        onConfirm={() =>
+          // The dialog closes once the request succeeds; an error stays in it.
+          void run(async () => {
+            const result = (await request("/admin/whatsapp", {}, "DELETE")) as Settings;
+            cache.setQueryData(["whatsapp-settings"], result);
+            setDraft({
+              provider: result.provider,
+              enabled: result.enabled,
+              values: { ...result.values },
+            });
+            setCheck(null);
+            closedMessage.current = t("Integração WhatsApp removida. Mensagens pendentes foram canceladas.");
+            setConfirm(false);
+            await refreshShared();
+          }, setConfirmError)
+        }
+        onClosed={showClosedMessage}
+      />
+      <ConfirmDialog
+        open={confirmSave}
+        onOpenChange={(open) => {
+          setConfirmSave(open);
+          if (!open) setConfirmError("");
+        }}
+        title={t("Salvar e cancelar as mensagens pendentes?")}
+        description={t(
+          "Desligar o WhatsApp ou trocar o integrador, a URL ou a sessão cancela as mensagens que ainda estão na fila. Elas não serão reenviadas.",
+        )}
+        confirmLabel={t("Salvar e cancelar pendentes")}
+        busy={busy}
+        error={confirmSave ? confirmError : ""}
+        onConfirm={() => void persist(true)}
+        onClosed={showClosedMessage}
+      />
+    </section>
   );
 }

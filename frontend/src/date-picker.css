@@ -1,236 +1,317 @@
-.date-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  min-width: 0;
-  min-height: 38px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 7px 9px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  text-align: left;
+/* =============================================================================
+   Date picker (F3): a masked date field with a calendar button. The calendar
+   opens as a popover on larger screens and as a bottom sheet on phones (.dialog
+   in style.css). Tokens from theme.css only.
+   ============================================================================= */
+
+/* Field: .field-frame (style.css) draws border, focus and error. */
+.date-field {
+  padding-right: 4px;
+}
+.date-field input {
   font-variant-numeric: tabular-nums;
 }
-.date-trigger > svg {
+.date-calendar-button {
+  display: grid;
   flex-shrink: 0;
-  color: var(--muted);
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--primary);
 }
-.date-trigger:hover {
-  border-color: var(--border-strong);
-  background: var(--surface);
+.date-calendar-button:focus-visible {
+  outline-offset: -2px;
 }
-.date-trigger:focus-visible,
-.calendar-popover button:focus-visible,
-.calendar-popover input:focus-visible,
-.calendar-popover select:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+@media (hover: hover) and (pointer: fine) {
+  .date-calendar-button:hover {
+    background: var(--fill-4);
+  }
 }
+@media (pointer: coarse) {
+  /* 44 px wide; the 2 px the field border leaves out are added to the hit area. */
+  .date-calendar-button {
+    position: relative;
+    width: 44px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+  }
+  .date-calendar-button::after {
+    content: "";
+    position: absolute;
+    inset: -2px 0;
+  }
+}
+
+/* ---------- Calendar ---------------------------------------------------------- */
+/* With little room above and below the field the popover gets shorter than
+   its content: the title row and "Digitar data" stay pinned to its edges and
+   the month grid scrolls between them, so no control is cut. The vertical
+   padding lives in those two blocks, which the sticky offsets then match. */
 .calendar-popover {
-  z-index: 150;
-  width: min(340px, calc(100vw - 24px));
+  z-index: 80;
+  width: min(344px, calc(100vw - 24px));
   max-height: var(--radix-popover-content-available-height);
+  padding: 0 12px;
   overflow: auto;
-  padding: 12px;
-  background: var(--surface-raised);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 14px 40px var(--shadow-color);
-  font-size: 14px;
+  /* A focused day scrolls clear of the pinned title and typed date. */
+  scroll-padding: 64px 0 112px;
   overscroll-behavior: contain;
-  animation: calendar-enter 0.12s ease-out;
+  border-radius: 14px;
+  background: var(--material-popover);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: var(--shadow-popover);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 20px;
+  transform-origin: var(--radix-popover-content-transform-origin);
+  animation: menu-in var(--dur-fast) var(--ease-emphasized);
+}
+.calendar-popover:focus {
+  outline: none;
+}
+/* Phones and short windows: the dialog (a bottom sheet on phones, with the grabber of .dialog). */
+.calendar-sheet {
+  padding: 4px 16px 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scroll-padding: 64px 0 calc(112px + env(safe-area-inset-bottom, 0px));
 }
 .calendar-top {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  justify-content: space-between;
   gap: 8px;
+  padding-bottom: 4px;
+  background: var(--surface-raised);
 }
-.calendar-top strong {
-  font-size: 14px;
+.calendar-popover .calendar-top {
+  padding-top: 12px;
+  background: var(--material-popover-solid);
+}
+.calendar-title {
+  display: block;
+  min-width: 0;
+  padding-left: 4px;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.calendar-sheet .calendar-title {
+  font-size: 17px;
+  line-height: 22px;
 }
 .calendar-close {
   display: grid;
+  flex-shrink: 0;
   place-items: center;
-  background: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--fill-3);
   color: var(--muted);
-  border: 0;
-  border-radius: 6px;
-  min-width: 36px;
-  min-height: 36px;
-  cursor: pointer;
 }
-.calendar-popover .rdp-root {
-  --rdp-accent-color: var(--primary);
+@media (hover: hover) and (pointer: fine) {
+  .calendar-close:hover {
+    background: var(--fill-2);
+  }
+}
+@media (pointer: coarse) {
+  .calendar-close {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* react-day-picker, drawn as the iOS month grid: round days, today in the
+   accent color, the chosen day filled. */
+.rdp-root {
+  --rdp-accent-color: var(--action);
   --rdp-accent-background-color: var(--surface-tint);
-  --rdp-day-height: 40px;
-  --rdp-day-width: 40px;
+  --rdp-day-height: 42px;
+  --rdp-day-width: 42px;
   --rdp-day_button-height: 38px;
   --rdp-day_button-width: 38px;
+  --rdp-day_button-border-radius: 50%;
   --rdp-selected-border: 0;
-  --rdp-day_button-border-radius: 8px;
-  --rdp-outside-opacity: 0.55;
+  --rdp-outside-opacity: .4;
+  /* Disabled days (before today) take the tertiary label color instead of fading. */
+  --rdp-disabled-opacity: 1;
   --rdp-today-color: var(--primary);
+  --rdp-nav-height: 44px;
+  --rdp-nav_button-height: 36px;
+  --rdp-nav_button-width: 36px;
   margin: 0;
+  font-variant-numeric: tabular-nums;
 }
-.calendar-popover .rdp-months {
-  max-width: none;
+.rdp-months {
   display: block;
+  max-width: none;
 }
-.calendar-popover .rdp-month_grid {
+.rdp-month_grid {
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
 }
-.calendar-popover .rdp-day {
-  padding: 1px;
-  text-align: center;
-  width: calc(100% / 7);
-}
-.calendar-popover .rdp-day_button {
-  font: inherit;
-  margin: auto;
-  color: inherit;
-  width: 100%;
-  max-width: var(--rdp-day_button-width);
-}
-.calendar-popover .rdp-selected .rdp-day_button {
-  background: var(--action);
-  color: var(--on-accent);
-  font-weight: 700;
-}
-.calendar-popover .rdp-today:not(.rdp-selected) .rdp-day_button {
-  box-shadow: inset 0 0 0 1px var(--shadow-color);
-  font-weight: 700;
-}
-.calendar-popover .rdp-day_button:hover {
-  background: var(--surface-tint);
-  color: var(--text);
-}
-.calendar-popover .rdp-selected .rdp-day_button:hover {
-  background: var(--action);
-  color: var(--on-accent);
-}
-.calendar-popover .rdp-weekday {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  opacity: 1;
-  padding: 9px 0;
-}
-.calendar-popover .rdp-month_caption {
-  height: 42px;
+.rdp-month_caption {
+  height: 44px;
   justify-content: center;
 }
-.calendar-popover .rdp-dropdowns {
-  font-size: 14px;
+.rdp-dropdowns {
+  gap: 6px;
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 22px;
   font-weight: 600;
-  gap: 8px;
 }
-.calendar-popover .rdp-dropdown_root {
-  padding: 5px 4px;
-  border-radius: 5px;
+.rdp-dropdown_root {
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
 }
-.calendar-popover .rdp-dropdown {
-  font: inherit;
+.rdp-dropdown {
   color: var(--text);
+  font: inherit;
 }
-.calendar-popover .rdp-chevron {
+.rdp-caption_label {
+  gap: 4px;
+}
+.rdp-chevron {
   fill: var(--primary);
 }
-.calendar-popover .rdp-button_previous,
-.calendar-popover .rdp-button_next {
-  border-radius: 6px;
-  min-width: 38px;
-  min-height: 40px;
+.rdp-button_previous,
+.rdp-button_next {
+  border-radius: 50%;
 }
+.rdp-weekday {
+  padding: 6px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  opacity: 1;
+}
+.rdp-day {
+  width: calc(100% / 7);
+  padding: 2px 0;
+  text-align: center;
+}
+.rdp-day_button {
+  width: 100%;
+  max-width: var(--rdp-day_button-width);
+  margin: auto;
+  color: inherit;
+  font: inherit;
+  font-size: 17px;
+  line-height: 22px;
+  transition: background-color var(--dur-fast) var(--ease-standard);
+}
+.rdp-today:not(.rdp-selected) .rdp-day_button {
+  color: var(--primary);
+  font-weight: 600;
+}
+.rdp-selected {
+  font-size: inherit;
+  font-weight: inherit;
+}
+.rdp-selected .rdp-day_button {
+  background: var(--action);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+.rdp-day_button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 1px;
+}
+.rdp-disabled:not(.rdp-selected) .rdp-day_button {
+  color: var(--tertiary);
+  font-weight: 400;
+  cursor: not-allowed;
+}
+@media (hover: hover) and (pointer: fine) {
+  .rdp-day:not(.rdp-selected):not(.rdp-disabled) .rdp-day_button:hover {
+    background: var(--fill-4);
+  }
+  .rdp-dropdown_root:hover,
+  .rdp-button_previous:hover,
+  .rdp-button_next:hover {
+    background: var(--fill-4);
+  }
+}
+.calendar-sheet .rdp-root {
+  --rdp-day-height: 46px;
+  --rdp-day_button-height: 42px;
+  --rdp-day_button-width: 42px;
+}
+
+/* Typing the date as an alternative to the grid, pinned to the bottom edge. */
 .calendar-manual {
-  border-top: 1px solid var(--border);
+  position: -webkit-sticky;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: grid;
+  gap: 6px;
   margin-top: 10px;
-  padding-top: 10px;
+  padding: 12px 0 calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--separator);
+  background: var(--surface-raised);
+}
+.calendar-popover .calendar-manual {
+  padding-bottom: 14px;
+  background: var(--material-popover-solid);
 }
 .calendar-manual > label {
-  display: block;
-  font-size: 12px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 18px;
   font-weight: 600;
-  margin-bottom: 6px;
-  color: var(--muted);
 }
 .calendar-manual > div {
   display: flex;
   gap: 8px;
 }
 .calendar-manual input {
-  width: 100%;
-  min-width: 0;
-  min-height: 40px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px;
-  font: inherit;
+  flex: 1;
+  font-variant-numeric: tabular-nums;
 }
-.calendar-manual button {
-  border: 0;
-  border-radius: 6px;
-  padding: 8px 12px;
-  background: var(--action);
-  color: var(--on-accent);
-  font: inherit;
-  cursor: pointer;
+.calendar-manual .button {
+  flex-shrink: 0;
+  min-height: var(--field-height);
 }
-.calendar-manual p {
-  font-size: 12px;
-  color: var(--danger-text);
-  margin: 6px 0 0;
-}
-@keyframes calendar-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-3px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@media (max-width: 600px) {
-  .date-trigger {
-    font-size: 16px;
-    min-height: 42px;
-  }
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .calendar-popover {
-    width: min(360px, calc(100vw - 24px));
-  }
-  .calendar-popover .rdp-root {
-    --rdp-day-height: 44px;
-    --rdp-day_button-height: 42px;
-    --rdp-day_button-width: 40px;
-  }
-  .calendar-manual input {
-    font-size: 16px;
-  }
-  .calendar-manual button,
-  .calendar-close {
-    min-height: 44px;
+    background: var(--material-popover-solid);
   }
 }
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-transparency: reduce) {
   .calendar-popover {
-    animation: none;
+    background: var(--material-popover-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }
-/* Typing and the calendar share one field; only the icon opens the popover. */
-.date-field{display:flex;align-items:center;min-width:0;position:relative;background:var(--surface);border:1px solid var(--border);border-radius:6px}
-.date-field:focus-within{outline:2px solid var(--focus);outline-offset:1px}
-.filter-form .date-field input:not([type=checkbox]){width:100%;min-width:0;border:0;outline:none;box-shadow:none;background:transparent;padding:7px 8px;font-variant-numeric:tabular-nums}
-.date-calendar-button{display:grid;place-items:center;flex-shrink:0;min-width:38px;min-height:38px;border:0;border-radius:5px;color:var(--primary);background:transparent;cursor:pointer}
-.date-calendar-button:hover{background:var(--surface-tint)}.date-calendar-button:focus-visible{outline:2px solid var(--focus);outline-offset:-3px}
-@media(max-width:600px){.date-calendar-button{min-height:44px;min-width:40px}}
+@media (forced-colors: active) {
+  .calendar-popover {
+    border: 1px solid CanvasText;
+  }
+  .rdp-selected .rdp-day_button {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+  .rdp-today:not(.rdp-selected) .rdp-day_button {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+  .rdp-disabled:not(.rdp-selected) .rdp-day_button {
+    color: GrayText;
+  }
+}

@@ -13,6 +13,11 @@ function load(file){if(cache.has(file))return cache.get(file);const out={};cache
  if(name==='./passengers')return load('passengers.ts');
  if(name==='./searchJourney')return load('searchJourney.ts');
  if(name==='./AirlinePicker')return load('AirlinePicker.tsx');
+ if(name==='./format')return load('format.ts');
+ if(name==='./combobox')return load('combobox.ts');
+ if(name==='./plural')return load('plural.ts');
+ if(name==='./navigation')return {routePath:()=> '/perfil',plainClick:()=>false};
+ if(name==='./RouteSummary')return {RouteCodes:()=>null,RoutePlaces:()=>null};
  return fromFrontend(name);
  }});return out;}
 const leg={start:'2090-11-05T22:00',end:'2090-11-06T06:00',arrival_before:null,stops:[0,1,2],max_duration:1440,max_layover:null,airlines:[]};

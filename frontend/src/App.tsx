@@ -1,131 +1,69 @@
 import { NavigationPrompt } from "./NavigationPrompt";
-import { priceAxis, visiblePricePoints } from "./priceChart";
-import { useNavigation, type View, type AppRoute } from "./navigation";
-import { tripTitle, legDates } from "./tripSummary";
-import { DeliveryChannels } from "./DeliveryChannels";
+import { useNavigation, routePath, focusPageHeading, plainClick, type View, type AppRoute } from "./navigation";
+import { tripTitle } from "./tripSummary";
 import { SystemVersion } from "./SystemVersion";
 import { SidebarSearches } from "./SidebarSearches";
-import { partyLabel } from "./passengers";
-import { t, getLocale, getLanguage, useLanguage } from "./i18n";
+import { t, getLanguage } from "./i18n";
 import { canPreview, filterFlights } from "./preview";
 import { reusableRevision } from "./statePolling";
 import { Home } from "./Home";
 import { Activity } from "./Activity";
-import { LiveStatus } from "./LiveStatus";
+import { SourceNotice } from "./LiveStatus";
+import { TripHero, TripSections } from "./TripHero";
+import { TripFlights } from "./TripFlights";
+import { AlertDays, AlertRow } from "./AlertRow";
+import { PriceChartCard, PriceVariations } from "./PriceHistory";
 import { LanguagePicker } from "./LanguagePicker";
-import { AirlineLogo } from "./AirlineLogo";
-import { AdminPanel } from "./AdminPanel";
+import { AppIcon } from "./AppIcon";
+import { Avatar } from "./Avatar";
+import { ErrorBoundary } from "./ErrorBoundary";
+import { ViewSkeleton } from "./Skeleton";
+import { usePageTitle } from "./pageTitle";
+import { formatDateTime } from "./format";
+import { plural } from "./plural";
 import { suggestCurrency } from "./currency";
-import { GoogleMailPanel } from "./GoogleMailPanel";
-import { Profile } from "./Accounts";
 import { SearchForm as Filters } from "./SearchForm";
-import { useEffect, useState, useMemo, useRef, memo } from "react";
+import { useEffect, useState, useMemo, useRef, lazy, Suspense } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { clsx } from "clsx";
+// The profile (phone fields) and administration (with the e-mail panels) load only when opened.
+const Profile = lazy(() => import("./Profile").then((module) => ({ default: module.Profile })));
+const AdminPanel = lazy(() => import("./AdminPanel").then((module) => ({ default: module.AdminPanel })));
 import {
-  Plane,
   House,
   PlaneTakeoff,
-  PlaneLanding,
-  Search,
   History,
   Bell,
-  Settings,
   UserRound,
   Shield,
   Plus,
-  Pause,
-  Play,
-  RefreshCw,
-  SlidersHorizontal,
-  ArrowRight,
   X,
-  Mail,
-  ExternalLink,
-  Download,
   CircleAlert,
   CheckCircle2,
-  LoaderCircle,
-  Clock,
-  MapPin,
-  ArrowLeft,
-  ArrowLeftRight,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
   Archive,
   Save,
-  Send,
-  CalendarDays,
-  Info,
   LogOut,
-  Trash2,
-  TrendingDown,
-  ChevronRight,
+  MapPinOff,
+  LoaderCircle,
 } from "lucide-react";
-import { Button, Card, Modal, ResponsiveDetails } from "./ui";
-import { priceChangeLabel } from "./pricePresentation";
-import type {
-  Alert,
-  Config,
-  Flight,
-  Leg,
-  SearchRecord,
-  SMTP,
-  Snapshot,
-  State,
-} from "./types";
-import "./layout.css";
-const moneyFormats = new Map<string, Intl.NumberFormat>();
-function moneyFormatter(currency: string, exact: boolean) {
-  const key = `${getLocale()}:${currency}:${exact}`;
-  if (!moneyFormats.has(key))
-    moneyFormats.set(
-      key,
-      new Intl.NumberFormat(getLocale(), {
-        style: "currency",
-        currency,
-        ...(exact ? {} : { maximumFractionDigits: 0 }),
-      }),
-    );
-  return moneyFormats.get(key)!;
-}
-const formatMoney = (v: number | null | undefined, currency = "BRL") =>
-  v == null
-    ? "—"
-    : moneyFormatter(currency, false)
-        .format(v / 100)
-        .replace(/\u00a0/g, " ");
-const exactMoney = (v: number, currency = "BRL") =>
-  moneyFormatter(currency, true)
-    .format(v / 100)
-    .replace(/\u00a0/g, " ");
-const time = (v: number | null | undefined) =>
-  v
-    ? new Date(v * 1000).toLocaleTimeString(getLocale(), {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      })
-    : t("Ainda não realizada");
-const fullDate = (v: number) => new Date(v * 1000).toLocaleString(getLocale());
-const localDate = (s: string) =>
-  new Date(s.slice(0, 10) + "T12:00:00")
-    .toLocaleDateString(getLocale(), { day: "2-digit", month: "short" })
-    .replace(".", "");
-const duration = (n: number) =>
-  n < 60
-    ? t("{0} min", [n])
-    : t("{0} h{1}", [
-        Math.floor(n / 60),
-        n % 60 ? t(" {0} min", [n % 60]) : "",
-      ]);
+import { Button, Card, ConfirmDialog, ContextMenu, Modal, Notice } from "./ui";
+import type { Config, Leg, SearchRecord, State, User } from "./types";
+import "./pages.css";
 const clone = <T,>(v: T): T => structuredClone(v);
-const stateLabels = (): Record<string, string> => ({
-  scheduled: t("Agendada"),
-  collecting: t("Consultando"),
-  partial: t("Atualização parcial"),
-  error: t("Falha de coleta"),
-  paused: t("Pausada"),
-  expired: t("Prazo encerrado"),
-  ended: t("Encerrada"),
-});
+/**
+ * The account's WhatsApp numbers, once each: the access phone as the server
+ * formats it (phone_display); the others raw, until the server formats them.
+ */
+const whatsappTargets = (user: User) =>
+  [...new Set([user.whatsapp_phone, ...(user.additional_phones || []).map((p) => p.phone)])]
+    .filter((phone): phone is string => !!phone)
+    .map((phone) => (phone === user.phone ? user.phone_display ?? phone : phone));
+/** A new-trip draft with something filled in (route or name). */
+const draftHasContent = (config: Config | null | undefined) =>
+  !!(config?.origins.length || config?.destinations.length || config?.name);
 
 const blankLeg = (day: string): Leg => ({
   start: day + "T00:00",
@@ -159,453 +97,16 @@ function blankConfig(): Config {
     notify_whatsapp: false,
   };
 }
-const FlightCard = memo(function FlightCard({ flight }: { flight: Flight }) {
-  useLanguage();
-  const [expanded, setExpanded] = useState(false);
-  const airline = flight.airlines.join(" / ");
-  const codes = flight.airline_codes || [];
-  return (
-    <article
-      className={`flight-card compact-flight ${flight.stale ? "stale-card" : ""}`}
-    >
-      <div className="compact-flight-row">
-        <div className="compact-carrier" title={airline}>
-          <div className="carrier-logos">
-            {flight.airlines.map((name, i) => (
-              <AirlineLogo key={name} name={name} code={codes[i]} />
-            ))}
-          </div>
-          <span>{airline}</span>
-        </div>
-        <div className="compact-route">
-          <strong>
-            <span className="compact-endpoint">
-              {flight.departure.slice(11, 16)} {flight.origin}
-            </span>
-            <span className="route-arrow"> → </span>
-            <span className="compact-endpoint">
-              {flight.arrival.slice(11, 16)} {flight.destination}
-            </span>
-          </strong>
-          <small>
-            {localDate(flight.departure)} → {localDate(flight.arrival)} ·{" "}
-            {duration(flight.duration_minutes)} ·{" "}
-            {flight.stops ? t(flight.stops === 1 ? "{0} escala" : "{0} escalas", [flight.stops]) : t("Direto")}
-          </small>
-        </div>
-        <div className="compact-price">
-          <strong>
-            {exactMoney(flight.price_cents, flight.currency || "BRL")}
-          </strong>
-          <small>
-            {partyLabel(flight)} · {t("por trecho")}
-          </small>
-        </div>
-        <a
-          className="button button-outline compact-flight-link"
-          href={flight.search_url}
-          target="_blank"
-          rel="noreferrer"
-        >
-          {t("Ver passagem")}
-          <ExternalLink size={13} />
-        </a>
-        <Button
-          variant="ghost"
-          className="flight-expand"
-          aria-label={t("Detalhes do itinerário")}
-          aria-expanded={expanded}
-          onClick={() => setExpanded(!expanded)}
-        >
-          <ChevronRight
-            size={16}
-            style={{ transform: expanded ? "rotate(90deg)" : undefined }}
-          />
-        </Button>
-      </div>
-      {flight.stale && (
-        <small className="old-label">
-          {t("Último preço encontrado · atualização pendente")}
-        </small>
-      )}
-      {expanded && (
-        <div className="flight-details">
-          <strong>{airline}</strong>
-          <p>
-            {t("Atualizado às ")}
-            {time(flight.collected_at)}
-          </p>
-          <p className="help">
-            {flight.checked_bags_requested
-              ? t(
-                  flight.checked_bags_requested === 1
-                    ? "Pesquisa com taxas estimadas para {0} mala despachada. Franquia e peso a confirmar na companhia."
-                    : "Pesquisa com taxas estimadas para {0} malas despachadas. Franquia e peso a confirmar na companhia.",
-                  [flight.checked_bags_requested],
-                )
-              : t(
-                  "Taxas de bagagem não adicionadas à pesquisa. Confira a franquia da tarifa na companhia.",
-                )}
-          </p>
-          {flight.segments.map((segment, index) => (
-            <div className="compact-segment" key={index}>
-              <span>
-                {segment.origin} → {segment.destination}
-              </span>
-              <span>
-                {localDate(segment.departure)} {segment.departure.slice(11)} →{" "}
-                {localDate(segment.arrival)} {segment.arrival.slice(11)}
-              </span>
-              {index < flight.layovers.length && (
-                <small>
-                  {t("Conexão de")} {duration(flight.layovers[index])}
-                </small>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </article>
-  );
-});
-
-function Trend({
-  hasReturn,
-  version,
-  currency,
-  searchId,
+export default function App({
+  onLogout,
+  alert,
+  onDismissAlert,
 }: {
-  history: Snapshot[];
-  hasReturn: boolean;
-  version: number;
-  currency: string;
-  searchId: string;
+  onLogout: () => Promise<void>;
+  /** An account error from the session gate, shown in this shell's toast region. */
+  alert?: string;
+  onDismissAlert?: () => void;
 }) {
-  const [chosenVersion, setChosenVersion] = useState<number | null>(null),
-    [direction, setDirection] = useState("both"),
-    [selected, setSelected] = useState<Snapshot | null>(null);
-  const frame = useRef<HTMLDivElement>(null);
-  const [chartWidth, setChartWidth] = useState(640);
-  useEffect(() => {
-    if (!frame.current) return;
-    const measure = () =>
-      setChartWidth(
-        Math.max(260, Math.round(frame.current!.getBoundingClientRect().width)),
-      );
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(frame.current);
-    return () => observer.disconnect();
-  }, []);
-  const series = useQuery<{
-    points: Snapshot[];
-    versions: number[];
-    bucket_seconds: number;
-  }>({
-    queryKey: ["trend", searchId, chosenVersion || version],
-    queryFn: async () => {
-      const response = await fetch(
-        `/api/searches/${searchId}/trend?version=${chosenVersion || version}`,
-        { cache: "no-store" },
-      );
-      if (!response.ok) throw Error(t("Não foi possível carregar o gráfico"));
-      return response.json();
-    },
-    refetchInterval: 30000,
-  });
-  const canReturn = series.data?.points.length
-    ? series.data.points.some((p) => p.direction === "inbound")
-    : hasReturn;
-  const shownDirection = canReturn ? direction : "outbound";
-  const points = (series.data?.points || []).filter(
-      (p) => shownDirection === "both" || p.direction === shownDirection,
-    ),
-    unit = points[0]?.currency || currency;
-  const start = points[0]?.collected || 0,
-    end = points.at(-1)?.collected || start;
-  const { low, high, ticks } = priceAxis(points.map((p) => p.price!));
-  const stable =
-    points.length > 1 &&
-    ["outbound", "inbound"].every(
-      (side) =>
-        new Set(points.filter((p) => p.direction === side).map((p) => p.price))
-          .size <= 1,
-    );
-  const left = 86,
-    right = chartWidth - 16;
-  const x = (v: number) =>
-    end === start
-      ? (left + right) / 2
-      : left + ((v - start) / (end - start)) * (right - left);
-  const y = (v: number) => 160 - ((v - low) / Math.max(1, high - low)) * 130;
-  const axisTime = (v: number) =>
-    new Date(v * 1000).toLocaleString(getLocale(), {
-      day: "2-digit",
-      month: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  return (
-    <div className="trend" ref={frame}>
-      <div className="chart-controls">
-        {canReturn && (
-          <div className="history-direction">
-            <span>{t("Trechos")}</span>
-            <div className="segmented">
-              {[
-                ["both", t("Ida e volta")],
-                ["outbound", t("Ida")],
-                ["inbound", t("Volta")],
-              ]
-                .filter(([value]) => canReturn || value === "outbound")
-                .map(([value, label]) => (
-                  <button
-                    key={value}
-                    aria-pressed={shownDirection === value}
-                    onClick={() => {
-                      setDirection(value);
-                      setSelected(null);
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-            </div>
-          </div>
-        )}
-        {(series.data?.versions.length || 0) > 1 && (
-          <label>
-            {t("Filtros usados")}
-            <select
-              value={chosenVersion || version}
-              onChange={(e) => {
-                setChosenVersion(Number(e.target.value));
-                setSelected(null);
-              }}
-            >
-              {(series.data?.versions || [version]).map((v) => (
-                <option key={v} value={v}>
-                  {v === version ? t("Filtros atuais") : t("Versão {0}", [v])}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-      </div>
-      {series.isError ? (
-        <p role="alert">{t("Não foi possível carregar o gráfico")}</p>
-      ) : !points.length ? (
-        <p>
-          {series.isLoading
-            ? t("Carregando…")
-            : t("O histórico começa com a primeira coleta completa.")}
-        </p>
-      ) : (
-        <>
-          {stable && (
-            <p className="trend-stable">
-              <CheckCircle2 size={16} />
-              {t("Preço estável neste período")}
-            </p>
-          )}
-          <div className="trend-summary">
-            {["outbound", "inbound"].map((side) => {
-              const last = points.filter((p) => p.direction === side).at(-1);
-              return last ? (
-                <span key={side}>
-                  {side === "outbound" ? t("Ida") : t("Volta")}
-                  <strong>{exactMoney(last.price!, unit)}</strong>
-                </span>
-              ) : null;
-            })}
-          </div>
-          <div className="trend-legend">
-            <span>
-              <i />
-              {t("Ida")}
-            </span>
-            {canReturn && (
-              <span>
-                <i />
-                {t("Volta")}
-              </span>
-            )}
-            <small>
-              {unit} {t("· menor preço por intervalo")}
-            </small>
-          </div>
-          <svg
-            viewBox={`0 0 ${chartWidth} 200`}
-            onPointerDown={(event) => {
-              const rect = event.currentTarget.getBoundingClientRect(),
-                px = ((event.clientX - rect.left) / rect.width) * chartWidth,
-                py = ((event.clientY - rect.top) / rect.height) * 200;
-              const nearest = points.reduce((a, b) =>
-                Math.hypot(x(a.collected) - px, y(a.price!) - py) <
-                Math.hypot(x(b.collected) - px, y(b.price!) - py)
-                  ? a
-                  : b,
-              );
-              setSelected(nearest);
-            }}
-            role="group"
-            aria-label={
-              canReturn
-                ? t("Evolução dos preços de ida e volta")
-                : t("Evolução do preço de ida")
-            }
-          >
-            {ticks.map((value, i) => {
-              return (
-                <g key={i}>
-                  <line
-                    x1={left}
-                    x2={right}
-                    y1={y(value)}
-                    y2={y(value)}
-                    stroke="var(--border)"
-                  />
-                  <text
-                    x={left - 10}
-                    y={y(value) + 4}
-                    textAnchor="end"
-                    fill="currentColor"
-                    fontSize="12"
-                  >
-                    {formatMoney(value, unit)}
-                  </text>
-                </g>
-              );
-            })}
-            {["outbound", "inbound"].map((leg, index) => {
-              const list = visiblePricePoints(
-                points.filter((p) => p.direction === leg),
-              );
-              return (
-                <g key={leg} stroke={index ? "var(--chart-in)" : "var(--chart-out)"} fill="none">
-                  <polyline
-                    points={list
-                      .map((p) => `${x(p.collected)},${y(p.price!)}`)
-                      .join(" ")}
-                    strokeWidth="2.4"
-                    strokeDasharray={index ? "6 3" : undefined}
-                  />
-                  {list.map((point) => (
-                    <circle
-                      key={point.id}
-                      cx={x(point.collected)}
-                      cy={y(point.price!)}
-                      r="5"
-                      fill="var(--surface)"
-                      tabIndex={-1}
-                      role="button"
-                      aria-label={`${leg === "outbound" ? t("Ida") : t("Volta")}: ${exactMoney(point.price!, unit)} · ${fullDate(point.collected)}`}
-                      onClick={() => setSelected(point)}
-                      onFocus={() => setSelected(point)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          setSelected(point);
-                        }
-                      }}
-                    >
-                      <title>{`${fullDate(point.collected)} · ${exactMoney(point.price!, unit)}`}</title>
-                    </circle>
-                  ))}
-                </g>
-              );
-            })}
-            <text x={left} y="190" fill="currentColor" fontSize="12">
-              {axisTime(start)}
-            </text>
-            <text
-              x={right}
-              y="190"
-              textAnchor="end"
-              fill="currentColor"
-              fontSize="12"
-            >
-              {axisTime(end)}
-            </text>
-          </svg>
-          <label className="sr-only" htmlFor={`point-${searchId}`}>
-            {t("Selecionar ponto do gráfico")}
-          </label>
-          <input
-            id={`point-${searchId}`}
-            type="range"
-            min={0}
-            max={Math.max(0, points.length - 1)}
-            value={Math.max(
-              0,
-              points.findIndex((p) => p.id === selected?.id),
-            )}
-            aria-valuetext={
-              selected
-                ? `${fullDate(selected.collected)} · ${exactMoney(selected.price!, selected.currency)}`
-                : t("Selecione um ponto")
-            }
-            onChange={(e) => setSelected(points[Number(e.target.value)])}
-          />
-          <p className="chart-detail" aria-live="polite">
-            {selected
-              ? `${selected.direction === "outbound" ? t("Ida") : t("Volta")} · ${fullDate(selected.collected)} · ${exactMoney(selected.price!, selected.currency)}`
-              : t("Toque em um ponto para ver o preço e o horário.")}
-          </p>
-          <small>
-            {t(
-              "O gráfico agrupa o menor preço por intervalo quando há muitas coletas. Os dados completos permanecem no histórico exportado.",
-            )}
-          </small>
-        </>
-      )}
-    </div>
-  );
-}
-function AlertItem({ event }: { event: Alert }) {
-  const p = event.payload,
-    f = p.flight;
-  return (
-    <article className="alert-item">
-      <div className="alert-item-top">
-        <span className="alert-icon">
-          <TrendingDown size={17} />
-        </span>
-        <div>
-          <strong>{t(p.title)}</strong>
-          <p>
-            {event.direction === "outbound" ? "IDA" : "VOLTA"} ·{" "}
-            {localDate(f.departure)} · {f.departure.slice(11, 16)}
-          </p>
-        </div>
-        <span className="muted">{fullDate(event.created)}</span>
-      </div>
-      <div className="alert-route">
-        {f.origin} → {f.destination} · {f.airlines.join(" / ")}
-      </div>
-      <div className="alert-price">
-        {event.previous && event.previous > event.price && (
-          <del>{formatMoney(event.previous, f.currency || "BRL")}</del>
-        )}
-        <strong>{exactMoney(event.price, f.currency || "BRL")}</strong>
-      </div>
-      <p className="saving">{priceChangeLabel(event.previous, event.price, f.currency || "BRL") || t("Dentro do orçamento configurado")}</p>
-      <p className="help">
-        {t(
-          "Melhor preço encontrado para suas preferências. A opção pode ter mudado.",
-        )}
-      </p>
-      <div className="alert-bottom">
-        <DeliveryChannels event={event} />
-        <a href={f.search_url} target="_blank" rel="noreferrer">
-          {t("Conferir pesquisa")}
-          <ExternalLink size={12} />
-        </a>
-      </div>
-    </article>
-  );
-}
-export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
   const { route, navigate, restoreScroll } = useNavigation();
   const tripPage = !!route.searchId && ["searches", "history"].includes(route.view);
   const activeView = tripPage ? "home" : route.view;
@@ -628,12 +129,15 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
     navigate({ view: history ? "history" : "searches", searchId: id });
   const setSelectedId = (id: string | null) =>
     navigate((current) => ({ ...current, searchId: id || undefined }));
-  const closeEditor = () =>
+  const closeEditor = () => {
+    // An error of the editor belongs to its form; it must not come back as a toast elsewhere.
+    setNotice(null);
     navigate(
       route.editor === "new"
         ? editorOrigin.current
         : { view: "searches", searchId: route.searchId },
     );
+  };
   const setModal = (next: "new" | "edit" | "alerts" | null) => {
     if (next === null) {
       if (route.editor) closeEditor();
@@ -660,14 +164,16 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
     } | null>(null),
     [visibleCount, setVisibleCount] = useState(40),
     [alertPending, setAlertPending] = useState(false),
-    [smtpDraft, setSmtpDraft] = useState<
-      | (SMTP & {
-          password: string;
-        })
-      | null
-    >(null);
+    // Declared after the states above: tests address those by position.
+    [endTarget, setEndTarget] = useState<SearchRecord | null>(null),
+    [profileDirty, setProfileDirty] = useState(false),
+    [deleteError, setDeleteError] = useState(""),
+    [endError, setEndError] = useState("");
   const receivedAtRef = useRef(Date.now());
   const drafts = useRef(new Map<string, { version: number; config: Config }>());
+  // Toasts that wait for their dialog to leave (Modal.onClosed): the page behind it is hidden until then.
+  const deletedNotice = useRef(false);
+  const endedNotice = useRef(false);
   const detail = view === "history";
   const query = useQuery<State>({
     queryKey: ["radar", selectedId, detail, apiView],
@@ -718,6 +224,18 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
   const receivedAt = receivedAtRef.current;
   const data = query.data,
     search = data?.selected;
+  // The shell keeps the last account data while another view loads.
+  const lastData = useRef<State | undefined>(undefined);
+  if (data) lastData.current = data;
+  const shell = data ?? lastData.current;
+  // The saved-draft notice belongs to the moment the assistant opens with a
+  // previous draft; filling in a new one never adds it (no layout shift).
+  const assistantOpening = useRef({ open: false, resumed: false });
+  if (route.editor === "new") {
+    if (!assistantOpening.current.open && data?.user && draftOwner === data.user.id)
+      assistantOpening.current = { open: true, resumed: draftHasContent(creationDraft) };
+  } else if (assistantOpening.current.open) assistantOpening.current = { open: false, resumed: false };
+  const draftResumed = route.editor === "new" && assistantOpening.current.resumed;
   useEffect(() => {
     if (!data?.user.id || draftOwner === data.user.id) return;
     let restored: Config | null = null;
@@ -775,8 +293,9 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
   useEffect(() => {
     if (data) restoreScroll();
   }, [data, route]);
-  const money = (value: number | null | undefined) =>
-    formatMoney(value, search?.config.currency || "BRL");
+  useEffect(() => {
+    if (data) focusPageHeading();
+  });
   useEffect(() => {
     if (!search || route.editor === "new") return;
     const cached = drafts.current.get(search.id);
@@ -804,21 +323,26 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
     }
   }
   useEffect(() => {
+    // Ended trips keep their history and alerts; flights are no longer collected.
     if (
       view === "searches" &&
+      route.panel !== "alerts" &&
       search &&
       data?.archived.some((item) => item.id === search.id)
     )
       setView("history");
-  }, [search?.id, search?.active, data?.archived, view]);
+  }, [search?.id, search?.active, data?.archived, view, route.panel]);
+  // Leaving the editor another way (browser Back) drops its form error too.
+  const editorOpen = useRef(!!route.editor);
   useEffect(() => {
-    if (data?.smtp && !smtpDraft) setSmtpDraft({ ...data.smtp, password: "" });
-  }, [data?.smtp]);
+    if (editorOpen.current && !route.editor) setNotice((current) => (current?.error ? null : current));
+    editorOpen.current = !!route.editor;
+  }, [route.editor]);
   useEffect(() => {
-    if (notice) {
-      const t = setTimeout(() => setNotice(null), 8000);
-      return () => clearTimeout(t);
-    }
+    // Confirmations leave on their own; errors stay until dismissed.
+    if (!notice || notice.error) return;
+    const timer = setTimeout(() => setNotice(null), 5000);
+    return () => clearTimeout(timer);
   }, [notice]);
   async function request(path: string, body: unknown, method = "POST") {
     const response = await fetch("/api" + path, {
@@ -848,18 +372,24 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
     }
     return result;
   }
-  async function perform(action: () => Promise<unknown>, message?: string) {
+  /** Runs a request; an error goes to the toast, or to `onError` when a dialog shows it. */
+  async function perform(action: () => Promise<unknown>, message?: string, onError?: (message: string) => void) {
     setBusy(true);
     try {
       await action();
       await queryClient.invalidateQueries({ queryKey: ["radar"] });
       if (message) setNotice({ message, error: false });
     } catch (e) {
-      setNotice({ message: (e as Error).message, error: true });
+      if (onError) onError((e as Error).message);
+      else setNotice({ message: (e as Error).message, error: true });
     } finally {
       setBusy(false);
     }
   }
+  const askDelete = (target: SearchRecord) => {
+    setDeleteError("");
+    setDeleteTarget(target);
+  };
   async function save(submitted?: Config, currencyReviewed = false) {
     const savingDraft = submitted || (modal === "new" ? creationDraft : draft);
     if (!savingDraft) return;
@@ -947,14 +477,7 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
     () => setVisibleCount(40),
     [search?.id, search?.version, direction, draft],
   );
-  const hasPendingDrafts =
-    dirty ||
-    drafts.current.size > 0 ||
-    !!(
-      creationDraft?.origins.length ||
-      creationDraft?.destinations.length ||
-      creationDraft?.name
-    );
+  const hasPendingDrafts = dirty || drafts.current.size > 0 || draftHasContent(creationDraft);
   useEffect(() => {
     if (!hasPendingDrafts) return;
     const warn = (event: BeforeUnloadEvent) => {
@@ -967,7 +490,19 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
   const serverNow = data
     ? data.server_time + (Date.now() - receivedAt) / 1000
     : Date.now() / 1000;
-  const collecting = search?.state === "collecting";
+  const tripEnded = !!search && !!data?.archived.some((item) => item.id === search.id);
+  const configureAlerts = () => {
+    setAlertPending(dirty);
+    setModal("alerts");
+  };
+  /** Ended trips come back while their dates are ahead; past ones start a new trip from the same filters. */
+  const restoreOrReuse = (target: SearchRecord) =>
+    target.ends_at > serverNow
+      ? perform(async () => {
+          await request(`/searches/${target.id}/restore`, {});
+          navigate({ view: "searches", searchId: target.id });
+        }, t("Monitoramento retomado."))
+      : (setCreationDraft({ ...clone(target.config), name: target.config.name }), setModal("new"));
   function discardDraft() {
     if (!search) return;
     drafts.current.delete(search.id);
@@ -990,45 +525,114 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
     { id: "alerts" as const, label: t("Alertas"), icon: Bell },
     { id: "history" as const, label: t("Histórico"), icon: History },
     { id: "settings" as const, label: t("Meu perfil"), icon: UserRound },
-    ...(data?.user.role === "admin"
+    ...(shell?.user.role === "admin"
       ? [{ id: "admin" as const, label: t("Administração"), icon: Shield }]
       : []),
   ];
-  if (query.isLoading)
-    return (
-      <div className="loading-page">
-        <span className="brand-icon">
-          <Plane />
-        </span>
-        <h1>{t("Radar de Voos")}</h1>
-        <p>
-          <LoaderCircle className="spin" size={17} />
-          {t("Conectando ao seu radar…")}
-        </p>
-      </div>
-    );
-  if (!data)
-    return (
-      <div className="loading-page">
-        <CircleAlert size={35} />
-        <h1>{t("Não foi possível abrir esta página")}</h1>
-        <p>{query.error?.message || t("Tente novamente em instantes.")}</p>
-        <Button variant="outline" onClick={() => navigate({ view: "home" })}>
-          {t("Voltar às viagens")}
-        </Button>
-        <Button onClick={() => query.refetch()}>{t("Tentar novamente")}</Button>
-      </div>
-    );
+  // Administration task pages (message detail, account forms) carry their own heading.
+  const adminTask =
+    view === "admin" &&
+    data?.user.role === "admin" &&
+    ((route.section || "deliveries") === "deliveries"
+      ? !!route.deliveryId
+      : route.section === "users" && !!route.userAction);
+  // The task title also heads the page while the administration code loads.
+  const adminTaskTitle = !adminTask
+    ? ""
+    : route.deliveryId
+      ? t("Detalhes do envio")
+      : route.userAction === "new"
+        ? t("Novo usuário")
+        : route.userAction === "edit"
+          ? t("Editar cadastro")
+          : route.userAction === "password"
+            ? t("Redefinir senha")
+            : t("Monitoramentos");
+  // The save bar submits the filters form, which only the Voos tab renders.
+  const pendingBar = view === "searches" && route.panel !== "alerts" && previewing && !modal && !tripEnded;
+  // Bars over the content set the page's scroll padding (style.css, html.with-*),
+  // so that focus and anchors never land under them.
+  const accountForm =
+    view === "admin" && route.section === "users" && !!route.userAction && route.userAction !== "monitorings";
+  const saveBar = view === "settings" && profileDirty;
+  useEffect(() => {
+    const root = document.documentElement;
+    const bars: [string, boolean][] = [
+      ["with-pending-bar", pendingBar],
+      ["with-form-bar", accountForm],
+      ["with-save-bar", saveBar],
+      ["with-editor-bar", !!route.editor],
+    ];
+    for (const [name, on] of bars) root.classList.toggle(name, on);
+    return () => bars.forEach(([name]) => root.classList.remove(name));
+  }, [pendingBar, accountForm, saveBar, route.editor]);
+  const adminSections: Record<string, string> = {
+    deliveries: t("Envios"),
+    channels: t("Canais"),
+    users: t("Usuários"),
+    audit: t("Auditoria"),
+    retention: t("Retenção"),
+  };
+  const adminSubtitles: Record<string, string> = {
+    deliveries: t("Consulte a atividade e os bloqueios de envio."),
+    channels: t("Configure os canais de envio de alertas."),
+    users: t("Gerencie contas, contatos e limites."),
+    audit: t("Consulte os acessos e as alterações de conta."),
+    retention: t("Gerencie o prazo de armazenamento dos registros."),
+  };
+  const tripName = search ? tripTitle(search.config).title : "";
+  // The trip selector of a trip page: the history tab and an ended trip also
+  // list the ended trips, in their own group (their history stays available).
+  const switchEnded = tripPage && (view === "history" || tripEnded) ? data?.archived || [] : [];
+  const tripOption = (item: SearchRecord) => (
+    <option key={item.id} value={item.id}>
+      {tripTitle(item.config).title}
+    </option>
+  );
+  usePageTitle(
+    (route.editor === "new"
+      ? [t("Nova viagem")]
+      : route.editor
+        ? [route.editor === "alerts" ? t("Alertas desta viagem") : t("Editar viagem"), tripName]
+        : tripPage
+          ? [view === "history" ? t("Histórico") : route.panel === "alerts" ? t("Alertas") : "", tripName]
+          : view === "home"
+            ? [t("Minhas viagens")]
+            : view === "history"
+              ? [t("Histórico de preços")]
+              : view === "alerts"
+                ? [t("Seus alertas")]
+                : view === "settings"
+                  ? [t("Meu perfil")]
+                  : view === "admin"
+                    ? [adminTaskTitle || adminSections[route.section || "deliveries"], t("Administração")]
+                    : [t("Página não encontrada")]
+    )
+      .filter(Boolean)
+      .join(" · "),
+  );
+  const userPhone = shell ? (shell.user.phone_display ?? shell.user.phone) : "";
+  // Errors inside an editor appear in its form; the session gate's errors come last.
+  const ownToast = notice && !(notice.error && route.editor) ? notice : null;
+  const toast = ownToast || (alert ? { message: alert, error: true } : null);
+  const atHome = routePath(route) === routePath({ view: "home" });
   return (
     <div
-      className={`app-shell ${route.editor ? "editor-mode" : ""} ${view === "admin" ? "admin-mode" : ""}`}
+      className={clsx(
+        "app-shell",
+        route.editor && "editor-mode",
+        view === "admin" && "admin-mode",
+        pendingBar && "has-pending-bar",
+        saveBar && "has-save-bar",
+      )}
     >
       <NavigationPrompt />
       <Modal open={discardCreation} onOpenChange={setDiscardCreation} title={t("Descartar rascunho?")} description={t("Somente o preenchimento da nova busca será descartado. Suas viagens salvas serão preservadas.")}>
-        <div className="wizard-actions">
+        <div className="dialog-actions">
           <Button variant="outline" onClick={() => setDiscardCreation(false)}>{t("Continuar preenchendo")}</Button>
           <Button variant="danger" onClick={() => {
-            setCreationDraft({...blankConfig(), currency: suggestCurrency(data.user.country)});
+            assistantOpening.current.resumed = false;
+            setCreationDraft({...blankConfig(), currency: suggestCurrency(shell?.user.country)});
             setCreationProgress({step: 0, leg: "outbound", maxStep: 0});
             setDiscardCreation(false);
             navigate({view: "home", editor: "new", step: 0}, true);
@@ -1041,57 +645,65 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
       <aside className="sidebar">
         <a
           className="brand"
-          href="/viagens"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate({ view: "home" });
-          }}
+          href={routePath({ view: "home" })}
+          onClick={(e) => plainClick(e) && navigate({ view: "home" })}
           aria-label={t("Radar de Voos, início")}
         >
-          <span className="brand-icon">
-            <Plane size={25} />
-          </span>
+          <AppIcon />
           <span>{t("Radar de Voos")}</span>
         </a>
         <nav aria-label={t("Navegação principal")}>
           {nav.map((item) => (
-            <button
-              className={
-                activeView === item.id
-                  ? "selected"
-                  : ""
-              }
+            <a
               key={item.id}
+              href={routePath({ view: item.id })}
+              className={activeView === item.id ? "selected" : undefined}
               data-nav-group={item.id === "settings" || item.id === "admin" ? "account" : "main"}
               aria-current={activeView === item.id ? "page" : undefined}
-              onClick={() => navigate({ view: item.id })}
+              onClick={(e) => plainClick(e) && navigate({ view: item.id })}
             >
-              <item.icon size={19} />
-              {item.label}
-              {item.id === "alerts" && (data.alert_total || 0) > 0 && (
-                <span className="nav-count" title={t("Alertas registrados")} aria-label={t("{0} alertas registrados", [data.alert_total])}>{data.alert_total}</span>
+              <item.icon size={18} aria-hidden="true" />
+              <span>{item.label}</span>
+              {item.id === "alerts" && (shell?.alert_total || 0) > 0 && (
+                <span className="nav-count" title={t("Alertas registrados")} aria-label={plural(shell?.alert_total || 0, "{0} alerta registrado", "{0} alertas registrados")}>{shell?.alert_total}</span>
               )}
-            </button>
+            </a>
           ))}
         </nav>
-        <SidebarSearches
-          searches={data.searches}
-          selectedId={search?.id}
-          limit={data.user.search_limit ?? 5}
-          pending={new Set(drafts.current.keys())}
-          onSelect={(id) => {
-            openSearch(id);
-            setDirection("outbound");
-          }}
-          onNew={newSearch}
-        />
-        <div className="sidebar-bottom account-summary">
-          <SystemVersion />
-          <LanguagePicker />
-          <strong>{data.user.name}</strong>
-          <span>{data.user.phone}</span>
+        {shell ? (
+          <SidebarSearches
+            searches={shell.searches}
+            selectedId={tripPage ? route.searchId : undefined}
+            limit={shell.user.search_limit ?? 5}
+            pending={new Set(drafts.current.keys())}
+            onSelect={(id) => {
+              openSearch(id);
+              setDirection("outbound");
+            }}
+            onNew={newSearch}
+          />
+        ) : (
+          <div className="sidebar-searches" aria-hidden="true">
+            <span className="skeleton skeleton-line" style={{ width: "70%" }} />
+            <span className="skeleton skeleton-line" style={{ width: "86%" }} />
+          </div>
+        )}
+        <div className="sidebar-bottom">
+          {shell && (
+            <div className="account-card">
+              <Avatar name={shell.user.name} />
+              <div>
+                <strong>{shell.user.name}</strong>
+                <span>{userPhone}</span>
+              </div>
+            </div>
+          )}
+          <div className="sidebar-meta">
+            <LanguagePicker />
+            <SystemVersion />
+          </div>
           <Button variant="ghost" onClick={() => void onLogout()}>
-            <LogOut size={16} />
+            <LogOut size={16} aria-hidden="true" />
             {t("Sair da conta")}
           </Button>
         </div>
@@ -1099,41 +711,95 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
       <header className="mobile-header">
         <a
           className="mobile-brand"
-          href="/viagens"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate({ view: "home" });
-          }}
+          href={routePath({ view: "home" })}
+          onClick={(e) => plainClick(e) && navigate({ view: "home" })}
+          aria-label={t("Radar de Voos, início")}
         >
-          <Plane size={23} />
+          <AppIcon size="sm" />
           <strong>{t("Radar de Voos")}</strong>
         </a>
-        <details className="account-menu context-menu" onKeyDown={e => { if (e.key === "Escape") { e.currentTarget.removeAttribute("open"); e.currentTarget.querySelector("summary")?.focus(); } }}>
-          <summary className="mobile-profile"><UserRound size={20} /><span>{data.user.name}</span></summary>
-          <div>
-            <Button variant="ghost" onClick={e => {e.currentTarget.closest("details")?.removeAttribute("open"); navigate({view: "settings"});}}>{t("Meu perfil")}</Button>
-            {data.user.role === "admin" && <Button variant="ghost" onClick={e => {e.currentTarget.closest("details")?.removeAttribute("open"); navigate({view: "admin", section: "deliveries"});}}>{t("Administração")}</Button>}
-            <Button variant="ghost" onClick={() => void onLogout()}>{t("Sair da conta")}</Button>
-          </div>
-        </details>
+        {shell && (
+          <ContextMenu
+            className="account-menu"
+            summaryClassName="mobile-profile"
+            summaryLabel={`${t("Conta")}: ${shell.user.name}`}
+            label={<Avatar name={shell.user.name} />}
+          >
+            <div className="menu-account">
+              <strong>{shell.user.name}</strong>
+              <span>{userPhone}</span>
+            </div>
+            <div className="menu-separator" />
+            <a
+              className="menu-item"
+              href={routePath({ view: "settings" })}
+              onClick={(e) => plainClick(e) && navigate({ view: "settings" })}
+            >
+              <UserRound size={18} aria-hidden="true" />
+              {t("Meu perfil")}
+            </a>
+            {shell.user.role === "admin" && (
+              <a
+                className="menu-item"
+                href={routePath({ view: "admin", section: "deliveries" })}
+                onClick={(e) => plainClick(e) && navigate({ view: "admin", section: "deliveries" })}
+              >
+                <Shield size={18} aria-hidden="true" />
+                {t("Administração")}
+              </a>
+            )}
+            <button type="button" className="menu-item" onClick={() => void onLogout()}>
+              <LogOut size={18} aria-hidden="true" />
+              {t("Sair da conta")}
+            </button>
+          </ContextMenu>
+        )}
       </header>
       <main id="main" className="main-content" tabIndex={-1}>
-        {!route.editor && (
-          <header
-            className={`page-heading ${tripPage ? "monitor-heading" : ""}`}
-          >
+        <div className="main-inner">
+        <ErrorBoundary
+          scope="view"
+          resetKey={routePath(route)}
+          onHome={atHome ? undefined : () => navigate({ view: "home" })}
+        >
+        {!data ? (
+          query.isError ? (
+            <section className="view-error card" role="alert">
+              <div className="empty-state">
+                <CircleAlert aria-hidden="true" />
+                <h2>{t("Não foi possível abrir esta página")}</h2>
+                <p>{query.error?.message || t("Tente novamente em instantes.")}</p>
+                <div className="view-error-actions">
+                  <Button size="large" onClick={() => query.refetch()}>
+                    {t("Tentar novamente")}
+                  </Button>
+                  {!atHome && (
+                    <Button variant="ghost" size="large" onClick={() => navigate({ view: "home" })}>
+                      {t("Voltar às viagens")}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </section>
+          ) : (
+            <ViewSkeleton />
+          )
+        ) : (
+        <>
+        {!route.editor && !adminTask && !(tripPage && search) && (
+          <header className="page-heading">
             <div>
-              <p className="eyebrow">
-                {view === "home"
-                  ? t("SEU RADAR DE PASSAGENS")
-                  : tripPage
-                    ? t("SEU RADAR DE PASSAGENS")
-                    : view === "history"
-                      ? t("EVOLUÇÃO DOS PREÇOS")
-                      : view === "alerts"
-                        ? t("OPORTUNIDADES ENCONTRADAS")
-                        : t("PREFERÊNCIAS DO RADAR")}
-              </p>
+              {view === "admin" && (
+                // Phones and tablets hide the tab bar in the administration: the way back stays here.
+                <a
+                  className="page-back"
+                  href={routePath({ view: "home" })}
+                  onClick={(e) => plainClick(e) && navigate({ view: "home" })}
+                >
+                  <ChevronLeft size={18} aria-hidden="true" />
+                  {t("Voltar às viagens")}
+                </a>
+              )}
               <h1 tabIndex={-1}>
                 {view === "home"
                   ? t("Minhas viagens")
@@ -1161,28 +827,35 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
                           "Gerencie seus dados e os contatos que recebem seus alertas.",
                         )
                       : view === "admin"
-                        ? ({deliveries: t("Consulte a atividade e os bloqueios de envio."), channels: t("Configure os canais de envio de alertas."), users: t("Gerencie contas, contatos e limites."), audit: t("Consulte os acessos e as alterações de conta."), retention: t("Gerencie o prazo de armazenamento dos registros.")})[route.section || "deliveries"]
-                        : search?.config.name ||
-                          t("Selecione uma viagem para acompanhar.")}
+                        ? adminSubtitles[route.section || "deliveries"]
+                        : view === "alerts"
+                          ? t("Avisos enviados e variações de preço das suas viagens.")
+                          : view === "history"
+                            ? t("Veja como os preços das suas viagens mudaram ao longo do tempo.")
+                            : ""}
               </p>
             </div>
             {view === "home" && (
               <Button onClick={newSearch}>
-                <Plus size={17} />
+                <Plus size={18} aria-hidden="true" />
                 <span>{t("Nova viagem")}</span>
               </Button>
             )}
           </header>
         )}
         {route.editor && (
-          <section className="search-page search-modal">
+          <section className="search-page" aria-labelledby="editor-title">
             <header className="search-page-heading">
-              <Button variant="ghost" onClick={closeEditor}>
-                <ArrowLeft size={17} />
-                {t("Voltar")}
+              <Button variant="ghost" className="search-page-back" onClick={closeEditor}>
+                {modal === "new" ? (
+                  <X size={18} aria-hidden="true" />
+                ) : (
+                  <ChevronLeft size={20} aria-hidden="true" />
+                )}
+                <span>{modal === "new" ? t("Fechar") : t("Voltar à viagem")}</span>
               </Button>
-              <div>
-                <h1 tabIndex={-1}>
+              <div className="search-page-title">
+                <h1 id="editor-title" tabIndex={-1}>
                   {modal === "new"
                     ? t("Nova viagem")
                     : modal === "alerts"
@@ -1191,46 +864,22 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
                 </h1>
                 <p>
                   {modal === "new"
-                    ? t(
-                        "Seu preenchimento é mantido ao voltar entre as etapas.",
-                      )
-                    : t("Revise as alterações antes de salvar.")}
+                    ? t("Seu preenchimento é mantido ao voltar entre as etapas.")
+                    : modal === "alerts"
+                      ? t("Defina a meta de preço e como receber as oportunidades.")
+                      : t("Revise as alterações antes de salvar.")}
                 </p>
               </div>
             </header>
-            {notice?.error && (
-              <p className="form-error" role="alert">
-                {notice.message}
-              </p>
-            )}
-            {(modal === "new" && creationDraft) ||
-            (modal !== "new" && draft) ? (
-              <div className="search-page-body">
-                {modal === "new" && !!(creationDraft?.origins.length || creationDraft?.destinations.length || creationDraft?.name) && (
-                  <div className="draft-notice" role="status">
-                    <span>{t("Rascunho salvo neste navegador. Você pode continuar de onde parou.")}</span>
-                    <Button type="button" variant="ghost" onClick={() => setDiscardCreation(true)}>{t("Começar do zero")}</Button>
-                  </div>
-                )}
-                {modal === "edit" && (
-                  <div className="editor-preview">
-                    <span>
-                      {previewCompatible
-                        ? t("{0} opções na prévia", [eligibleFlights.length])
-                        : t("Nova coleta após salvar")}
-                    </span>
-                    <Button variant="ghost" onClick={closeEditor}>
-                      {t("Ver resultados")}
-                    </Button>
-                  </div>
-                )}
-                {modal === "alerts" && alertPending && (
-                  <p role="status">
-                    {t(
-                      "Salvar também aplica as alterações pendentes da busca.",
-                    )}
-                  </p>
-                )}
+            <div className="search-page-body">
+              {/* Errors from saving stay in the page, next to the form. */}
+              {notice?.error && (
+                <p className="form-error" role="alert">
+                  <CircleAlert size={16} aria-hidden="true" />
+                  <span>{notice.message}</span>
+                </p>
+              )}
+              {(modal === "new" && creationDraft) || (modal !== "new" && draft) ? (
                 <Filters
                   key={modal}
                   config={(modal === "new" ? creationDraft : draft)!}
@@ -1238,12 +887,9 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
                   airports={data.airports}
                   emailRecipients={data.user.emails}
                   emailAvailable={data.email_available}
-                  onManageContacts={() => navigate({view: "settings"})}
+                  onManageContacts={() => navigate({ view: "settings" })}
                   whatsappAvailable={data.whatsapp_available}
-                  whatsappRecipients={[
-                    data.user.whatsapp_phone,
-                    ...(data.user.additional_phones || []).map((p) => p.phone),
-                  ].filter((p): p is string => !!p)}
+                  whatsappRecipients={whatsappTargets(data.user)}
                   onSave={save}
                   savedCurrency={modal === "new" ? undefined : search?.config.currency}
                   saving={busy}
@@ -1251,6 +897,7 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
                   editing={modal === "edit"}
                   alertsOnly={modal === "alerts"}
                   dirty={dirty}
+                  draftSaved={modal === "new" && draftHasContent(creationDraft)}
                   journey={
                     modal !== "alerts"
                       ? {
@@ -1264,199 +911,124 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
                         }
                       : undefined
                   }
-                />
-              </div>
-            ) : (
-              <p role="status">{t("Carregando…")}</p>
-            )}
+                >
+                  {modal === "new" && draftResumed && (
+                    <div className="search-note draft-notice" role="status">
+                      <span>
+                        <Save size={16} aria-hidden="true" />
+                        {t("Rascunho salvo neste navegador. Você pode continuar de onde parou.")}
+                      </span>
+                      <Button type="button" variant="ghost" size="small" onClick={() => setDiscardCreation(true)}>
+                        {t("Começar do zero")}
+                      </Button>
+                    </div>
+                  )}
+                  {modal === "edit" && (
+                    <div className="search-note editor-preview">
+                      <span>
+                        <Eye size={16} aria-hidden="true" />
+                        {previewCompatible
+                          ? plural(eligibleFlights.length, "{0} opção na prévia", "{0} opções na prévia")
+                          : t("Nova coleta após salvar")}
+                      </span>
+                      <Button type="button" variant="ghost" size="small" onClick={closeEditor}>
+                        {t("Ver resultados")}
+                      </Button>
+                    </div>
+                  )}
+                  {modal === "alerts" && alertPending && (
+                    <p className="search-note is-warning" role="status">
+                      <span>
+                        <CircleAlert size={16} aria-hidden="true" />
+                        {t("Salvar também aplica as alterações pendentes da busca.")}
+                      </span>
+                    </p>
+                  )}
+                </Filters>
+              ) : (
+                <p role="status" className="muted">
+                  {t("Carregando…")}
+                </p>
+              )}
+            </div>
           </section>
         )}
         {!route.editor && (
           <>
             {view === "notfound" && (
-              <Card className="activity-empty">
-                <p>{t("Este endereço não está disponível.")}</p>
-                <Button onClick={() => navigate({ view: "home" })}>
-                  {t("Voltar às viagens")}
-                </Button>
-              </Card>
+              <section className="card">
+                <div className="empty-state">
+                  <MapPinOff aria-hidden="true" />
+                  <p>{t("Este endereço não está disponível.")}</p>
+                  <Button size="large" onClick={() => navigate({ view: "home" })}>
+                    {t("Voltar às viagens")}
+                  </Button>
+                </div>
+              </section>
             )}
             {tripPage && search && (<>
-                {data.searches.length > 1 && <label className="trip-switcher">{t("Viagem")}
-                  <select value={search.id} onChange={e => {
-                    setDirection("outbound");
-                    navigate({ view, searchId: e.target.value, panel: route.panel });
-                  }}>{data.searches.map(item => <option key={item.id} value={item.id}>{tripTitle(item.config).title}</option>)}</select>
-                </label>}
-                <Card className="route-card">
-                  <div className="trip-compact-summary">
-                    <div><p>{t("Ida")} · {legDates(search.config.outbound, true)}</p>
-                    {search.config.inbound && <p>{t("Volta")} · {legDates(search.config.inbound, true)}</p>}
-                    <small>{partyLabel(search.config)} · {search.active ? t("Ativo") : t("Pausado")}</small></div>
-                    <Button variant="outline" onClick={() => setModal("edit")}>{t("Editar viagem")}</Button>
-                  </div>
-                  <ResponsiveDetails label={t("Detalhes da viagem")}>
-                  <div className="route-fields">
-                    <div>
-                      <span className="field-caption">{t("Origem")}</span>
-                      <div className="route-tags">
-                        {search.config.origins.map((a) => (
-                          <span className="airport-tag" key={a}>
-                            <b>{a}</b>
-                            <span>
-                              {data.airports.find((p) => p.code === a)?.city}
-                            </span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <ArrowLeftRight className="route-swap" size={20} />
-                    <div>
-                      <span className="field-caption">{t("Destino")}</span>
-                      <div className="route-tags">
-                        {search.config.destinations.map((a) => (
-                          <span className="airport-tag" key={a}>
-                            <b>{a}</b>
-                            <span>
-                              {data.airports.find((p) => p.code === a)?.name}
-                            </span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="route-passenger">
-                      <span>
-                        <Plane size={15} />
-                        {partyLabel(search.config)}
-                      </span>
-                      <small>
-                        {
-                          (
-                            {
-                              economy: t("Econômica"),
-                              "premium-economy": t("Econômica premium"),
-                              business: t("Executiva"),
-                              first: t("Primeira classe"),
-                            } as Record<string, string>
-                          )[search.config.cabin]
-                        }
-                      </small>
-                    </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setModal("edit");
+                {data.searches.length + switchEnded.length > 1 && (
+                  <label className="trip-switcher">
+                    <span>{t("Viagem")}</span>
+                    <select
+                      value={search.id}
+                      onChange={(e) => {
+                        setDirection("outbound");
+                        navigate({ view, searchId: e.target.value, panel: route.panel });
                       }}
                     >
-                      <SlidersHorizontal size={16} />
-                      {t("Editar viagem")}
-                    </Button>
-                  </div>
-                  <div className="route-dates">
-                    <span>
-                      <CalendarDays size={15} />
-                      {t("Ida:")} {localDate(search.config.outbound.start)},{" "}
-                      {search.config.outbound.start.slice(11)} →{" "}
-                      {localDate(search.config.outbound.end)},{" "}
-                      {search.config.outbound.end.slice(11)}
-                    </span>
-                    {search.config.inbound && (
-                      <span>
-                        <CalendarDays size={15} />
-                        {t("Volta:")} {localDate(search.config.inbound.start)}, {search.config.inbound.start.slice(11)} →{" "}
-                        {localDate(search.config.inbound.end)}, {search.config.inbound.end.slice(11)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="route-activity">
-                    <div className="route-live">
-                      <LiveStatus
-                        search={search}
-                        serverTime={data.server_time}
-                        updatedAt={receivedAt}
-                        error={query.isError}
-                      />
-                    </div>
-                    <details className="context-menu route-controls" onKeyDown={e => { if (e.key === "Escape") { e.currentTarget.removeAttribute("open"); e.currentTarget.querySelector("summary")?.focus(); } }}>
-                      <summary>{t("Ações da viagem")}</summary>
-                      <div>
-                      <Button
-                        variant="ghost"
-                        disabled={busy}
-                        onClick={() =>
-                          action(search.active ? "pause" : "resume")
-                        }
-                      >
-                        {search.active ? (
-                          <Pause size={15} />
-                        ) : (
-                          <Play size={15} />
-                        )}{" "}
-                        {search.active ? t("Pausar") : t("Retomar")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        disabled={busy}
-                        onClick={() => action("archive")}
-                      >
-                        <Archive size={15} />
-                        {t("Encerrar")}
-                      </Button>
-                      <Button variant="danger" onClick={() => setDeleteTarget(search)}>{t("Excluir monitoramento")}</Button>
-                      </div>
-                    </details>
-                  </div>
-                  </ResponsiveDetails>
-                </Card>
-                <nav
-                  className="monitor-sections"
-                  aria-label={t("Seções do monitoramento")}
-                >
-                  <Button
-                    variant="ghost"
-                    onClick={() =>
-                      navigate({ view: "searches", searchId: search.id })
-                    }
-                    aria-current={view === "searches" && !route.panel ? "page" : undefined}
-                  >
-                    {t("Voos")}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => openSearch(search.id, true)}
-                    aria-current={view === "history" ? "page" : undefined}
-                  >
-                    {t("Histórico")}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() =>
-                      navigate({
-                        view: "searches",
-                        searchId: search.id,
-                        panel: "alerts",
-                      })
-                    }
-                    aria-current={route.panel === "alerts" ? "page" : undefined}
-                  >
-                    {t("Alertas")}
-                  </Button>
-                </nav>
+                      {switchEnded.length ? (
+                        <>
+                          {data.searches.length > 0 && (
+                            <optgroup label={t("Em acompanhamento")}>{data.searches.map(tripOption)}</optgroup>
+                          )}
+                          <optgroup label={t("Encerradas")}>{switchEnded.map(tripOption)}</optgroup>
+                        </>
+                      ) : (
+                        data.searches.map(tripOption)
+                      )}
+                    </select>
+                  </label>
+                )}
+                <TripHero
+                  search={search}
+                  airports={data.airports}
+                  routes={data.routes}
+                  source={data.source}
+                  serverTime={data.server_time}
+                  serverNow={serverNow}
+                  updatedAt={receivedAt}
+                  connectionError={query.isError}
+                  ended={tripEnded}
+                  busy={busy}
+                  onEdit={() => setModal("edit")}
+                  onAlerts={configureAlerts}
+                  onToggle={() => action(search.active ? "pause" : "resume")}
+                  onEnd={() => {
+                    setEndError("");
+                    setEndTarget(search);
+                  }}
+                  onDelete={() => askDelete(search)}
+                  onRestore={() => restoreOrReuse(search)}
+                />
+                <TripSections
+                  searchId={search.id}
+                  current={view === "history" ? "history" : route.panel === "alerts" ? "alerts" : "flights"}
+                  ended={tripEnded}
+                  navigate={navigate}
+                />
             </>)}
-            {view === "history" && (!route.searchId || data.archived.some((s) => s.id === search?.id)) && (
-              <Card className="history-selector">
-                <label>
-                  {t("Monitoramento")}
+            {view === "history" && !route.searchId && search && (
+              <section className="card history-selector" aria-label={t("Viagem do histórico")}>
+                <label className="history-select">
+                  <span>{t("Viagem")}</span>
                   <select
-                    value={search?.id || ""}
+                    value={search.id}
                     onChange={(e) => {
                       setSelectedId(e.target.value);
                       setDirection("outbound");
                     }}
                   >
-                    <option value="" disabled>
-                      {t("Selecione uma viagem")}
-                    </option>
                     <optgroup label={t("Em acompanhamento")}>
                       {data.searches.map((s) => (
                         <option key={s.id} value={s.id}>
@@ -1464,49 +1036,39 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
                         </option>
                       ))}
                     </optgroup>
-                    <optgroup label={t("Encerradas")}>
-                      {data.archived.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {tripTitle(s.config).title}
-                        </option>
-                      ))}
-                    </optgroup>
+                    {data.archived.length > 0 && (
+                      <optgroup label={t("Encerradas")}>
+                        {data.archived.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {tripTitle(s.config).title}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </label>
-                {search && data.archived.some((s) => s.id === search.id) && (
-                  <div className="google-mail-actions">
-                    <Button
-                      variant="outline"
-                      disabled={busy}
-                      onClick={() =>
-                        search.ends_at > serverNow
-                          ? perform(async () => {
-                              await request(
-                                `/searches/${search.id}/restore`,
-                                {},
-                              );
-                              setView("searches");
-                            }, t("Monitoramento retomado."))
-                          : (setCreationDraft({
-                              ...clone(search.config),
-                              name: search.config.name,
-                            }),
-                            setModal("new"))
-                      }
+                <div className="history-selector-actions">
+                  {tripEnded ? (
+                    <>
+                      <Button variant="outline" size="small" disabled={busy} onClick={() => restoreOrReuse(search)}>
+                        {search.ends_at > serverNow ? t("Voltar ao monitoramento") : t("Reutilizar com novas datas")}
+                      </Button>
+                      <Button variant="danger" size="small" disabled={busy} onClick={() => askDelete(search)}>
+                        {t("Excluir")}
+                      </Button>
+                    </>
+                  ) : (
+                    <a
+                      className="button button-ghost button-small"
+                      href={routePath({ view: "searches", searchId: search.id })}
+                      onClick={(e) => plainClick(e) && openSearch(search.id)}
                     >
-                      {search.ends_at > serverNow
-                        ? t("Voltar ao monitoramento")
-                        : t("Reutilizar com novas datas")}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setDeleteTarget(search)}
-                    >
-                      {t("Excluir")}
-                    </Button>
-                  </div>
-                )}
-              </Card>
+                      {t("Ver voos")}
+                      <ChevronRight size={15} aria-hidden="true" />
+                    </a>
+                  )}
+                </div>
+              </section>
             )}
             {query.isError && (
               <div role="status" className="banner warning">
@@ -1514,805 +1076,202 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
                 {t("Sem conexão. Exibindo a última atualização.")}
               </div>
             )}
-            {notice && (
-              <div
-                role={notice.error ? "alert" : "status"}
-                className={`toast ${notice.error ? "error" : ""}`}
-              >
-                {notice.error ? (
-                  <CircleAlert size={19} />
-                ) : (
-                  <CheckCircle2 size={19} />
-                )}
-                <span>{notice.message}</span>
-                <button
-                  aria-label={t("Dispensar mensagem")}
-                  onClick={() => setNotice(null)}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            )}
             {view === "home" && (
-              <Home
-                searches={data.searches}
-                onNew={newSearch}
-                onHistory={() => setView("history")}
-                onOpen={(id) => openSearch(id)}
-              />
-            )}
-            {view === "searches" && search && draft && (
               <>
-                {route.panel === "alerts" ? (
-                  <Card className="alert-list">
-                    <div className="section-heading">
-                      <h2>{t("Alertas desta viagem")}</h2>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setAlertPending(dirty);
-                          setModal("alerts");
-                        }}
-                      >
-                        {t("Configurar alertas")}
-                      </Button>
-                    </div>
-                    {data.alerts.length ? (
-                      data.alerts.map((event) => (
-                        <AlertItem key={event.id} event={event} />
-                      ))
-                    ) : (
-                      <p>{t("Nenhum alerta para esta viagem.")}</p>
-                    )}
-                  </Card>
-                ) : (
-                  <>
-                    <div
-                      className={`metrics-grid ${search.config.inbound ? "" : "one-way-metrics"}`}
-                    >
-                      {[
-                        [PlaneTakeoff, t("Menor ida"), bestOut],
-                        ...(search.config.inbound
-                          ? [[PlaneLanding, t("Menor volta"), bestIn]]
-                          : []),
-                      ].map(([Icon, label, flight], i) => {
-                        const I = Icon as typeof Plane;
-                        const f = flight as Flight | undefined;
-                        return (
-                          <Card className="metric" key={i}>
-                            <span className="metric-icon">
-                              <I size={21} />
-                            </span>
-                            <div>
-                              <p>{label as string}</p>
-                              <strong>{money(f?.price_cents)}</strong>
-                              <small>
-                                {f
-                                  ? `${localDate(f.departure)} · ${f.airlines[0]} · ${f.origin} → ${f.destination}`
-                                  : i === 1 && !search.config.inbound
-                                    ? t("Busca somente de ida")
-                                    : t("Buscando opções")}
-                              </small>
-                              {f?.stale && (
-                                <span className="old-label">
-                                  {t("Atualização pendente")}
-                                </span>
-                              )}
-                            </div>
-                          </Card>
-                        );
-                      })}
-                      {search.config.inbound && (
-                        <Card className="metric">
-                          <span className="metric-icon">
-                            <TrendingDown size={21} />
-                          </span>
-                          <div>
-                            <p>{t("Soma estimada")}</p>
-                            <strong>
-                              {bestOut && bestIn
-                                ? money(
-                                    bestOut.price_cents + bestIn.price_cents,
-                                  )
-                                : "—"}
-                            </strong>
-                            <small>
-                              {partyLabel(search.config)} ·{" "}
-                              {t("bilhetes separados")}
-                            </small>
-                          </div>
-                        </Card>
-                      )}
-                    </div>
-                    {bestOut &&
-                      bestIn &&
-                      bestOut.destination !== bestIn.origin && (
-                        <div className="airport-note">
-                          <Info size={16} />
-                          {t(
-                            "Aeroportos diferentes na ida e na volta: chegada em",
-                          )}{" "}
-                          {bestOut.destination} {t("e saída de")}{" "}
-                          {bestIn.origin}. Traslado não incluído.
-                        </div>
-                      )}
-                    <Card className="monitor-alert-bar">
-                      <Bell size={20} />
-                      <div>
-                        <strong>{t("Alertas desta viagem")}</strong>
-                        <small>
-                          {[
-                            search.config.notify_email ? t("E-mail") : "",
-                            search.config.notify_whatsapp ? "WhatsApp" : "",
-                          ]
-                            .filter(Boolean)
-                            .join(" + ") || t("Somente no painel")}{" "}
-                          ·{" "}
-                          {search.config.target_cents
-                            ? t("Meta {0}", [money(search.config.target_cents)])
-                            : t("Sem meta de preço")}{" "}
-                          ·{" "}
-                          {t("Queda mínima {0}", [
-                            money(search.config.min_drop_cents),
-                          ])}
-                        </small>
-                      </div>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setAlertPending(dirty);
-                          setModal("alerts");
-                        }}
-                      >
-                        <Bell size={15} />
-                        {t("Configurar alertas")}
-                      </Button>
-                    </Card>
-                    <div className="content-grid monitor-content">
-                      <details className="filters-card quick-filters-card card">
-                        <summary>
-                          <SlidersHorizontal size={17} />
-                          {t("Filtros da viagem")}
-                          <ChevronRight size={16} />
-                        </summary>
-                        <div className="section-heading">
-                          <h2>
-                            <SlidersHorizontal size={17} />
-                            {t("Filtros da viagem")}
-                          </h2>
-                        </div>
-                        <Filters
-                          key={search.id + ":" + search.version}
-                          config={draft}
-                          setConfig={updateDraft}
-                          airports={data.airports}
-                          emailRecipients={data.user.emails}
-                  emailAvailable={data.email_available}
-                  onManageContacts={() => navigate({view: "settings"})}
-                          whatsappAvailable={data.whatsapp_available}
-                          whatsappRecipients={[
-                            data.user.whatsapp_phone,
-                            ...(data.user.additional_phones || []).map(
-                              (p) => p.phone,
-                            ),
-                          ].filter((p): p is string => !!p)}
-                          onSave={save}
-                          saving={busy}
-                          dirty={dirty}
-                        />
-                      </details>
-                      <div className="results-column">
-                        <Card className="results-card">
-                          <div className="section-heading">
-                            <div>
-                              <h2>{t("Melhores opções")}</h2>
-                              <p aria-live="polite" aria-atomic="true">
-                                {flights.length} {t("opções encontradas ·")}{" "}
-                                {partyLabel(search.config)} · {t("por trecho")}
-                              </p>
-                            </div>
-                            <span className="sort-label">{t("Ordenado por menor preço")}</span>
-                          </div>
-                          <div className="results-tabs">
-                            <div className="tabs">
-                              <button
-                                className={
-                                  direction === "outbound" ? "active" : ""
-                                }
-                                onClick={() => setDirection("outbound")}
-                              >
-                                {t("Ida")} · {legDates(search.config.outbound, true)}
-                              </button>
-                              {search.config.inbound && (
-                                <button
-                                  disabled={!search.config.inbound}
-                                  className={
-                                    direction === "inbound" ? "active" : ""
-                                  }
-                                  onClick={() => setDirection("inbound")}
-                                >
-                                  {t("Volta")} · {legDates(search.config.inbound, true)}
-                                </button>
-                              )}
-                            </div>
-                            <Button
-                              className="mobile-filter-button"
-                              variant="outline"
-                              onClick={() => {
-                                const filters =
-                                  document.querySelector<HTMLDetailsElement>(
-                                    ".quick-filters-card",
-                                  );
-                                if (filters) {
-                                  filters.open = true;
-                                  filters.scrollIntoView({
-                                    behavior: "smooth",
-                                    block: "start",
-                                  });
-                                }
-                              }}
-                            >
-                              <SlidersHorizontal size={16} />
-                              {t("Filtros")}
-                            </Button>
-                          </div>
-                          {previewing && (
-                            <p className="preview-note">
-                              {previewCompatible
-                                ? t(
-                                    "Prévia nos voos já coletados. Salve para atualizar o monitoramento.",
-                                  )
-                                : t(
-                                    "Estas mudanças precisam de nova coleta após salvar. Os preços abaixo seguem a busca salva.",
-                                  )}
-                            </p>
-                          )}
-                          <div className="criteria-tags">
-                            <span>
-                              {(direction === "outbound"
-                                ? displayConfig!.outbound
-                                : displayConfig!.inbound
-                              )?.stops
-                                .map((n) =>
-                                  n === 0
-                                    ? t("Direto")
-                                    : n === 1
-                                      ? t("1 escala")
-                                      : t("2+ escalas"),
-                                )
-                                .join(" + ")}
-                            </span>
-                            <span>
-                              {(direction === "outbound"
-                                ? displayConfig!.outbound
-                                : displayConfig!.inbound
-                              )?.max_duration == null
-                                ? t("Sem limite de duração")
-                                : `${t("Até")} ${duration((direction === "outbound" ? displayConfig!.outbound : displayConfig!.inbound)!.max_duration!)}`}
-                            </span>
-                            {displayConfig!.target_cents && (
-                              <span>
-                                {t("Meta")} {money(displayConfig!.target_cents)}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flights-list">
-                            {!flights.length ? (
-                              <div className="empty-state">
-                                {collecting ? (
-                                  <LoaderCircle className="spin" />
-                                ) : (
-                                  <Search />
-                                )}
-                                <h3>
-                                  {collecting
-                                    ? t("Buscando oportunidades…")
-                                    : search.last_finished
-                                      ? t("Nenhum voo corresponde aos filtros")
-                                      : t("A primeira coleta está a caminho")}
-                                </h3>
-                                <p>
-                                  {search.error
-                                    ? t(
-                                        "Estamos atualizando suas opções. Tente buscar novamente em instantes.",
-                                      )
-                                    : search.last_finished
-                                      ? t(
-                                          "Experimente ampliar a janela ou a duração. Seus critérios não são relaxados automaticamente.",
-                                        )
-                                      : t(
-                                          "As tarifas reais aparecerão aqui assim que a fonte responder.",
-                                        )}
-                                </p>
-                              </div>
-                            ) : (
-                              flights
-                                .slice(0, visibleCount)
-                                .map((f) => (
-                                  <FlightCard
-                                    key={f.id + f.direction}
-                                    flight={f}
-                                  />
-                                ))
-                            )}
-                          </div>
-                          {flights.length > visibleCount && (
-                            <Button
-                              className="load-more"
-                              variant="outline"
-                              onClick={() => setVisibleCount((n) => n + 40)}
-                            >
-                              {t("Mostrar mais · {0} de {1}", [
-                                visibleCount,
-                                flights.length,
-                              ])}
-                            </Button>
-                          )}
-                          <p className="results-disclaimer">
-                            {t(
-                              "Confirme disponibilidade, bagagem e condições no site de compra.",
-                            )}
-                          </p>
-                        </Card>
-                        <Card className="alerts-summary">
-                          <div className="alerts-summary-heading">
-                            <span className="soft-icon">
-                              <Bell size={21} />
-                            </span>
-                            <div>
-                              <h2>{t("Último alerta desta viagem")}</h2>
-                              <p>
-                                {t(
-                                  "Oportunidades que respeitam seus filtros salvos.",
-                                )}
-                              </p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              onClick={() => setView("alerts")}
-                            >
-                              {t("Ver todos")}
-                              <ChevronRight size={15} />
-                            </Button>
-                          </div>
-                          {data.alerts[0] ? (
-                            <AlertItem event={data.alerts[0]} />
-                          ) : (
-                            <div className="small-empty">
-                              {search.config.target_cents
-                                ? t(
-                                    "Avisaremos ao atingir {0} ou cair pelo menos {1}.",
-                                    [
-                                      money(search.config.target_cents),
-                                      money(search.config.min_drop_cents),
-                                    ],
-                                  )
-                                : t(
-                                    "Uma primeira coleta cria a referência. Novas quedas elegíveis aparecem aqui.",
-                                  )}
-                            </div>
-                          )}
-                          {!data.user.emails.length && (
-                            <button
-                              className="smtp-callout"
-                              onClick={() => setView("settings")}
-                            >
-                              <Mail size={16} />
-                              <span>
-                                {t(
-                                  "Adicione seus e-mails no perfil para receber alertas.",
-                                )}
-                              </span>
-                              <ChevronRight size={15} />
-                            </button>
-                          )}
-                        </Card>
-                      </div>
-                    </div>
-                  </>
-                )}
+                <SourceNotice source={data.source} now={serverNow} />
+                <Home
+                  searches={data.searches}
+                  archived={data.archived}
+                  airports={data.airports}
+                  serverNow={serverNow}
+                  onNew={newSearch}
+                  onOpen={(id, history) => openSearch(id, history)}
+                />
               </>
+            )}
+            {view === "searches" && search && route.panel === "alerts" && (
+              <section className="trip-alerts-panel" aria-labelledby="trip-alerts-panel-title">
+                <div className="card-heading">
+                  <h2 id="trip-alerts-panel-title">{t("Alertas desta viagem")}</h2>
+                  {!tripEnded && (
+                    <Button variant="outline" onClick={configureAlerts}>
+                      {t("Configurar alertas")}
+                    </Button>
+                  )}
+                </div>
+                {data.alerts.length ? (
+                  <AlertDays
+                    items={data.alerts}
+                    now={serverNow}
+                    level={3}
+                    render={(item) => <AlertRow item={item} onManageContacts={() => navigate({ view: "settings" })} />}
+                  />
+                ) : (
+                  <p className="card card-empty">{t("Nenhum alerta para esta viagem.")}</p>
+                )}
+              </section>
+            )}
+            {view === "searches" && search && draft && route.panel !== "alerts" && !tripEnded && (
+              <TripFlights
+                search={search}
+                config={displayConfig!}
+                user={data.user}
+                flights={flights}
+                bestOut={bestOut}
+                bestIn={bestIn}
+                direction={direction}
+                onDirection={setDirection}
+                visibleCount={visibleCount}
+                onShowMore={() => setVisibleCount((n) => n + 40)}
+                previewing={previewing}
+                previewCompatible={previewCompatible}
+                lastAlert={data.alerts[0]}
+                serverNow={serverNow}
+                onConfigureAlerts={configureAlerts}
+                onShowAlerts={() => navigate({ view: "searches", searchId: search.id, panel: "alerts" })}
+                onManageContacts={() => navigate({ view: "settings" })}
+                filters={
+                  <Filters
+                    key={search.id + ":" + search.version}
+                    config={draft}
+                    setConfig={updateDraft}
+                    airports={data.airports}
+                    emailRecipients={data.user.emails}
+                    emailAvailable={data.email_available}
+                    onManageContacts={() => navigate({ view: "settings" })}
+                    whatsappAvailable={data.whatsapp_available}
+                    whatsappRecipients={whatsappTargets(data.user)}
+                    onSave={save}
+                    saving={busy}
+                    dirty={dirty}
+                  />
+                }
+              />
             )}
             {view === "searches" && !search && (
               <Card>
                 <div className="empty-state">
-                  <PlaneTakeoff />
+                  <PlaneTakeoff aria-hidden="true" />
                   <h2>{t("Vamos acompanhar sua próxima viagem?")}</h2>
-                  <p>
-                    {t(
-                      "Escolha aeroportos, uma janela de saída e quanto quer pagar.",
-                    )}
-                  </p>
-                  <Button onClick={newSearch}>
-                    <Plus size={16} />
+                  <p>{t("Escolha aeroportos, uma janela de saída e quanto quer pagar.")}</p>
+                  <Button size="large" onClick={newSearch}>
+                    <Plus size={20} aria-hidden="true" />
                     {t("Criar primeira busca")}
                   </Button>
                 </div>
               </Card>
             )}
             {view === "history" && !search && (
-              <Card className="activity-empty">
-                <History size={28} />
-                <h2>{t("Seu histórico começa com uma viagem")}</h2>
-                <Button onClick={newSearch}>
-                  <Plus size={16} />
-                  {t("Nova viagem")}
-                </Button>
-              </Card>
+              <section className="card">
+                <div className="empty-state">
+                  <History aria-hidden="true" />
+                  <h2>{t("Seu histórico começa com uma viagem")}</h2>
+                  <p>{t("Crie um monitoramento para acompanhar como os preços mudam ao longo do tempo.")}</p>
+                  <Button size="large" onClick={newSearch}>
+                    <Plus size={20} aria-hidden="true" />
+                    {t("Nova viagem")}
+                  </Button>
+                </div>
+              </section>
             )}
             {view === "history" && search && (
-              <>
-                <Card className="history-chart">
-                  <div className="section-heading">
-                    <div>
-                      <h2>{t("Menor preço por janela")}</h2>
-                      <p>
-                        {search.config.inbound
-                          ? t("Ida e volta separadas ·")
-                          : t("Somente ida ·")}{" "}
-                        {partyLabel(search.config)} ·{" "}
-                        {t("por trecho · fuso do dispositivo")}
-                      </p>
-                    </div>
-                    <a
-                      className="button button-outline"
-                      href={"/api/export/" + search.id}
-                    >
-                      <Download size={15} />
-                      {t("Baixar histórico")}
-                    </a>
-                  </div>
-                  <Trend
-                    key={search.id + ":" + search.version}
-                    history={data.history}
-                    hasReturn={!!search.config.inbound}
-                    version={search.version}
-                    searchId={search.id}
-                    currency={search.config.currency || "BRL"}
-                  />
-                </Card>
-                <Card className="table-card">
-                  <div className="section-heading">
-                    <h2>{t("Variações de preço")}</h2>
-                    <span className="muted">
-                      {t("Todas as versões · primeiro preço e mudanças de valor")}
-                    </span>
-                  </div>
-                  <div className="table-scroll">
-                    <table className="price-variations">
-                      <thead>
-                        <tr>
-                          <th>{t("Data e hora")}</th>
-                          <th>{t("Direção")}</th>
-                          <th>{t("Preço anterior → atual")}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.history.map((h) => (
-                          <tr key={h.id}>
-                            <td>
-                              {fullDate(h.collected)}
-                              <small>
-                                {t("Filtros · versão {0}", [h.version])}
-                              </small>
-                            </td>
-                            <td>
-                              {h.direction === "outbound"
-                                ? t("Ida")
-                                : t("Volta")}
-                            </td>
-                            <td>
-                              {h.previous_price == null
-                                ? t("Primeiro preço nestes filtros")
-                                : formatMoney(
-                                    h.previous_price,
-                                    h.currency || "BRL",
-                                  )}{" "}
-                              →{" "}
-                              <strong>
-                                {formatMoney(h.price, h.currency || "BRL")}
-                              </strong>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
-              </>
+              <div className="history-page">
+                <PriceChartCard search={search} />
+                <PriceVariations history={data.history} />
+              </div>
             )}
             {view === "alerts" && (
               <Activity
                 searches={[...data.searches, ...data.archived]}
-                onOpen={(id) =>
-                  openSearch(
-                    id,
-                    data.archived.some((s) => s.id === id),
-                  )
-                }
+                serverNow={serverNow}
+                onOpen={(id, history) => openSearch(id, history || data.archived.some((s) => s.id === id))}
+                onManageContacts={() => navigate({ view: "settings" })}
               />
             )}
             {view === "settings" && (
-              <Profile
-                preferences={
-                  <div className="profile-display-preferences">
-                    <LanguagePicker />
-                    <SystemVersion />
-                    {data.user.role === "admin" && (
-                      <Button
-                        variant="outline"
-                        type="button"
-                        onClick={() =>
-                          navigate({ view: "admin", section: "deliveries" })
-                        }
-                      >
-                        <Shield size={17} />
-                        {t("Administração")}
-                      </Button>
-                    )}
-                  </div>
-                }
-                user={data.user}
-                token={data.token}
-                onLogout={onLogout}
-                onSaved={() =>
-                  queryClient.invalidateQueries({ queryKey: ["radar"] })
-                }
-              />
+              <Suspense fallback={<ViewSkeleton heading={false} />}>
+                <Profile
+                  user={data.user}
+                  token={data.token}
+                  onLogout={onLogout}
+                  onSaved={() => queryClient.invalidateQueries({ queryKey: ["radar"] })}
+                  onNotice={(message, error) => setNotice({ message, error })}
+                  onAdmin={data.user.role === "admin" ? () => navigate({ view: "admin", section: "deliveries" }) : undefined}
+                  onDirtyChange={setProfileDirty}
+                />
+              </Suspense>
             )}
             {view === "admin" && data.user.role !== "admin" && (
-              <Card className="activity-empty">
-                <p>{t("Esta área é exclusiva de administradores.")}</p>
-                <Button onClick={() => navigate({ view: "home" })}>
-                  {t("Voltar às viagens")}
-                </Button>
-              </Card>
+              <section className="card">
+                <div className="empty-state">
+                  <Shield aria-hidden="true" />
+                  <p>{t("Esta área é exclusiva de administradores.")}</p>
+                  <Button size="large" onClick={() => navigate({ view: "home" })}>
+                    {t("Voltar às viagens")}
+                  </Button>
+                </div>
+              </section>
             )}
             {view === "admin" && data.user.role === "admin" && (
+              <Suspense
+                fallback={
+                  adminTask ? (
+                    <section className="task-page" aria-labelledby="admin-task-loading">
+                      <header className="page-heading">
+                        <div>
+                          <h1 id="admin-task-loading" tabIndex={-1}>
+                            {adminTaskTitle}
+                          </h1>
+                        </div>
+                      </header>
+                      <ViewSkeleton heading={false} />
+                    </section>
+                  ) : (
+                    <ViewSkeleton heading={false} />
+                  )
+                }
+              >
               <AdminPanel
                 request={request}
                 userId={data.user.id}
                 route={route}
                 navigate={navigate}
-              >
-                {data.google_mail && (
-                  <GoogleMailPanel
-                    status={data.google_mail}
-                    testRecipient={data.mail_test_recipient || ""}
-                    defaultEmail={
-                      data.smtp?.username?.includes("@")
-                        ? data.smtp.username
-                        : data.user.emails[0] || ""
-                    }
-                    request={request}
-                    onChanged={() =>
-                      queryClient.invalidateQueries({ queryKey: ["radar"] })
-                    }
-                  />
-                )}
-                {smtpDraft && (
-                  <div className="admin-smtp-settings">
-                    <Card className="settings-card">
-                      <details className="smtp-manual">
-                        <summary>{t("Configuração manual SMTP")}</summary>
-                        <div className="section-heading">
-                          <div>
-                            <h2>
-                              <Mail size={19} />
-                              {t("E-mail por SMTP")}
-                            </h2>
-                          </div>
-                          <span
-                            className={`delivery-badge ${data.mail_provider === "smtp" ? "success" : ""}`}
-                          >
-                            {data.mail_provider === "google"
-                              ? t("SMTP fora de uso")
-                              : data.smtp?.enabled
-                              ? t("Serviço em uso: SMTP")
-                              : t("Não configurado")}
-                          </span>
-                        </div>
-                        <form
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            perform(async () => {
-                              await request("/smtp", smtpDraft, "PUT");
-                              setSmtpDraft({
-                                ...smtpDraft,
-                                password: "",
-                                password_set:
-                                  !!smtpDraft.password ||
-                                  smtpDraft.password_set,
-                              });
-                            }, t("Configuração SMTP salva."));
-                          }}
-                        >
-                          <label className="check-row">
-                            <input
-                              type="checkbox"
-                              checked={smtpDraft.enabled}
-                              onChange={(e) =>
-                                setSmtpDraft({
-                                  ...smtpDraft,
-                                  enabled: e.target.checked,
-                                })
-                              }
-                            />
-                            {t("Habilitar SMTP quando não houver conta conectada")}
-                          </label>
-                          <div className="two-fields">
-                            <label>
-                              {t("Servidor SMTP")}
-                              <input
-                                required={smtpDraft.enabled}
-                                placeholder="smtp.seuprovedor.com"
-                                autoComplete="off"
-                                value={smtpDraft.host}
-                                onChange={(e) =>
-                                  setSmtpDraft({
-                                    ...smtpDraft,
-                                    host: e.target.value,
-                                  })
-                                }
-                              />
-                            </label>
-                            <label>
-                              {t("Porta")}
-                              <input
-                                type="number"
-                                min={1}
-                                max={65535}
-                                required
-                                value={smtpDraft.port}
-                                onChange={(e) =>
-                                  setSmtpDraft({
-                                    ...smtpDraft,
-                                    port: Number(e.target.value),
-                                  })
-                                }
-                              />
-                            </label>
-                          </div>
-                          <label>
-                            {t("Segurança")}
-                            <select
-                              value={smtpDraft.security}
-                              onChange={(e) =>
-                                setSmtpDraft({
-                                  ...smtpDraft,
-                                  security: e.target.value,
-                                  port: e.target.value === "ssl" ? 465 : 587,
-                                })
-                              }
-                            >
-                              <option value="starttls">
-                                {t("STARTTLS (normalmente porta 587)")}
-                              </option>
-                              <option value="ssl">
-                                {t("TLS direto (normalmente porta 465)")}
-                              </option>
-                            </select>
-                          </label>
-                          <label>
-                            {t("Usuário SMTP")}
-                            <input
-                              autoComplete="off"
-                              value={smtpDraft.username}
-                              onChange={(e) =>
-                                setSmtpDraft({
-                                  ...smtpDraft,
-                                  username: e.target.value,
-                                })
-                              }
-                            />
-                          </label>
-                          <label>
-                            {t("Senha ou senha de aplicativo")}
-                            <input
-                              type="password"
-                              autoComplete="new-password"
-                              value={smtpDraft.password}
-                              placeholder={
-                                smtpDraft.password_set
-                                  ? t("Senha salva · deixe vazio para manter")
-                                  : t("Digite a senha")
-                              }
-                              onChange={(e) =>
-                                setSmtpDraft({
-                                  ...smtpDraft,
-                                  password: e.target.value,
-                                })
-                              }
-                            />
-                          </label>
-                          <div className="two-fields">
-                            <label>
-                              {t("E-mail remetente")}
-                              <input
-                                type="email"
-                                required={smtpDraft.enabled}
-                                placeholder="radar@seudominio.com"
-                                value={smtpDraft.sender}
-                                onChange={(e) =>
-                                  setSmtpDraft({
-                                    ...smtpDraft,
-                                    sender: e.target.value,
-                                  })
-                                }
-                              />
-                            </label>
-                            <label>
-                              {t("E-mail para testes")}
-                              <input
-                                type="email"
-                                required={smtpDraft.enabled}
-                                placeholder="voce@exemplo.com"
-                                value={smtpDraft.recipient}
-                                onChange={(e) =>
-                                  setSmtpDraft({
-                                    ...smtpDraft,
-                                    recipient: e.target.value,
-                                  })
-                                }
-                              />
-                            </label>
-                          </div>
-                          <div className="settings-actions">
-                            <Button type="submit" size="large" disabled={busy}>
-                              <Save size={16} />
-                              {t("Salvar configuração")}
-                            </Button>
-                            {data.mail_provider !== "google" && (                            <Button
-                              type="button"
-                              variant="outline"
-                              disabled={busy || !data.smtp?.enabled}
-                              onClick={() =>
-                                perform(
-                                  () => request("/smtp/test", {}),
-                                  t(
-                                    "E-mail de teste colocado na fila. Consulte a aba Envios.",
-                                  ),
-                                )
-                              }
-                            >
-                              <Send size={15} />
-                              {t("Testar serviço de e-mail em uso")}
-                            </Button>)}
-                          </div>
-                          <p className="help">
-                            {t(
-                              "O teste usa o destinatário salvo. Alertas anteriores não serão reenviados.",
-                            )}
-                          </p>
-                        </form>
-                      </details>
-                    </Card>
-                  </div>
-                )}
-              </AdminPanel>
+                source={data.source}
+                serverNow={serverNow}
+                whatsappAvailable={!!data.whatsapp_available}
+                mail={{
+                  google: data.google_mail,
+                  smtp: data.smtp,
+                  provider: data.mail_provider,
+                  available: data.email_available,
+                  testRecipient: data.mail_test_recipient || "",
+                  defaultEmail: data.smtp?.username?.includes("@")
+                    ? data.smtp.username
+                    : data.user.emails[0] || "",
+                }}
+                onChanged={() => queryClient.invalidateQueries({ queryKey: ["radar"] })}
+              />
+              </Suspense>
             )}
             {search && view === "searches" && (
               <footer className="page-footer">
-                <span>
-                  {t("Tarifas pesquisadas no Google Voos")}
-                  <br />
-                  {t(
-                    "Preços observados, sem garantia de disponibilidade · voos no horário local dos aeroportos",
-                  )}
-                  <br />
-                  {t("Encerramento automático:")} {fullDate(search.ends_at)}{" "}
-                  {t("· fim da última janela de partida.")}
-                </span>
+                <p>{t("Tarifas pesquisadas no Google Voos")}</p>
+                <p>{t("Preços observados, sem garantia de disponibilidade · voos no horário local dos aeroportos")}</p>
+                {!tripEnded && (
+                  <p>
+                    {t("Encerramento automático:")} {formatDateTime(search.ends_at)} {t("· fim da última janela de partida.")}
+                  </p>
+                )}
               </footer>
             )}
-            {view === "searches" && previewing && !modal && (
+            {pendingBar && (
               <aside
                 className="pending-bar"
                 aria-label={t("Alterações pendentes")}
               >
                 <span role="status">
                   <strong>{t("Alterações pendentes")}</strong>{" "}
-                  {t("Salve para atualizar o monitoramento.")}
+                  <span className="pending-bar-detail">{t("Salve para atualizar o monitoramento.")}</span>
                 </span>
                 <div>
                   <Button
@@ -2331,59 +1290,143 @@ export default function App({ onLogout }: { onLogout: () => Promise<void> }) {
             )}
           </>
         )}
+        </>
+        )}
+        </ErrorBoundary>
+        </div>
       </main>
       <nav className="mobile-nav" aria-label={t("Navegação no celular")}>
         {nav
           .filter((item) => item.id !== "admin")
           .map((item) => (
-            <button
+            <a
               key={item.id}
-              className={
-                activeView === item.id
-                  ? "selected"
-                  : ""
-              }
+              href={routePath({ view: item.id })}
+              className={activeView === item.id ? "selected" : undefined}
               aria-current={activeView === item.id ? "page" : undefined}
-              onClick={() => navigate({ view: item.id })}
+              onClick={(e) => plainClick(e) && navigate({ view: item.id })}
             >
-              <item.icon size={20} />
-              <span>{item.id === "history" ? t("Histórico") : item.label}</span>
-            </button>
+              <item.icon size={24} aria-hidden="true" />
+              <span>{item.label}</span>
+            </a>
           ))}
       </nav>
-      <Modal
+      {/* The only toast region; its live regions exist before any message. */}
+      <div className="toast-region">
+        <div className={clsx("toast", !toast && "is-empty", toast?.error && "error")}>
+          {toast &&
+            (toast.error ? (
+              <CircleAlert size={20} aria-hidden="true" />
+            ) : (
+              <CheckCircle2 size={20} aria-hidden="true" />
+            ))}
+          <div className="toast-text">
+            <p role="status" aria-live="polite" aria-atomic="true">
+              {toast && !toast.error ? toast.message : ""}
+            </p>
+            <p role="alert" aria-live="assertive" aria-atomic="true">
+              {toast?.error ? toast.message : ""}
+            </p>
+          </div>
+          {toast && (
+            <button
+              type="button"
+              aria-label={t("Dispensar mensagem")}
+              onClick={() => (ownToast ? setNotice(null) : onDismissAlert?.())}
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      </div>
+      {/* A failed deletion keeps the dialog open and is announced inside it. */}
+      <ConfirmDialog
         open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onOpenChange={(open) => {
+          if (open) return;
+          setDeleteTarget(null);
+          setDeleteError("");
+        }}
         title={t("Excluir monitoramento?")}
         description={t(
           "A exclusão remove esta busca, preços coletados, histórico e alertas locais. Não pode ser desfeita e não retira e-mails já enviados.",
         )}
+        confirmLabel={t("Excluir definitivamente")}
+        busy={busy}
+        error={deleteError}
+        onConfirm={() => {
+          if (!deleteTarget) return;
+          const target = deleteTarget;
+          setDeleteError("");
+          void perform(
+            async () => {
+              await request(`/searches/${target.id}`, {}, "DELETE");
+              drafts.current.delete(target.id);
+              deletedNotice.current = true;
+              setDeleteTarget(null);
+              setView("home");
+            },
+            undefined,
+            setDeleteError,
+          );
+        }}
+        onClosed={() => {
+          // The toast waits for the dialog to leave, so it is announced.
+          if (!deletedNotice.current) return;
+          deletedNotice.current = false;
+          setNotice({ message: t("Monitoramento excluído."), error: false });
+        }}
       >
         <p>
-          <strong>{deleteTarget?.config.name}</strong>
+          <strong>{deleteTarget ? tripTitle(deleteTarget.config).title : ""}</strong>
         </p>
-        <div className="google-mail-actions">
-          <Button
-            variant="outline"
-            disabled={busy}
-            onClick={() => setDeleteTarget(null)}
-          >
-            {t("Cancelar")}
+      </ConfirmDialog>
+      <Modal
+        open={!!endTarget}
+        onOpenChange={(open) => {
+          if (open || busy) return;
+          setEndTarget(null);
+          setEndError("");
+        }}
+        onClosed={() => {
+          if (!endedNotice.current) return;
+          endedNotice.current = false;
+          setNotice({ message: t("Monitoramento encerrado. Histórico preservado."), error: false });
+        }}
+        title={t("Encerrar monitoramento?")}
+        description={t(
+          "O radar deixa de consultar preços e de enviar alertas desta viagem. O histórico de preços e os alertas continuam disponíveis, e você pode retomar o monitoramento enquanto as datas da viagem não passarem.",
+        )}
+      >
+        <p>
+          <strong>{endTarget ? tripTitle(endTarget.config).title : ""}</strong>
+        </p>
+        {/* The request runs with the dialog open: a failure is announced here. */}
+        <Notice tone="error">{endError}</Notice>
+        <div className="dialog-actions">
+          <Button variant="outline" disabled={busy} onClick={() => setEndTarget(null)}>
+            {t("Continuar monitorando")}
           </Button>
           <Button
-            variant="danger"
             disabled={busy}
-            onClick={() =>
-              deleteTarget &&
-              perform(async () => {
-                await request(`/searches/${deleteTarget.id}`, {}, "DELETE");
-                drafts.current.delete(deleteTarget.id);
-                setDeleteTarget(null);
-                setView("home");
-              }, t("Monitoramento excluído."))
-            }
+            onClick={() => {
+              if (!endTarget) return;
+              const target = endTarget;
+              setEndError("");
+              void perform(
+                async () => {
+                  await request(`/searches/${target.id}/action`, { action: "archive" });
+                  endedNotice.current = true;
+                  setEndTarget(null);
+                  openSearch(target.id, true);
+                },
+                undefined,
+                setEndError,
+              );
+            }}
           >
-            {t("Excluir definitivamente")}
+            {busy ? <LoaderCircle size={16} className="spin" aria-hidden="true" /> : <Archive size={16} aria-hidden="true" />}
+            {t("Encerrar monitoramento")}
           </Button>
         </div>
       </Modal>

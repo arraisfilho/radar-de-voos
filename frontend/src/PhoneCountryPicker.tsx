@@ -2,6 +2,7 @@ import { useId, useLayoutEffect, useRef, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { getLocale, t } from "./i18n";
+import { comboboxKeyDown, revealActive } from "./combobox";
 import { filterPhoneCountries, phoneCountries } from "./phoneCountries";
 import "./phone-field.css";
 
@@ -20,12 +21,15 @@ export function PhoneCountryPicker({ country, label, disabled, onChange }: {
   const countries = phoneCountries(getLocale());
   const selected = countries.find((option) => option.code === country)!;
   const matches = filterPhoneCountries(countries, query);
+  const status = matches.length
+    ? t(matches.length === 1 ? "{0} país encontrado" : "{0} países encontrados", [matches.length])
+    : t("Nenhum país encontrado.");
   const choose = (code: string) => {
     onChange(code);
     setOpen(false);
   };
   useLayoutEffect(() => {
-    if (open && active >= 0) list.current?.querySelectorAll<HTMLElement>('[role="option"]')[active]?.scrollIntoView({ block: "nearest" });
+    if (open) revealActive(list.current);
   }, [open, active, query]);
   return <Popover.Root open={open} onOpenChange={(next) => {
     setOpen(next);
@@ -36,13 +40,15 @@ export function PhoneCountryPicker({ country, label, disabled, onChange }: {
   }}>
     <Popover.Trigger asChild>
       <button type="button" className="phone-country-trigger" disabled={disabled}
-        aria-label={t("País e código internacional de {0}", [label])}>
+        aria-label={`${t("País e código internacional de {0}", [label])}: ${selected.name} +${selected.callingCode}`}>
         <span aria-hidden="true">{selected.flag}</span>
         <span className="phone-country-name">{selected.name}</span>
-        <span>+{selected.callingCode}</span>
+        <span className="phone-country-dial">+{selected.callingCode}</span>
         <ChevronDown size={17} aria-hidden="true" />
       </button>
     </Popover.Trigger>
+    {/* The count is announced from outside the listbox, as in the other pickers. */}
+    <p className="sr-only" role="status">{open ? status : ""}</p>
     <Popover.Portal>
       <Popover.Content className="phone-country-popover" sideOffset={6} collisionPadding={12} align="start"
         aria-label={t("Escolher país")}
@@ -55,30 +61,33 @@ export function PhoneCountryPicker({ country, label, disabled, onChange }: {
             aria-activedescendant={matches[active] ? `${id}-${matches[active].code}` : undefined}
             value={query} onChange={(event) => { setQuery(event.target.value); setActive(0); }}
             onKeyDown={(event) => {
-              if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-                event.preventDefault();
-                setActive((current) => Math.max(0, Math.min(matches.length - 1, current + (event.key === "ArrowDown" ? 1 : -1))));
-              }
-              if (event.key === "Enter") {
-                event.preventDefault();
-                if (matches[active]) choose(matches[active].code);
-              }
+              const used = comboboxKeyDown(event, {
+                count: matches.length,
+                active,
+                open,
+                setActive,
+                choose: (index) => choose(matches[index].code),
+                close: () => setOpen(false),
+              });
+              if (!used && event.key === "Enter") event.preventDefault();
             }} />
           <Popover.Close className="phone-country-close" aria-label={t("Fechar lista de países")}>
             <X size={17} aria-hidden="true" />
           </Popover.Close>
         </div>
-        <p className="phone-country-count" role="status">{matches.length ? t(matches.length === 1 ? "{0} país encontrado" : "{0} países encontrados", [matches.length]) : t("Nenhum país encontrado.")}</p>
+        <p className="phone-country-count" aria-hidden="true">{status}</p>
         <div ref={list} id={id} role="listbox" aria-label={t("Países e códigos internacionais")} className="phone-country-list">
-          {matches.map((option, index) => <button key={option.code} type="button" role="option" tabIndex={-1}
-            id={`${id}-${option.code}`} aria-selected={option.code === country} data-active={index === active}
+          {matches.map((option, index) => <div key={option.code} role="option" tabIndex={-1}
+            id={`${id}-${option.code}`} aria-selected={index === active}
+            className={option.code === country ? "combo-option is-current" : "combo-option"}
             onMouseDown={(event) => event.preventDefault()}
+            onMouseMove={() => index !== active && setActive(index)}
             onClick={() => choose(option.code)}>
             <span aria-hidden="true">{option.flag}</span>
             <span className="phone-country-name">{option.name}</span>
             <span className="phone-country-code">+{option.callingCode}</span>
             {option.code === country && <Check size={16} aria-hidden="true" />}
-          </button>)}
+          </div>)}
         </div>
       </Popover.Content>
     </Popover.Portal>
