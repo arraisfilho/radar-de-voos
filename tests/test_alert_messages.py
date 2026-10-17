@@ -1,6 +1,7 @@
 """Synthetic alerts and redirects; no provider calls or real notification sends."""
 import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import copy
+from datetime import datetime, timezone
 import importlib
 import json
 import os
@@ -54,6 +55,30 @@ class MessageTests(unittest.TestCase):
         self.assertNotIn('<img',html);self.assertIn('&lt;img',html)
         self.assertIn('href="https://www.google.com/',html)
         self.assertNotIn('alert(1)>*_',text)
+
+    def test_trip_name_seen_time_and_trip_page_link(self):
+        e=event();e['collected_at']=datetime(2090,11,1,20,1,tzinfo=timezone.utc).timestamp()
+        page='https://radar.example.com/viagens/fixture-trip'
+        for language,about,manage in [('pt','Recife · dezembro · visto às 17:01','Pausar ou editar a viagem'),('en','Recife · dezembro · seen at 17:01','Pause or edit this trip'),('es','Recife · dezembro · visto a las 17:01','Pausar o editar el viaje')]:
+            text,html=alert_messages.render([('outbound',e)],language,'whatsapp',name='*Recife* · dezembro',page=page,zone='America/Sao_Paulo')
+            self.assertEqual(text.splitlines()[1],about);self.assertEqual(text.splitlines()[-1],manage+': '+page)
+            self.assertLessEqual(len(text.splitlines()),12)
+            self.assertIn(about,html);self.assertIn(f'<a href="{page}" style="color:#365d86">{manage}</a>',html)
+        # The default account zone is named, so the hour is not read as local time.
+        text,_=alert_messages.render([('outbound',e)],name='Recife')
+        self.assertIn('Recife · visto às 20:01 UTC',text);self.assertNotIn('Pausar ou editar',text)
+
+    def test_trip_name_and_page_are_escaped_in_the_email(self):
+        text,html=alert_messages.render([('outbound',event())],name='<script>alert(1)</script> & Co',page=offer_links.trip_page('a/b&"c'))
+        self.assertNotIn('<script>',html);self.assertIn('&lt;script&gt;alert(1)&lt;/script&gt; &amp; Co',html)
+        self.assertIn('/viagens/a%2Fb%26%22c"',html);self.assertIn('<script>alert(1)</script> & Co',text.splitlines()[1])
+
+    def test_reminder_is_titled_apart_from_a_first_alert(self):
+        e=event();e['reason']='reminder'
+        text,html=alert_messages.render([('outbound',e)],channel='whatsapp')
+        self.assertTrue(text.startswith('🎯 *Ainda dentro da meta*'));self.assertNotIn('Meta atingida',text);self.assertIn('Ainda dentro da meta',html)
+        other=event();text,_=alert_messages.render([('outbound',e),('inbound',other)],channel='whatsapp')
+        self.assertIn('*Novas oportunidades*',text);self.assertIn('CGH · Ainda dentro da meta*',text);self.assertIn('CGH · Meta atingida*',text)
 
     def test_smtp_multipart_and_plain_recovery_preserved(self):
         config={'provider':'smtp','host':'smtp.example.com','port':465,'security':'ssl','username':'','password':'','sender':'sender@example.org','recipient':['target@example.org'],'body_html':'<p>Safe fixture</p>'}
@@ -134,3 +159,34 @@ class LinkTests(unittest.TestCase):
             self.assertIn('<!doctype html>',row['body_html']);self.assertIn('/go/',row['body'])
             self.assertNotIn('*Meta atingida*',row['body']);self.assertIn('*Meta atingida*',enqueue.call_args.args[-1])
             self.assertNotIn('tfs=',enqueue.call_args.args[-1])
+    def test_queued_messages_carry_trip_name_time_and_page(self):
+        with store.db() as c,patch('backend.accounts.alert_recipients',return_value=['target@example.org']),patch.object(mail,'available',return_value=True),patch('backend.whatsapp.enqueue') as enqueue:
+            c.execute('DELETE FROM baselines')
+            cid=c.execute("INSERT INTO cycles(search_id,version,started,status,total) VALUES(?,1,?,'done',1)",(self.sid,time.time())).lastrowid
+            config=self.search.model_copy(update={'notify_whatsapp':True,'name':'Congonhas fixture'})
+            persist_snapshots(c,self.sid,1,cid,config,[{'direction':'outbound','status':'ok','flights':[event()['flight']]}])
+            row=c.execute("SELECT * FROM outbox WHERE channel='email' ORDER BY created DESC LIMIT 1").fetchone()
+        page='http://127.0.0.1:8765/viagens/'+self.sid
+        for body in (row['body'],enqueue.call_args.args[-1]):
+            self.assertIn('Congonhas fixture · visto às',body);self.assertIn('Pausar ou editar a viagem: '+page,body)
+        self.assertIn(f'href="{page}"',row['body_html'])
+    def test_local_alert_links_are_flagged_for_the_administrator(self):
+        cases={'http://127.0.0.1:8765':True,'http://localhost:8765':True,'http://[::1]:8765':True,'http://radar.localhost':True,'http://127.0.0.2:8765':True,
+               'http://192.168.0.20:8765':False,'https://radar.example.com':False,'not a url':False}
+        for value,expected in cases.items():
+            with self.subTest(value=value),patch.dict(os.environ,{'RADAR_PUBLIC_URL':value}):self.assertIs(offer_links.local_origin(),expected)
+        with patch.dict(os.environ):
+            os.environ.pop('RADAR_PUBLIC_URL');self.assertTrue(offer_links.local_origin())
+        # Loopback (container check) and administrator only; anyone else still receives {"ok": ...}.
+        self.assertIs(self.client.get('/api/health').json()['alert_links_local'],True)
+        remote=TestClient(importlib.import_module('backend.app').app);self.addCleanup(remote.close)
+        self.assertEqual(set(remote.get('/api/health').json()),{'ok'})
+        with patch.dict(os.environ,{'RADAR_PUBLIC_URL':'https://radar.example.com'}):
+            self.assertIs(self.client.get('/api/health').json()['alert_links_local'],False)
+    def test_local_alert_links_are_logged_at_startup_without_blocking(self):
+        app=importlib.import_module('backend.app').app
+        with self.assertLogs('radar.app','WARNING') as captured,TestClient(app):pass
+        self.assertIn('RADAR_PUBLIC_URL',captured.records[0].getMessage());self.assertEqual(captured.records[0].origin,'http://127.0.0.1:8765')
+        with patch.dict(os.environ,{'RADAR_PUBLIC_URL':'https://radar.example.com'}),self.assertNoLogs('radar.app','WARNING'),TestClient(app):pass
+        # Sending is not blocked: the queued alert still carries the local link.
+        with store.db() as c:self.assertTrue(offer_links.create(c,self.aid,URL).startswith('http://127.0.0.1:8765/go/'))

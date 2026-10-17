@@ -6,7 +6,7 @@ import os
 import re
 import threading
 from contextlib import contextmanager
-from datetime import datetime,timezone
+from datetime import datetime,timedelta,timezone
 from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 import hashlib
 import secrets
@@ -186,6 +186,19 @@ class Registration(Contacts):
     def phone_valid(self):
         self.phone = phone_e164(self.phone, self.country)
         return self
+
+
+class SignUp(Registration):
+    """Self sign-up and the first administrator: a device time zone this server does not know becomes UTC."""
+
+    @field_validator("timezone", mode="before")
+    @classmethod
+    def device_zone(cls, value):
+        try:
+            ZoneInfo(value)
+            return value
+        except (ZoneInfoNotFoundError, ValueError, TypeError):
+            return "UTC"
 
 
 class Login(BaseModel):
@@ -455,7 +468,15 @@ def update_contacts_in(c,user_id,data):
             from .notifications import sync_alerts
             sync_alerts(c,json.loads(row['alert_ids']))
     c.execute("UPDATE accounts SET name=?,emails=?,additional_phones=?,telegram_username=?,whatsapp_use_login=?,whatsapp_country=?,whatsapp_phone=?,timezone=?,quiet_hours=?,quiet_start=?,quiet_end=? WHERE id=?",(data.name,json.dumps(data.emails),json.dumps([p.model_dump() for p in data.additional_phones]),data.telegram_username,int(data.whatsapp_use_login),data.whatsapp_country,data.whatsapp_phone,data.timezone,int(data.quiet_hours),data.quiet_start,data.quiet_end,user_id))
+    release_held(c,user_id)
     return public_user(c.execute("SELECT * FROM accounts WHERE id=?",(user_id,)).fetchone())
+
+
+def release_held(c,user_id,now=None):
+    """Messages held by quiet hours follow the saved hours: due now if they ended or were turned off."""
+    now=time.time() if now is None else now
+    for row in c.execute("SELECT o.id,o.search_id FROM outbox o JOIN searches s ON s.id=o.search_id WHERE s.owner_id=? AND o.status='pending' AND o.next_due>?",(user_id,now)).fetchall():
+        c.execute('UPDATE outbox SET next_due=? WHERE id=?',(search_quiet_until(c,row['search_id'],now) or now,row['id']))
 
 
 def alert_recipients(c, search_id):
@@ -474,6 +495,18 @@ def is_quiet(config,now=None):
 def search_is_quiet(c,sid,now=None):
     row=c.execute('SELECT a.* FROM accounts a JOIN searches s ON s.owner_id=a.id WHERE s.id=?',(sid,)).fetchone()
     return is_quiet(row,now) if row else False
+
+
+def search_quiet_until(c,sid,now=None):
+    """End of the quiet hours the search's owner is in now, as a timestamp; None outside them."""
+    now=time.time() if now is None else now
+    if not search_is_quiet(c,sid,now):return None
+    row=c.execute('SELECT a.timezone,a.quiet_end FROM accounts a JOIN searches s ON s.owner_id=a.id WHERE s.id=?',(sid,)).fetchone()
+    if not row:return now+300
+    local=datetime.fromtimestamp(now,timezone.utc).astimezone(ZoneInfo(row['timezone']))
+    hour,minute=map(int,row['quiet_end'].split(':'))
+    end=local.replace(hour=hour,minute=minute,second=0,microsecond=0)
+    return (end if end>local else end+timedelta(days=1)).timestamp()
 
 
 def ensure_search_capacity(c,user_id):

@@ -32,7 +32,7 @@ class AccountTests(unittest.TestCase):
         return (client or self.a).post('/api/auth/bootstrap' if admin else '/api/auth/register',json=payload,headers=self.headers)
 
     def config(self):
-        return Search(name='Minha busca privada',origins=['LHR'],destinations=['JFK'],outbound=Leg(start='2090-11-05T00:00',end='2090-11-05T23:59'),target_cents=120000).model_dump()
+        return Search(name='Minha busca privada',origins=['LHR'],destinations=['JFK'],outbound=Leg(start='2090-11-05T00:00',end='2090-11-05T23:59'),target_cents=120000,notify_email=True,notify_whatsapp=False).model_dump()
 
     def test_access_audit_records_login_metadata_and_scopes_users(self):
         self.register();self.register(self.b,phone='02079460018',country='GB')
@@ -329,6 +329,26 @@ class AccountTests(unittest.TestCase):
             Monitor().send_one()
             self.assertEqual(transmit.call_args.args[0]['recipient'],emails)
             self.assertNotIn('admin-test@example.org',transmit.call_args.args[0]['recipient'])
+
+    def test_saved_channels_survive_an_edit_without_them(self):
+        self.register()
+        sid=self.a.post('/api/searches',json=self.config(),headers=self.headers).json()['id']
+        body={k:v for k,v in self.config().items() if not k.startswith('notify_')}|{'name':'Outro nome'}
+        self.assertEqual(self.a.put('/api/searches/'+sid,json=body,headers=self.headers).status_code,200)
+        with store.db() as c:saved=json.loads(c.execute('SELECT config FROM searches WHERE id=?',(sid,)).fetchone()[0])
+        self.assertEqual((saved['name'],saved['notify_email'],saved['notify_whatsapp']),('Outro nome',True,False))
+        body['notify_whatsapp']=True
+        self.a.put('/api/searches/'+sid,json=body,headers=self.headers)
+        with store.db() as c:saved=json.loads(c.execute('SELECT config FROM searches WHERE id=?',(sid,)).fetchone()[0])
+        self.assertEqual((saved['notify_email'],saved['notify_whatsapp']),(True,True))
+
+    def test_sign_up_takes_the_device_zone_and_falls_back_to_utc(self):
+        self.assertEqual(self.register(timezone='America/Araguaina').json()['timezone'],'America/Araguaina')
+        response=self.register(self.b,phone='02079460018',country='GB',timezone='Mars/Olympus_Mons')
+        self.assertEqual(response.status_code,200,response.text);self.assertEqual(response.json()['timezone'],'UTC')
+        # The profile still validates the zone it is given.
+        user=self.a.get('/api/auth/session').json()['user']
+        self.assertEqual(self.a.put('/api/profile',json=user|{'timezone':'Mars/Olympus_Mons'},headers=self.headers).status_code,422)
 
     def test_existing_local_account_can_become_first_admin_with_its_password(self):
         self.register()

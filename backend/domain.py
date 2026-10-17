@@ -64,8 +64,9 @@ class Search(BaseModel):
     checked_bags: int = Field(default=0, ge=0, le=2)
     target_cents: int | None = Field(default=None, ge=100, le=1000000000000)
     min_drop_cents: int = Field(default=5000, ge=100, le=1000000000000)
-    notify_email: bool = True
-    notify_whatsapp: bool = False
+    # New trips alert by WhatsApp first; saved trips keep the values stored in their config.
+    notify_email: bool = False
+    notify_whatsapp: bool = True
 
     @field_validator("currency")
     @classmethod

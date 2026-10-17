@@ -800,7 +800,7 @@ class HealthTests(Isolated):
         anonymous, user, admin = self.remote(), self.remote(), self.remote()
         self.assertEqual(admin.post('/api/auth/bootstrap', json={'name': 'Health admin', 'country': 'US', 'phone': '6502530000', 'password': 'fixture-password-only'}, headers=token).status_code, 200)
         self.assertEqual(user.post('/api/auth/register', json={'name': 'Health user', 'country': 'GB', 'phone': '02079460018', 'password': 'fixture-password-only'}, headers=token).status_code, 200)
-        full = {'ok', 'version', 'db_ok', 'collector_alive', 'whatsapp_sender_alive', 'email_sender_alive', 'heartbeats', 'source'}
+        full = {'ok', 'version', 'db_ok', 'collector_alive', 'whatsapp_sender_alive', 'email_sender_alive', 'heartbeats', 'alert_links_local', 'source'}
         for workers, status in ((self.Workers(), 200), (self.Workers(collector=(False, 0.5)), 503)):
             with self.subTest(status=status):
                 # Anonymous or signed in without the administrator role, away from the loopback: ok only.
@@ -819,7 +819,7 @@ class HealthTests(Isolated):
     def test_contract_and_ok_rules(self):
         response = self.health(self.Workers())
         self.assertEqual(response.status_code, 200); body = response.json()
-        self.assertEqual(set(body), {'ok', 'version', 'db_ok', 'collector_alive', 'whatsapp_sender_alive', 'email_sender_alive', 'heartbeats', 'source'})
+        self.assertEqual(set(body), {'ok', 'version', 'db_ok', 'collector_alive', 'whatsapp_sender_alive', 'email_sender_alive', 'heartbeats', 'alert_links_local', 'source'})
         self.assertTrue(body['ok'] and body['db_ok'] and body['collector_alive'] and body['whatsapp_sender_alive'] and body['email_sender_alive'])
         self.assertEqual(body['heartbeats'], {'collector': 0.5, 'email_sender': 1.0, 'whatsapp_sender': 1.5})
         self.assertEqual(body['source']['status'], 'ok'); self.assertEqual(response.headers['cache-control'], 'no-store')

@@ -91,6 +91,11 @@ def setup(seed=True):
             status TEXT NOT NULL, attempts INTEGER DEFAULT 0, next_due REAL NOT NULL,
             error TEXT, sent REAL);
         """)
+        if "rule" not in {r[1] for r in c.execute("PRAGMA table_info(baselines)")}:
+            # Two processes starting together may both add it: the second finds it there.
+            try:c.execute("ALTER TABLE baselines ADD COLUMN rule TEXT")
+            except sqlite3.OperationalError as exc:
+                if "duplicate column" not in str(exc):raise
         alert_schema=c.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='alerts'").fetchone()[0]
         if 'direction,kind,price' in alert_schema.replace(' ',''):
             c.execute("DELETE FROM metadata WHERE key='notification_links_v1'")

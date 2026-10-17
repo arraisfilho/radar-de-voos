@@ -33,7 +33,7 @@ Acesse `http://localhost:8765`. Pare uma aplicação já em execução antes do 
 | `RADAR_DATA_DIR` | Diretório privado; padrão `.data/` |
 | `RADAR_HOST`, `RADAR_PORT` | Interface e porta do processo local |
 | `RADAR_LAN_CIDR` | Sub-rede privada autorizada para teste em outros dispositivos |
-| `RADAR_PUBLIC_URL` | Origem canônica dos links de recuperação |
+| `RADAR_PUBLIC_URL` | Origem canônica dos links de recuperação e de alertas; padrão `http://127.0.0.1:8765`. Com endereço local, o início registra um aviso e `/api/health` traz `alert_links_local: true` |
 | `RADAR_RAW_RETENTION_DAYS` | Retenção de respostas brutas; padrão 30 dias |
 | `RADAR_AUDIT_RETENTION_DAYS` | Retenção inicial de acessos; padrão 90 dias |
 | `RADAR_DELIVERY_RETENTION_DAYS` | Retenção inicial de envios concluídos; padrão 90 dias |

@@ -14,7 +14,7 @@ Ative **WhatsApp** nas configurações de alerta de cada monitoramento. Os desti
 
 ## Processamento e credenciais
 
-A fila tem tentativas independentes por destinatário e trabalhador separado do e-mail. Antes do envio, confere monitoramento, versão dos filtros, contatos, horário de silêncio e integração ativa. Alertas com mais de 30 minutos não são enviados.
+A fila tem tentativas independentes por destinatário e trabalhador separado do e-mail. Antes do envio, confere monitoramento, versão dos filtros, contatos e integração ativa. No horário silencioso do destinatário, a mensagem fica pendente até o fim dele. Alertas com mais de 30 minutos não são enviados; para os que esperaram o horário silencioso, os 30 minutos contam a partir do fim dele, e a mensagem informa a hora em que o preço foi visto.
 
 Trocar a identidade da integração, desativá-la ou removê-la (`DELETE /api/admin/whatsapp`, que também apaga o segredo das confirmações) cancela mensagens pendentes. Operações em andamento não podem ser retiradas. Salvar e remover a integração e trocar o segredo das confirmações ficam na auditoria com os nomes dos campos alterados, sem valores. Timeout e resultado ambíguo não geram reenvio automático. **Aceito pelo provedor** registra a aceitação do pedido. Entrega e leitura dependem das confirmações descritas abaixo.
 

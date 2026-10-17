@@ -212,12 +212,38 @@ class RefinementTests(unittest.TestCase):
             self.assertEqual(Monitor().gated_fetch(search,('outbound','THE','GRU','2090-11-05'),row)['status'],'skipped');fetch.assert_not_called()
     def test_quiet_profile_and_queued_price_suppression(self):
         sid,_=self.search()
-        r=self.client.put('/api/profile',json={**self.user,'quiet_hours':True,'timezone':'America/Sao_Paulo','quiet_start':'22:00','quiet_end':'08:00'},headers=self.headers)
+        r=self.client.put('/api/profile',json={**self.user,'quiet_hours':True,'timezone':'America/Sao_Paulo','quiet_start':'22:00','quiet_end':'07:00'},headers=self.headers)
         self.assertEqual(r.status_code,200,r.text);self.assertTrue(r.json()['quiet_hours'])
-        with store.db() as c:c.execute("INSERT INTO outbox(id,search_id,version,created,alert_ids,subject,body,status,next_due,recipients) VALUES('q',?,1,?,'[]','test','test','pending',0,'[\"first@example.org\"]')",(sid,time.time()))
-        with patch.object(mail,'delivery_settings',return_value={'enabled':True}),patch('backend.accounts.search_is_quiet',return_value=True),patch.object(mail,'transmit') as send:
-            Monitor().send_one();send.assert_not_called()
-        with store.db() as c:self.assertEqual(c.execute("SELECT status FROM outbox WHERE id='q'").fetchone()[0],'quiet')
+        # Queued at 23:50 in São Paulo (02:50 UTC), inside 22:00-07:00: held, still pending, until 07:00 there.
+        night=datetime(2026,10,17,2,50,tzinfo=timezone.utc).timestamp();morning=datetime(2026,10,17,10,tzinfo=timezone.utc).timestamp()
+        def send_at(moment):
+            with patch.object(mail,'delivery_settings',return_value={'enabled':True}),patch('backend.engine.time.time',return_value=moment),patch('backend.accounts.time.time',return_value=moment),patch.object(mail,'transmit') as send:
+                Monitor().send_one();return send.call_count
+        with store.db() as c:c.execute("INSERT INTO outbox(id,search_id,version,created,alert_ids,subject,body,status,next_due,recipients) VALUES('q',?,1,?,'[]','test','test','pending',?,?)",(sid,night,night,json.dumps(['first@example.org'])))
+        self.assertEqual((send_at(night),send_at(night+60)),(0,0))
+        with store.db() as c:row=c.execute("SELECT status,next_due FROM outbox WHERE id='q'").fetchone()
+        self.assertEqual((row['status'],row['next_due']),('pending',morning),'Held, nothing marks it silenced')
+        # At 07:00 the 30 minutes start: sent, though created more than 7 hours before.
+        self.assertEqual(send_at(morning),1)
+        with store.db() as c:self.assertEqual(c.execute("SELECT status FROM outbox WHERE id='q'").fetchone()[0],'sent')
+        # Not sent within 30 minutes of the end of the quiet hours (the sender was down): expired.
+        with store.db() as c:c.execute("UPDATE outbox SET status='pending',next_due=?,completed=NULL,sent=NULL WHERE id='q'",(morning,))
+        self.assertEqual(send_at(morning+1801),0)
+        with store.db() as c:self.assertEqual(c.execute("SELECT status FROM outbox WHERE id='q'").fetchone()[0],'expired')
+    def test_shorter_quiet_hours_bring_held_messages_forward(self):
+        from backend import accounts
+        sid,_=self.search()
+        self.client.put('/api/profile',json={**self.user,'quiet_hours':True,'timezone':'America/Sao_Paulo','quiet_start':'22:00','quiet_end':'07:00'},headers=self.headers)
+        night=datetime(2026,10,17,2,50,tzinfo=timezone.utc).timestamp()
+        with store.db() as c:
+            c.execute("INSERT INTO outbox(id,search_id,version,created,alert_ids,subject,body,status,next_due,recipients) VALUES('q',?,1,?,'[]','t','t','pending',?,'[]')",(sid,night,datetime(2026,10,17,10,tzinfo=timezone.utc).timestamp()))
+            uid=c.execute('SELECT owner_id FROM searches WHERE id=?',(sid,)).fetchone()[0]
+            c.execute("UPDATE accounts SET quiet_end='05:00' WHERE id=?",(uid,))
+            accounts.release_held(c,uid,night)
+            self.assertEqual(c.execute("SELECT next_due FROM outbox WHERE id='q'").fetchone()[0],datetime(2026,10,17,8,tzinfo=timezone.utc).timestamp(),'Due at the new end, 05:00 there')
+            c.execute("UPDATE accounts SET quiet_start='23:55' WHERE id=?",(uid,))
+            accounts.release_held(c,uid,night)
+            self.assertEqual(c.execute("SELECT next_due FROM outbox WHERE id='q'").fetchone()[0],night,'Outside the new hours: due now')
     def test_logos_validation_cache_and_authenticated_endpoint(self):
         with patch.object(logos,'urlopen') as remote:
             self.assertIsNone(logos.airline_logo('../bad'));remote.assert_not_called()
