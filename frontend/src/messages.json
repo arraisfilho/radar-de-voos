@@ -5938,5 +5938,33 @@
   "{0} enviados": {
     "en": "{0} sent",
     "es": "{0} enviados"
+  },
+  "Cabine e moeda": {
+    "en": "Cabin and currency",
+    "es": "Cabina y moneda"
+  },
+  "Total estimado ida + volta": {
+    "en": "Estimated total outbound + return",
+    "es": "Total estimado ida + vuelta"
+  },
+  "em 24 h": {
+    "en": "in 24 h",
+    "es": "en 24 h"
+  },
+  "desde a primeira coleta": {
+    "en": "since the first check",
+    "es": "desde la primera consulta"
+  },
+  "Estável {0}": {
+    "en": "Stable {0}",
+    "es": "Estable {0}"
+  },
+  "Pressione Enter para adicionar {0}.": {
+    "en": "Press Enter to add {0}.",
+    "es": "Pulsa Enter para añadir {0}."
+  },
+  "Não encontrado: {0}.": {
+    "en": "Not found: {0}.",
+    "es": "No encontrado: {0}."
   }
 }

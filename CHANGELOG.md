@@ -1,5 +1,16 @@
 # Alterações
 
+## 0.27.0
+
+### Added
+- Cartões da tela inicial passaram a mostrar o total estimado de ida + volta, somando os menores preços de cada trecho.
+- Cada preço da tela inicial passou a mostrar se caiu, subiu ou ficou estável em relação a 24 h atrás ou à primeira coleta.
+- Busca de aeroporto passou a aceitar vários códigos de uma vez (GRU+CGH+VCP, separados por +, vírgula, ponto e vírgula ou barra), adicionando todos com Enter ou ao colar.
+- Digitar um código seguido de + (GRU+) passou a adicionar o aeroporto na hora e manter o campo aberto para buscar o próximo pelo nome.
+
+### Changed
+- Cabine e moeda viraram uma linha-resumo recolhível na etapa Viagem, liberando espaço no assistente.
+
 ## 0.26.0
 
 ### Added

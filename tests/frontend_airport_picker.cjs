@@ -27,7 +27,7 @@ function load(file) {
     name.startsWith('./') ? load(name.slice(2) + (fs.existsSync(path.join(source, name.slice(2) + '.tsx')) ? '.tsx' : '.ts')) : req(name)});
   return out;
 }
-const {AirportPicker} = load('AirportPicker.tsx');
+const {AirportPicker, parseCodes} = load('AirportPicker.tsx');
 function find(node, predicate) { if (!node || typeof node !== 'object') return null; if (predicate(node)) return node; for (const child of React.Children.toArray(node.props?.children)) { const found = find(child, predicate); if (found) return found; } return null; }
 const control = name => { const node = {name, focus() { document.activeElement = node; }}; return node; };
 const airports = [
@@ -116,3 +116,18 @@ console.log('Airport picker focus: next chip, add button, previous chip or field
   assert.equal(label['text-overflow'], 'ellipsis'); assert.equal(label['white-space'], 'nowrap'); assert.equal(label['min-width'], '0');
   console.log('Airport chips: long names cut with an ellipsis inside the column, full name in the tooltip passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
+const codes = value => { const out = parseCodes(value); return out && [...out]; };
+assert.deepEqual(codes('GRU+CGH+VCP'), ['GRU', 'CGH', 'VCP']);
+assert.deepEqual(codes(' gru, cgh ; vcp '), ['GRU', 'CGH', 'VCP'], 'Commas, semicolons and lower case work too');
+assert.deepEqual(codes('GRU / CGH'), ['GRU', 'CGH']);
+assert.deepEqual(codes('GRU+GRU+CGH'), ['GRU', 'CGH'], 'Repeated codes are added once');
+for (const text of ['GRU', 'São Paulo', 'GRU+', 'GRU+SAOP', 'New York', 'Rio Sul', 'GRU CGH']) assert.equal(parseCodes(text), null, text);
+console.log('Airport codes typed together (GRU+CGH+VCP) parsed.');
+const {typedCodes} = load('AirportPicker.tsx');
+const typed = value => { const out = typedCodes(value); return out && {codes: [...out.codes], rest: out.rest}; };
+assert.deepEqual(typed('GRU+'), {codes: ['GRU'], rest: ''}, 'A code closed by + is added while typing');
+assert.deepEqual(typed('gru, '), {codes: ['GRU'], rest: ''});
+assert.deepEqual(typed('GRU+CGH;'), {codes: ['GRU', 'CGH'], rest: ''});
+assert.deepEqual(typed('GRU+camp'), {codes: ['GRU'], rest: 'camp'}, 'The text after the code keeps searching');
+for (const text of ['GRU', 'São Paulo+', '+', 'Rio Sul,', 'SAOP+', 'São Paulo+camp']) assert.equal(typedCodes(text), null, text);
+console.log('Airport codes added as soon as a separator is typed (GRU+) parsed.');

@@ -51,7 +51,7 @@ export type SourceStatus = {
   retry_at: number | null;
 };
 export type SearchRecord = {
-  summary?: Partial<Record<"outbound"|"inbound",{price:number;collected:number}>>;
+  summary?: Partial<Record<"outbound"|"inbound",{price:number;collected:number;ref?:{price:number;collected:number;basis?:"day"|"first"}}>>;
   ends_at: number;
   id: string;
   config: Config;

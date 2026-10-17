@@ -48,7 +48,7 @@ async def lifespan(app):
         await asyncio.to_thread(monitor.stop)
 
 
-app = FastAPI(title="Radar de Voos", version="0.26.0", lifespan=lifespan,
+app = FastAPI(title="Radar de Voos", version="0.27.0", lifespan=lifespan,
               docs_url=None, redoc_url=None)
 
 
@@ -236,6 +236,12 @@ def state(request: Request, search_id: str | None = None, preview_pool: bool = F
             for item in searches:
                 quotes=c.execute("SELECT direction,price,collected FROM snapshots WHERE id IN (SELECT MAX(id) FROM snapshots WHERE search_id=? AND version=? AND complete=1 AND price IS NOT NULL GROUP BY direction)",(item['id'],item['version'])).fetchall()
                 item['summary']={r['direction']:{'price':r['price'],'collected':r['collected']} for r in quotes}
+                # Trend reference: the latest price collected at least 24 h ago, else the first one of this version.
+                day=time.time()-86400
+                for side,entry in item['summary'].items():
+                    ref,basis=c.execute('SELECT price,collected FROM snapshots WHERE search_id=? AND version=? AND direction=? AND complete=1 AND price IS NOT NULL AND collected<=? ORDER BY collected DESC LIMIT 1',(item['id'],item['version'],side,day)).fetchone(),'day'
+                    if not ref:ref,basis=c.execute('SELECT price,collected FROM snapshots WHERE search_id=? AND version=? AND direction=? AND complete=1 AND price IS NOT NULL ORDER BY collected LIMIT 1',(item['id'],item['version'],side)).fetchone(),'first'
+                    if ref and ref['collected']<entry['collected']:entry['ref']={'price':ref['price'],'collected':ref['collected'],'basis':basis}
                 if not quotes and c.execute('SELECT 1 FROM filter_result_refs WHERE search_id=? AND version=? LIMIT 1',(item['id'],item['version'])).fetchone():
                     row=c.execute('SELECT * FROM searches WHERE id=?',(item['id'],)).fetchone()
                     options,_=recent_results(c,row)

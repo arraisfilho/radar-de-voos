@@ -492,7 +492,16 @@
   background-repeat: no-repeat;
 }
 
-/* Cabin and currency. */
+/* Cabin and currency: a one-line summary that opens the two fields. */
+.trip-options-value {
+  margin-left: auto;
+  color: var(--muted);
+  font-weight: 400;
+  white-space: nowrap;
+}
+.advanced-options.trip-options > summary::after {
+  margin-left: 0;
+}
 .trip-options-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
