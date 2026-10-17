@@ -27,10 +27,10 @@ class PassengerTests(unittest.TestCase):
                 party=create.call_args.kwargs['passengers'];self.assertEqual(party.children,values.get('children',0));self.assertEqual(party.infants_in_seat,values.get('infants_in_seat',0));self.assertEqual(party.infants_on_lap,values.get('infants_on_lap',0));links.append(request.call_args.args[0].url())
         self.assertEqual(len(set(links)),4)
     def test_categories_cross_subprocess_boundary(self):
-        with patch('backend.engine.subprocess.run') as run:
-            run.return_value=NS(returncode=0,stdout=json.dumps({'status':'empty','flights':[]}))
+        with patch('backend.engine.subprocess.Popen') as popen:
+            popen.return_value.returncode=0;popen.return_value.communicate.return_value=(json.dumps({'status':'empty','flights':[]}),'')
             fetch(self.config(adults=2,children=1,infants_in_seat=1,infants_on_lap=1),('outbound','LHR','JFK','2090-11-05'))
-            options=json.loads(run.call_args.kwargs['input']);self.assertEqual([options[k] for k in ('adults','children','infants_in_seat','infants_on_lap')],[2,1,1,1])
+            options=json.loads(popen.return_value.communicate.call_args.args[0]);self.assertEqual([options[k] for k in ('adults','children','infants_in_seat','infants_on_lap')],[2,1,1,1])
     def test_collected_fare_keeps_party_total_and_passenger_counts(self):
         class Group(list):pass
         segment=NS(from_airport=NS(code='LHR'),to_airport=NS(code='JFK'),departure=NS(date=[2090,11,5],time=[12,0]),arrival=NS(date=[2090,11,5],time=[15,0]))

@@ -1,4 +1,5 @@
 """HTTP API for flight monitoring and price alerts."""
+import asyncio
 import json
 import os
 import secrets
@@ -35,8 +36,11 @@ async def lifespan(app):
     retention.days()
     deliveries.days()
     monitor.start()
-    yield
-    monitor.stop()
+    try:
+        yield
+    finally:
+        # Monitor.stop blocks up to its deadline: wait off the event loop.
+        await asyncio.to_thread(monitor.stop)
 
 
 app = FastAPI(title="Radar de Voos", version="0.25.0", lifespan=lifespan,

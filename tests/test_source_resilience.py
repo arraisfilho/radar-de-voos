@@ -5,6 +5,7 @@ import io
 import json
 import logging
 import os
+import signal
 import smtplib
 import subprocess
 import sys
@@ -14,10 +15,10 @@ import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace as NS
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
 import primp
 from fastapi.testclient import TestClient
-from backend import store, mail, source, collector, logs
+from backend import store, mail, source, collector, logs, engine
 from backend.domain import Search, Leg
 from backend.engine import Monitor, fetch, next_collection_due
 from backend.query_gate import QueryGate
@@ -60,6 +61,22 @@ def collect_script(text):
     with patch.object(collector, 'fetch_flights_html', return_value='html'), \
          patch.object(collector, 'LexborHTMLParser', return_value=NS(css_first=lambda selector: element)):
         return collector.collect(OPTIONS)
+
+
+def stand_in(seconds, answer=None):
+    """Command of a collector stand-in: reads the query, sleeps, then prints `answer` if any. No source requests."""
+    code = 'import sys,time;sys.stdin.read();time.sleep(%s)' % seconds
+    return (sys.executable, '-c', code if answer is None else code+';print(%r)' % json.dumps(answer))
+
+
+def running_child(other_than=None):
+    """The first collector subprocess in flight other than `other_than`, waiting up to five seconds."""
+    deadline = time.time()+5
+    while time.time() < deadline:
+        with engine.CHILDREN_LOCK: found = [process for process in engine.CHILDREN if process is not other_than]
+        if found: return found[0]
+        time.sleep(.02)
+    raise AssertionError('No collector subprocess started')
 
 
 class Isolated(unittest.TestCase):
@@ -168,15 +185,60 @@ class ClassificationTests(Isolated):
                              (json.dumps({'status': 'error', 'error': 'old adapter', 'flights': []}), 'unknown'),
                              (json.dumps({'status': 'error', 'error': 'x', 'kind': 'invented', 'flights': []}), 'unknown'),
                              ('not json', 'unknown')]:
-            with self.subTest(stdout=stdout), patch('backend.engine.subprocess.run') as run:
-                run.return_value.returncode = 1; run.return_value.stdout = stdout
+            with self.subTest(stdout=stdout), patch('backend.engine.subprocess.Popen') as popen:
+                popen.return_value.returncode = 1; popen.return_value.communicate.return_value = (stdout, '')
                 result = fetch(search, job)
                 self.assertEqual((result['status'], result['kind']), ('error', kind))
-        with patch('backend.engine.subprocess.run', side_effect=subprocess.TimeoutExpired('collector', 35)):
-            self.assertEqual(fetch(search, job)['kind'], 'timeout')
-        with patch('backend.engine.subprocess.run') as run:
-            run.return_value.returncode = 0; run.return_value.stdout = json.dumps({'status': 'empty', 'flights': []})
+        with patch('backend.engine.subprocess.Popen') as popen:
+            # Past 35 s the subprocess is killed, then a second communicate() drains its pipes and reaps it.
+            popen.return_value.returncode = -signal.SIGKILL
+            popen.return_value.communicate.side_effect = [subprocess.TimeoutExpired('collector', 35), ('', '')]
+            self.assertEqual(fetch(search, job)['kind'], 'timeout'); popen.return_value.kill.assert_called_once()
+            self.assertEqual(popen.return_value.communicate.call_args_list[1], call())
+        with patch('backend.engine.subprocess.Popen') as popen:
+            popen.return_value.returncode = 0; popen.return_value.communicate.return_value = (json.dumps({'status': 'empty', 'flights': []}), '')
             self.assertNotIn('kind', fetch(search, job))
+        self.assertEqual(engine.CHILDREN, {})
+
+    def test_engine_skips_queries_ended_by_a_shutdown(self):
+        search = Search(origins=['LHR'], destinations=['JFK'], outbound=Leg(start='2090-11-05T00:00', end='2090-11-05T23:59'))
+        job = ('outbound', 'LHR', 'JFK', '2090-11-05')
+        # The signals a shutdown sends to the whole process group: the subprocess never answered.
+        for returncode in (-signal.SIGTERM, -signal.SIGINT, -signal.SIGHUP):
+            with self.subTest(returncode=returncode), patch('backend.engine.subprocess.Popen') as popen:
+                popen.return_value.returncode = returncode; popen.return_value.communicate.return_value = ('', '')
+                with self.assertRaises(engine.QueryInterrupted): fetch(search, job)
+        # Any other end (a crash, an external SIGKILL, an unreadable answer) is still a failed query.
+        for stdout, returncode in (('', -signal.SIGSEGV), ('', -signal.SIGKILL), ('not json', 1)):
+            with self.subTest(returncode=returncode), patch('backend.engine.subprocess.Popen') as popen:
+                popen.return_value.returncode = returncode; popen.return_value.communicate.return_value = (stdout, '')
+                result = fetch(search, job)
+                self.assertEqual((result['status'], result['kind']), ('error', 'unknown'))
+        # Ended by Monitor.stop (end_children) while running: skipped, whatever its exit status.
+        ended = []
+        def stopped(*args, **kwargs):
+            ended.append(engine.end_children()); return '', ''
+        with patch('backend.engine.subprocess.Popen') as popen:
+            process = popen.return_value; process.poll.return_value = None; process.returncode = -signal.SIGKILL
+            process.communicate.side_effect = stopped
+            with self.assertRaises(engine.QueryInterrupted): fetch(search, job)
+        self.assertEqual(ended, [1]); process.kill.assert_called_once(); self.assertEqual(engine.CHILDREN, {})
+
+    def test_collector_subprocess_ended_by_sigterm_is_interrupted(self):
+        search = Search(origins=['LHR'], destinations=['JFK'], outbound=Leg(start='2090-11-05T00:00', end='2090-11-05T23:59'))
+        outcome = []
+        def query():
+            try: outcome.append(fetch(search, ('outbound', 'LHR', 'JFK', '2090-11-05')))
+            except engine.QueryInterrupted as exc: outcome.append(exc)
+        # A real subprocess (a stand-in, not the collector), as a supervisor's SIGTERM finds it.
+        with patch.object(engine, 'COLLECTOR', stand_in(30)):
+            thread = threading.Thread(target=query); thread.start()
+            try:
+                os.kill(running_child().pid, signal.SIGTERM); thread.join(5)
+            finally:
+                engine.end_children(); thread.join(5)
+        self.assertEqual(len(outcome), 1); self.assertIsInstance(outcome[0], engine.QueryInterrupted)
+        self.assertEqual(outcome[0].args, (-signal.SIGTERM,)); self.assertEqual(engine.CHILDREN, {})
 
 
 class BreakerTests(Isolated):
@@ -296,7 +358,9 @@ class BreakerTests(Isolated):
         self.assertEqual(next_collection_due(1000, 1700, 300, 2, FIXED)-1000, 1200)
 
 
-class CycleTests(Isolated):
+class CycleFixture(Isolated):
+    """One account with a two-route search, and a monitor whose gate does not space queries."""
+
     def setUp(self):
         super().setUp()
         from backend import accounts
@@ -317,6 +381,8 @@ class CycleTests(Isolated):
             return data
         return result
 
+
+class CycleTests(CycleFixture):
     def test_open_breaker_skips_queries_without_marking_the_search_failed(self):
         self.put(state='open', retry_at=time.time()+300, trip_kind='blocked')
         with patch('backend.engine.fetch') as remote:
@@ -519,6 +585,186 @@ class CycleTests(Isolated):
         record = captured.records[0]
         self.assertEqual(record.search_id, self.sid); self.assertIsNotNone(record.exc_info)
         self.assertEqual(self.row()['state'], 'error')
+
+    def test_query_ended_by_a_shutdown_is_skipped_without_failure_or_backoff(self):
+        # The process group's signal ended the collector subprocess, maybe before Monitor.stop ran.
+        with store.db() as c: c.execute('UPDATE searches SET failures=2 WHERE id=?', (self.sid,))
+        with patch('backend.engine.fetch', side_effect=engine.QueryInterrupted) as remote, self.assertLogs('radar', 'INFO') as captured:
+            self.monitor.run_cycle(self.row())
+        self.assertEqual(remote.call_count, 2)
+        messages = [record.getMessage() for record in captured.records]
+        self.assertEqual(messages.count('Consulta à fonte interrompida'), 2); self.assertNotIn('Consulta à fonte falhou', messages)
+        with store.db() as c:
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM results').fetchone()[0], 0)
+            self.assertEqual(tuple(c.execute('SELECT status,successes,failures FROM cycles').fetchone()), ('interrupted', 0, 0))
+        row = self.row()
+        self.assertEqual((row['state'], row['error'], row['error_kind'], row['failures']), ('scheduled', None, None, 2))
+        self.assertEqual((self.state()['state'], self.state()['consecutive_failures']), ('closed', 0))
+        # The breaker's test query: its admission is released, so another query can test the source.
+        self.put(state='open', retry_at=time.time()-1, trip_kind='blocked')
+        with patch('backend.engine.fetch', side_effect=engine.QueryInterrupted):
+            self.monitor.run_cycle(self.row())
+        data = self.state()
+        self.assertEqual((source.gate(), data['state'], data['level'], data['consecutive_failures']), ('probe', 'half_open', 0, 0))
+
+    def test_nothing_starts_once_the_monitor_is_stopping(self):
+        job = ('outbound', 'THE', 'GRU', '2090-11-05'); row = self.row()
+        self.monitor.stop_event.set()
+        with patch('backend.engine.fetch') as remote, patch.object(source, 'admit') as admit, patch.object(source, 'gate') as gate:
+            self.monitor.run_cycle(row)
+            self.assertEqual(self.monitor.gated_fetch(self.search, job, row)['status'], 'skipped')
+            remote.assert_not_called(); admit.assert_not_called(); gate.assert_not_called()
+        # No cycle row and no start time: the next start runs this cycle at its usual time.
+        with store.db() as c: self.assertEqual(c.execute('SELECT COUNT(*) FROM cycles').fetchone()[0], 0)
+        self.assertEqual((self.row()['state'], self.row()['last_started']), ('scheduled', None))
+        # A query waiting for its account's gate slot when the stop comes is skipped, not an aborted cycle.
+        self.monitor.stop_event.clear(); results = []
+        with patch('backend.engine.fetch') as remote, self.monitor.query_gate.slot(self.owner, threading.Event()):
+            waiting = threading.Thread(target=lambda: results.append(self.monitor.gated_fetch(self.search, job, row))); waiting.start()
+            deadline = time.time()+5
+            while time.time() < deadline and not self.monitor.query_gate.waiting: time.sleep(.02)
+            self.monitor.stop_event.set(); waiting.join(5)
+        remote.assert_not_called(); self.assertEqual([result['status'] for result in results], ['skipped'])
+
+    def test_stop_during_admission_frees_it_unused(self):
+        # admit() can wait for the breaker's locks; the stop arrives meanwhile, during the breaker's test query.
+        self.put(state='open', retry_at=time.time()-1, trip_kind='blocked')
+        admit, admissions = source.admit, []
+        def admit_then_stop(*args, **kwargs):
+            admissions.append(admit(*args, **kwargs)); self.monitor.stop_event.set(); return admissions[-1]
+        with patch.object(source, 'admit', side_effect=admit_then_stop), patch('backend.engine.fetch') as remote:
+            result = self.monitor.gated_fetch(self.search, ('outbound', 'THE', 'GRU', '2090-11-05'), self.row())
+        self.assertEqual(result['status'], 'skipped'); remote.assert_not_called()
+        self.assertEqual([admission.kind for admission in admissions], ['probe'])
+        # Released unused: another query can test the source at the next start.
+        data = self.state(); self.assertEqual((source.gate(), data['state'], data['probe_at']), ('probe', 'half_open', None))
+
+
+class ShutdownTests(CycleFixture):
+    """A started monitor stopped during a collection; stand-in subprocesses, never the collector."""
+
+    def setUp(self):
+        super().setUp()
+        self.release = threading.Event()
+        # Every query here runs a stand-in, also when a test ends early; tests pick its behavior.
+        self.collector(stand_in(0, {'status': 'empty', 'flights': []}))
+
+    def tearDown(self):
+        # Before the temporary folder goes: no worker thread or subprocess outlives the test. The stop
+        # comes first, so the route after an ended query is skipped instead of starting a new stand-in.
+        self.monitor.stop_event.set(); self.release.set(); engine.end_children()
+        try: self.assertTrue(self.monitor.stop(timeout=10))
+        finally:
+            engine.end_children(); super().tearDown()
+
+    def collector(self, command):
+        item = patch.object(engine, 'COLLECTOR', command); item.start(); self.patches.append(item)
+
+    def collecting(self, command):
+        self.collector(command)
+        with store.db() as c: c.execute('UPDATE searches SET next_due=0')
+        self.monitor.start()
+        return running_child()
+
+    def results(self):
+        with store.db() as c:
+            return [r[0] for r in c.execute('SELECT status FROM results')], tuple(c.execute('SELECT status,successes,failures FROM cycles').fetchone())
+
+    def test_stop_ends_queries_in_flight_at_the_margin_and_skips_them(self):
+        self.collecting(stand_in(30))
+        started = time.monotonic(); stopped = self.monitor.stop(timeout=1.0); elapsed = time.monotonic()-started
+        # The deadline holds: the subprocess was ended at the margin and the cycle closed.
+        self.assertTrue(stopped); self.assertLess(elapsed, 2.5)
+        self.assertEqual([thread.name for thread in threading.enumerate() if thread.name.startswith('radar-')], [])
+        self.assertEqual(engine.CHILDREN, {})
+        self.assertEqual(self.results(), ([], ('interrupted', 0, 0)))
+        row = self.row()
+        self.assertEqual((row['state'], row['error'], row['error_kind'], row['failures']), ('scheduled', None, None, 0))
+        self.assertEqual((self.state()['state'], self.state()['consecutive_failures']), ('closed', 0))
+        # The next start keeps the usual cadence: no backoff for a stopped cycle.
+        store.setup(seed=False)
+        row = self.row(); self.assertLessEqual(row['next_due'], row['last_started']+300+1)
+
+    def test_stop_waits_for_a_query_that_answers_in_time(self):
+        self.collecting(stand_in(.3, {'status': 'empty', 'flights': []}))
+        self.assertTrue(self.monitor.stop(timeout=5))
+        # The query in flight is recorded; the route that had not started is skipped (no row).
+        self.assertEqual(self.results(), (['empty'], ('interrupted', 1, 0)))
+        row = self.row(); self.assertEqual((row['state'], row['error'], row['failures']), ('scheduled', None, 0))
+
+    def test_query_ended_by_a_signal_before_stop_is_not_a_failure(self):
+        # Ctrl+C or a supervisor's SIGTERM reaches the process group before Monitor.stop runs.
+        with self.assertLogs('radar', 'INFO') as captured:
+            first = self.collecting(stand_in(30))
+            os.kill(first.pid, signal.SIGTERM)
+            # The other route starts only after the ended query was handled.
+            running_child(other_than=first)
+            self.assertTrue(self.monitor.stop(timeout=2))
+        messages = [record.getMessage() for record in captured.records]
+        self.assertEqual(messages.count('Consulta à fonte interrompida'), 2); self.assertNotIn('Consulta à fonte falhou', messages)
+        self.assertEqual(self.results(), ([], ('interrupted', 0, 0)))
+        row = self.row(); self.assertEqual((row['error'], row['error_kind'], row['failures']), (None, None, 0))
+        self.assertEqual((self.state()['state'], self.state()['consecutive_failures']), ('closed', 0))
+
+    def outbox(self):
+        with store.db() as c:
+            c.execute("INSERT INTO outbox(id,created,alert_ids,subject,body,status,next_due,recipients,kind) VALUES('stop-fixture',?,'[]','Subject','Body','pending',?,?,'test')", (time.time(), time.time(), json.dumps(['fixture@example.org'])))
+
+    def sending(self, transmit):
+        """Start the monitor with one e-mail being sent through `transmit`; no search is due."""
+        with store.db() as c: c.execute('UPDATE searches SET next_due=?', (time.time()+3600,))
+        self.outbox(); started = threading.Event()
+        def send(*args):
+            started.set(); transmit()
+        for item in (patch.object(mail, 'delivery_settings', return_value={'enabled': True, 'provider': 'smtp'}), patch.object(mail, 'transmit', side_effect=send)):
+            item.start(); self.patches.append(item)
+        self.monitor.start(); self.assertTrue(started.wait(5))
+
+    def delivery(self):
+        with store.db() as c: return c.execute("SELECT status FROM outbox WHERE id='stop-fixture'").fetchone()[0]
+
+    def test_send_in_progress_finishes_within_the_wait(self):
+        # The SMTP exchange ends right after the stop request.
+        self.sending(lambda: self.monitor.stop_event.wait(5))
+        self.assertTrue(self.monitor.stop(timeout=5))
+        self.assertEqual(self.delivery(), 'sent')
+
+    def test_send_past_the_deadline_is_held_as_uncertain(self):
+        self.sending(lambda: self.release.wait(10))
+        try:
+            started = time.monotonic()
+            with self.assertLogs('radar.engine', 'WARNING') as captured: stopped = self.monitor.stop(timeout=.5)
+            self.assertFalse(stopped); self.assertLess(time.monotonic()-started, 1.5)
+            self.assertEqual([(record.getMessage(), record.workers) for record in captured.records], [('Prazo de encerramento esgotado', ['email_sender'])])
+            self.assertEqual(self.delivery(), 'sending')
+            # The next start holds it for review instead of sending it again.
+            store.setup(seed=False); self.assertEqual(self.delivery(), 'uncertain')
+        finally:
+            self.release.set(); self.monitor.sender.join(5)
+        self.assertFalse(self.monitor.sender.is_alive())
+
+    def test_stop_requested_while_waiting_for_the_write_lock_claims_no_email(self):
+        # The loop sees the stop only between turns, and send_one can wait up to 15 s for BEGIN IMMEDIATE.
+        self.outbox(); reached = threading.Event()
+        def settings():
+            reached.set(); return {'enabled': True, 'provider': 'smtp'}
+        worker = threading.Thread(target=self.monitor.send_one)
+        with patch.object(mail, 'delivery_settings', side_effect=settings), patch.object(mail, 'transmit') as transmit:
+            try:
+                with store.db() as blocker:
+                    # Another writer holds the lock: send_one gets past delivery_settings, then waits in BEGIN IMMEDIATE.
+                    blocker.execute('BEGIN IMMEDIATE'); worker.start()
+                    self.assertTrue(reached.wait(5)); worker.join(.2); self.assertTrue(worker.is_alive())
+                    self.monitor.stop_event.set()
+                # Leaving the block released the lock (commit, or rollback after a failure).
+            finally:
+                self.monitor.stop_event.set()
+                if worker.is_alive(): worker.join(5)
+            self.assertFalse(worker.is_alive())
+            transmit.assert_not_called(); self.assertEqual(self.delivery(), 'pending')
+            # Not stopping: the same item is claimed and sent.
+            Monitor().send_one()
+            transmit.assert_called_once(); self.assertEqual(self.delivery(), 'sent')
 
 
 class HealthTests(Isolated):

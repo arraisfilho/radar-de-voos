@@ -18,4 +18,4 @@ try:configure()
 except ValueError as exc:raise SystemExit(str(exc))
 import uvicorn
 # log_config=None: uvicorn's own messages also go through the JSON handler.
-uvicorn.run('backend.app:app',host=host,port=int(os.environ.get('RADAR_PORT','8765')),access_log=False,proxy_headers=False,log_config=None)
+uvicorn.run('backend.app:app',host=host,port=int(os.environ.get('RADAR_PORT','8765')),access_log=False,proxy_headers=False,log_config=None,timeout_graceful_shutdown=10)

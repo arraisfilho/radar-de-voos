@@ -3,6 +3,9 @@ import threading
 import time
 from contextlib import contextmanager
 
+class Stopped(RuntimeError):
+    """The monitor stopped while this query waited for a slot."""
+
 class QueryGate:
     def __init__(self,concurrency=2,min_gap=5.0):
         self.concurrency=concurrency;self.min_gap=min_gap
@@ -15,7 +18,7 @@ class QueryGate:
             self.waiting.append((ticket,owner))
             try:
                 while True:
-                    if stop_event.is_set():raise RuntimeError('collector stopped')
+                    if stop_event.is_set():raise Stopped('collector stopped')
                     eligible=next((token for token,account in self.waiting if account not in self.active),None)
                     if eligible is ticket and len(self.active)<self.concurrency and time.monotonic()>=self.next_start:
                         self.waiting.remove((ticket,owner));self.active.add(owner)

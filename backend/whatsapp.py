@@ -112,12 +112,14 @@ def check():
         return {**provider.check(config['values']),'checked_at':time.time()}
 
 
-def send_one():
+def send_one(stop_event=None):
     # Configuration mutations wait for an in-flight HTTP operation to finish.
     with LOCK:
         config=settings()
         with store.db() as c:
             c.execute('BEGIN IMMEDIATE')
+            # Monitor.stop requested while waiting for LOCK or the write lock: nothing new is claimed.
+            if stop_event is not None and stop_event.is_set():return
             row=c.execute("SELECT * FROM outbox WHERE channel='whatsapp' AND status='pending' AND next_due<=? ORDER BY created,id LIMIT 1",(time.time(),)).fetchone()
             if not row:return
             row=dict(row);status=None

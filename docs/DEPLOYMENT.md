@@ -104,6 +104,29 @@ Confira `/api/health`, login e logs. Se o backup ou o Git falhar, corrija o erro
 
 Se `git pull` informar que a pasta não é um repositório, use uma cópia obtida com `git clone`; diretórios extraídos de ZIP não possuem metadados Git. Preserve `deploy/cloud.env` e o volume da instalação ao substituir os fontes.
 
+## Encerramento da aplicação
+
+`stop app`, `restart app` e o `up` que recria um container em execução enviam SIGTERM à aplicação e, se ela não terminar em 45 s (`stop_grace_period`), SIGKILL. A aplicação para de aceitar conexões, espera até 10 s as requisições em curso e depois até 30 s o coletor e os remetentes:
+
+- Coleta: nenhum ciclo ou consulta começa. Consultas já enviadas têm até 25 s dessa espera para responder; as que não responderem são encerradas. Consultas encerradas ou não iniciadas não registram falha nem contam no disjuntor ou no recuo: a rota mantém o último resultado e o ciclo fica `interrupted`. Ao reiniciar, o próximo ciclo de cada busca ativa fica no mais tarde entre agora, cinco minutos após o último início e o horário agendado.
+- Envios: e-mail e WhatsApp não pegam itens novos da fila, e o envio em curso termina. Se passar do prazo, o item fica `sending` e vira `uncertain` ao reiniciar, sem reenvio automático.
+
+As esperas somam até 40 s. Não reduza o `stop_grace_period` de `compose.cloud.yaml` e `compose.yaml` nem passe a esses comandos `--timeout` abaixo de 45: com SIGKILL antes do fim, consultas em andamento se perdem sem registrar falha, e o reinício marca o ciclo como `interrupted` e os envios em curso como `uncertain`.
+
+Para conferir, leia os logs depois de `stop app` e antes do `up`: ao recriar o container, o `up` descarta os logs do anterior.
+
+```sh
+docker compose --env-file deploy/cloud.env -f compose.cloud.yaml stop app &&
+docker compose --env-file deploy/cloud.env -f compose.cloud.yaml logs --tail=100 app
+```
+
+Mensagens do encerramento:
+
+- `Consulta à fonte interrompida` (`INFO`, com `search_id`): consulta pulada, sem falha.
+- `Consultas em andamento encerradas` (`INFO`): `queries` conta as consultas encerradas aos 25 s.
+- `Prazo de encerramento esgotado` (`WARNING`): `workers` lista os trabalhadores ainda ativos aos 30 s, entre `collector`, `email_sender` e `whatsapp_sender`.
+- `Shutting down` e `Application shutdown complete.` (logger `uvicorn.error`): início e fim do encerramento; sem a segunda, o processo terminou antes do fim das esperas, como por SIGKILL.
+
 ## Backup e restauração
 
 O volume `radar-cloud_radar_data` guarda banco e credenciais. O backup acima gera um arquivo em `/data/backups/` e imprime o nome. Copie-o para o host, substituindo `NOME_DO_BACKUP.tar.gz`:
@@ -132,7 +155,7 @@ A restauração valida o arquivo e substitui banco e credenciais privadas. Não 
 docker compose --env-file deploy/cloud.env -f compose.cloud.yaml logs --tail=100 app
 ```
 
-O Compose limita logs do container a três arquivos de 10 MB. A aplicação escreve um objeto JSON por linha, com `time`, `level`, `logger`, `message` e, quando houver, `search_id`, `cycle_id`, `outbox_id` e `kind`. O nível vem de `RADAR_LOG_LEVEL`; os arquivos Compose não definem a variável e o padrão é `INFO`. Os logs não incluem senhas, tokens, telefones, e-mails ou corpo de mensagens.
+O Compose limita logs do container a três arquivos de 10 MB. A aplicação escreve um objeto JSON por linha, com `time`, `level`, `logger`, `message` e, quando houver, campos como `search_id`, `cycle_id`, `outbox_id`, `kind`, `queries` e `workers`. O nível vem de `RADAR_LOG_LEVEL`; os arquivos Compose não definem a variável e o padrão é `INFO`. Os logs não incluem senhas, tokens, telefones, e-mails ou corpo de mensagens.
 
 Registros de envio e auditoria têm retenção própria, ajustável em **Administração → Retenção**, com limpeza manual e prévia. Na auditoria, login recusado, tentativas limitadas, recuperação solicitada, login com sucesso e saída repetidos com o mesmo IP e conta em até 10 minutos são agregados em um registro com `count` e `last_seen`; login com sucesso e saída só se agregam com o mesmo navegador e sistema (`user_agent`), para que outro dispositivo no mesmo IP apareça em registro próprio. A limpeza horária aplica a retenção em dias pela última ocorrência e cotas separadas, em que uma categoria não remove registros de outra: 5 mil para login recusado, tentativas limitadas e recuperação solicitada; 20 mil para os demais eventos de conta (login, saída, cadastro e redefinição de senha); e 20 mil para administração e configuração (eventos `admin_*` e criação do primeiro administrador). Alterar a retenção e limpar logs manualmente geram registros de auditoria. Um estado `unhealthy` não reinicia automaticamente o container.
 

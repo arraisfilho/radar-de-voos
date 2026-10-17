@@ -3,6 +3,7 @@ import json
 import logging
 import math
 import random
+import signal
 import subprocess
 import sys
 import threading
@@ -16,13 +17,23 @@ from .domain import Search, jobs, eligible, local_instant, monitoring_deadline, 
 from .store import db
 from . import mail,whatsapp,source
 from .notifications import sync_alerts,link
-from .query_gate import QueryGate
+from .query_gate import QueryGate,Stopped
 from .alert_messages import money
 
 ROOT = Path(__file__).resolve().parents[1]
 logger = logging.getLogger("radar.engine")
 # Seconds without a loop iteration before /api/health reports the worker as stale.
 HEARTBEAT_LIMITS = {"collector": 120, "email_sender": 300, "whatsapp_sender": 300}
+COLLECTOR = (sys.executable, "-m", "backend.collector")
+# Monitor.stop waits this long; with uvicorn's 10 s HTTP drain it fits compose's stop_grace_period (45 s).
+STOP_TIMEOUT = 30
+# End of that wait reserved for cycles to close after their queries are ended (at most half of it).
+STOP_MARGIN = 5
+# Signals a shutdown sends to the whole process group (terminal Ctrl+C, a supervisor's SIGTERM).
+INTERRUPT_SIGNALS = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
+# Collector subprocesses in flight (one Monitor per process), mapped to True once Monitor.stop ended them.
+CHILDREN = {}
+CHILDREN_LOCK = threading.Lock()
 
 
 def make_event(search, flight, previous, last_floor=None, last_alerted=None, now=None):
@@ -51,17 +62,53 @@ def event_text(name, direction, event, language='pt'):
     return render([(direction,event)],language)[0]
 
 
+class QueryInterrupted(Exception):
+    """The collector subprocess was ended by a shutdown signal or by Monitor.stop: the source never answered."""
+
+
+def end_children():
+    """End the collector subprocesses still running; their queries are skipped, not failed. Returns how many."""
+    with CHILDREN_LOCK:
+        running = [process for process in CHILDREN if process.poll() is None]
+        for process in running:
+            CHILDREN[process] = True
+            process.kill()
+    return len(running)
+
+
+def run_collector(options):
+    """Exit status and stdout of one collector subprocess; QueryInterrupted when a shutdown ended it."""
+    # Started and registered at once: end_children never misses a running subprocess.
+    with CHILDREN_LOCK:
+        process = subprocess.Popen(list(COLLECTOR), cwd=ROOT, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, text=True)
+        CHILDREN[process] = False
+    try:
+        try:
+            stdout, _ = process.communicate(json.dumps(options), timeout=35)
+        except BaseException:
+            process.kill(); process.communicate(); raise
+    finally:
+        with CHILDREN_LOCK:
+            ended = CHILDREN.pop(process)
+    # The group's signal can reach the subprocess before Monitor.stop runs: empty stdout, not an answer.
+    if ended or -process.returncode in INTERRUPT_SIGNALS:
+        raise QueryInterrupted(process.returncode)
+    return process.returncode, stdout
+
+
 def fetch(search, job):
     direction, origin, destination, date = job
     options = {"origin": origin, "destination": destination, "date": date,
                "adults": search.adults, "children": search.children, "infants_in_seat": search.infants_in_seat, "infants_on_lap": search.infants_on_lap, "cabin": search.cabin, "checked_bags": search.checked_bags, "currency": search.currency,"language":search.language}
     started = time.monotonic()
     try:
-        process = subprocess.run([sys.executable, "-m", "backend.collector"], cwd=ROOT,
-                                 input=json.dumps(options), capture_output=True, text=True, timeout=35)
-        result = json.loads(process.stdout)
-        if process.returncode and result.get("status") != "error":
+        returncode, stdout = run_collector(options)
+        result = json.loads(stdout)
+        if returncode and result.get("status") != "error":
             raise ValueError("Consulta não concluída")
+    except QueryInterrupted:
+        raise
     except subprocess.TimeoutExpired:
         result = {"status": "error", "error": "A consulta excedeu 35 segundos", "kind": "timeout", "flights": []}
     except Exception:
@@ -170,8 +217,29 @@ class Monitor:
         self.sender.start()
         self.whatsapp_sender.start()
 
-    def stop(self):
+    def stop(self, timeout=STOP_TIMEOUT):
+        """Stop the workers, waiting up to timeout seconds; True when all of them ended in time.
+
+        Queries not yet sent are skipped. Those in flight may answer until STOP_MARGIN seconds
+        (at most half the wait) before the deadline; then their subprocesses are ended and they
+        are skipped as well, not failed, so their cycles close. A send in progress finishes or,
+        past the deadline, stays 'sending' and becomes 'uncertain' at the next start.
+        """
         self.stop_event.set()
+        deadline = time.monotonic()+timeout
+        if self.worker.is_alive():
+            self.worker.join(max(0, deadline-min(STOP_MARGIN, timeout/2)-time.monotonic()))
+            if self.worker.is_alive():
+                ended = end_children()
+                if ended:
+                    logger.info("Consultas em andamento encerradas", extra={"queries": ended})
+        for thread in self.threads.values():
+            if thread.is_alive():
+                thread.join(max(0, deadline-time.monotonic()))
+        pending = [name for name, thread in self.threads.items() if thread.is_alive()]
+        if pending:
+            logger.warning("Prazo de encerramento esgotado", extra={"workers": pending})
+        return not pending
 
     def beat(self, name):
         self.heartbeats[name] = time.monotonic()
@@ -223,27 +291,42 @@ class Monitor:
                             if len(running)>=limit:break
                 except Exception:logger.exception('Falha no agendador de coletas')
                 self.stop_event.wait(.25)
+        # Cycles that ended while stopping: log failures only, the next start recovers their state.
+        for future,row in running.items():
+            try:future.result()
+            except Exception:logger.exception('Falha inesperada na coleta',extra={'search_id':row['id']})
 
     def skipped(self,job):
         return {'status':'skipped','flights':[],'direction':job[0],'origin':job[1],'destination':job[2],'date':job[3],'collected_at':time.time()}
 
     def gated_fetch(self,search,job,row):
-        # Do not wait for a gate slot while the source is paused; during a probe, wait for its result.
-        if source.gate()=='paused':return self.skipped(job)
-        with self.query_gate.slot(row.get('owner_id') or row['id'],self.stop_event):
-            with db() as c:current=c.execute('SELECT active,archived,version FROM searches WHERE id=?',(row['id'],)).fetchone()
-            # Paused, archived or edited meanwhile: the route was not queried, so it is skipped (no result row).
-            if not current or not current['active'] or current['archived'] or current['version']!=row['version']:
-                return self.skipped(job)
-            admission=source.admit()
-            if admission is None:return self.skipped(job)
-            try:result=fetch(search,job)
-            except BaseException:
-                source.release(admission);raise
-            source.observe(result,admission,route=job[1]+'-'+job[2])
-            if result.get('status')=='error':
-                logger.warning('Consulta à fonte falhou',extra={'search_id':row['id'],'kind':result.get('kind')})
-            return result
+        # Nothing starts while stopping. Do not wait for a gate slot while the source is paused; during a probe, wait for its result.
+        if self.stop_event.is_set() or source.gate()=='paused':return self.skipped(job)
+        try:
+            with self.query_gate.slot(row.get('owner_id') or row['id'],self.stop_event):
+                with db() as c:current=c.execute('SELECT active,archived,version FROM searches WHERE id=?',(row['id'],)).fetchone()
+                # Paused, archived or edited meanwhile: the route was not queried, so it is skipped (no result row).
+                if not current or not current['active'] or current['archived'] or current['version']!=row['version']:
+                    return self.skipped(job)
+                # Stopping: skipped before admission, so no breaker test query is taken.
+                if self.stop_event.is_set():return self.skipped(job)
+                admission=source.admit()
+                if admission is None:return self.skipped(job)
+                # admit() can wait for the breaker's locks: a stop requested meanwhile frees the admission unused.
+                if self.stop_event.is_set():
+                    source.release(admission);return self.skipped(job)
+                try:result=fetch(search,job)
+                except QueryInterrupted:
+                    # Ended by a shutdown, maybe before Monitor.stop: no answer, so neither a failure nor a backoff.
+                    source.release(admission);logger.info('Consulta à fonte interrompida',extra={'search_id':row['id']})
+                    return self.skipped(job)
+                except BaseException:
+                    source.release(admission);raise
+                source.observe(result,admission,route=job[1]+'-'+job[2])
+                if result.get('status')=='error':
+                    logger.warning('Consulta à fonte falhou',extra={'search_id':row['id'],'kind':result.get('kind')})
+                return result
+        except Stopped:return self.skipped(job)
 
     def run_cycle(self, row):
         search = Search.model_validate_json(row["config"])
@@ -259,6 +342,9 @@ class Monitor:
         with db() as c:
             current = c.execute("SELECT version,active,archived FROM searches WHERE id=?", (sid,)).fetchone()
             if not current or current["version"] != version or not current["active"] or current["archived"]:
+                return
+            # Stopping before any query: nothing is recorded, the next start runs this cycle on time.
+            if self.stop_event.is_set():
                 return
             cid = c.execute("INSERT INTO cycles(search_id,version,started,status,total) VALUES(?,?,?,?,?)", (sid,version,start,"running",len(tasks))).lastrowid
             c.execute("UPDATE searches SET state='collecting',last_started=?,progress=0,total=?,error=NULL,error_kind=NULL WHERE id=?", (start,len(tasks),sid))
@@ -316,7 +402,7 @@ class Monitor:
     def whatsapp_loop(self):
         while not self.stop_event.is_set():
             self.beat("whatsapp_sender")
-            try:whatsapp.send_one()
+            try:whatsapp.send_one(self.stop_event)
             except Exception:logger.exception('Falha inesperada na fila WhatsApp')
             self.stop_event.wait(2)
 
@@ -325,6 +411,9 @@ class Monitor:
         with db() as c:
             # Claim atomically so deletion cannot race with an unclaimed send.
             c.execute("BEGIN IMMEDIATE")
+            # Stop requested while waiting for the write lock: nothing new is claimed.
+            if self.stop_event.is_set():
+                return
             row = c.execute("SELECT * FROM outbox WHERE channel='email' AND status='pending' AND next_due<=? ORDER BY created LIMIT 1", (time.time(),)).fetchone()
             if not row:
                 return
