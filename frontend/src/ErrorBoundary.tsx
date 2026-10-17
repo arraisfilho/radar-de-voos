@@ -4,8 +4,11 @@ import { t } from "./i18n";
 
 type Props = {
   children: ReactNode;
-  /** "root" replaces the whole screen; "view" keeps the shell and fills <main>. */
-  scope?: "root" | "view";
+  /**
+   * "root" replaces the whole screen; "view" keeps the shell and fills <main>;
+   * "section" stays inside its card, so the rest of the page keeps working.
+   */
+  scope?: "root" | "view" | "section";
   /** A new value clears the error, so navigating away recovers the view. */
   resetKey?: string;
   onHome?: () => void;
@@ -31,6 +34,20 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (!this.state.error) return this.props.children;
+    if (this.props.scope === "section")
+      return (
+        <div className="section-error" role="alert">
+          <TriangleAlert size={20} aria-hidden="true" />
+          <p className="section-error-text">
+            <strong>{t("Não foi possível carregar")}</strong>
+            <span>{t("Recarregue para tentar de novo. Se o problema continuar, tente mais tarde.")}</span>
+          </p>
+          <button type="button" className="button button-outline button-small" onClick={reload}>
+            <RotateCw size={16} aria-hidden="true" />
+            {t("Recarregar")}
+          </button>
+        </div>
+      );
     if (this.props.scope === "view")
       return (
         <section className="view-error card" role="alert">

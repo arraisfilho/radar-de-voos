@@ -97,6 +97,68 @@
     line-height: 30px;
   }
 }
+/* The trip form while its code downloads (FormSkeleton), on the assistant page
+   and in the "Filtros da viagem" card, with the spacing of the form. */
+.form-skeleton {
+  display: grid;
+  gap: 24px;
+}
+/* Stepper: three bars over the height of the step marks. */
+.form-skeleton-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-height: 44px;
+}
+.form-skeleton-steps > .skeleton {
+  height: 4px;
+  border-radius: 2px;
+}
+.form-skeleton-heading,
+.form-skeleton-field {
+  display: grid;
+  gap: 10px;
+}
+/* The main button of the action bar; phones fix that bar to the screen edge, so
+   the placeholder leaves it out instead of drawing it at the end of the content. */
+.form-skeleton-action {
+  justify-self: end;
+  width: 220px;
+}
+@media (max-width: 767px) {
+  .form-skeleton-action {
+    display: none;
+  }
+}
+/* A part of the page whose code could not load (ErrorBoundary scope="section"):
+   the message and "Recarregar" stay in its card. */
+.section-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 14px;
+}
+.section-error > svg {
+  flex-shrink: 0;
+  color: var(--danger);
+}
+.section-error-text {
+  display: grid;
+  flex: 1 1 220px;
+  gap: 2px;
+  min-width: 0;
+}
+.section-error-text > strong {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.section-error-text > span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
 
 /* ---------- My trips ----------------------------------------------------------- */
 .home-trips {

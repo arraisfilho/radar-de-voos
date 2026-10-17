@@ -1721,6 +1721,11 @@ tbody tr:last-child > td {
 .language-picker > svg {
   flex-shrink: 0;
 }
+/* In the Profile row the download spinner sits beside the select, which keeps its place. */
+.language-picker.language-row > .spin {
+  margin-left: auto;
+  color: var(--muted);
+}
 .language-picker select {
   width: auto;
   max-width: 100%;
@@ -2543,11 +2548,6 @@ tbody tr:last-child > td {
   justify-self: start;
 }
 
-/* =============================================================================
-   Accessibility and capability fallbacks
-   ============================================================================= */
-/* Input text of at least 16 px avoids iOS zoom on focus. */
-@media (max-width: 767px) {
 /* ---------- Two-step verification codes (login and profile) ---------------- */
 /* CodeField.tsx: six digits in one field, evenly spaced. Phones keep the 16 px
    set below, which avoids the iOS zoom on focus. */
@@ -2585,6 +2585,11 @@ tbody tr:last-child > td {
   white-space: nowrap;
 }
 
+/* =============================================================================
+   Accessibility and capability fallbacks
+   ============================================================================= */
+/* Input text of at least 16 px avoids iOS zoom on focus. */
+@media (max-width: 767px) {
   :root body input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
   :root body select,
   :root body textarea {

@@ -18,17 +18,38 @@ import { AppIcon } from "./AppIcon";
 import { Avatar } from "./Avatar";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { ViewSkeleton } from "./Skeleton";
+import { FormSkeleton } from "./FormSkeleton";
 import { usePageTitle } from "./pageTitle";
 import { formatDateTime } from "./format";
 import { plural } from "./plural";
 import { suggestCurrency } from "./currency";
-import { SearchForm as Filters } from "./SearchForm";
+// Also styles the editor page and the filters card, which the app draws before the form's code arrives.
+import "./search-form.css";
 import { useEffect, useState, useMemo, useRef, lazy, Suspense } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { clsx } from "clsx";
-// The profile (phone fields) and administration (with the e-mail panels) load only when opened.
+// The profile (phone fields), administration (with the e-mail panels) and the
+// trip form (calendar, sliders, airport and airline search) load only when opened.
 const Profile = lazy(() => import("./Profile").then((module) => ({ default: module.Profile })));
 const AdminPanel = lazy(() => import("./AdminPanel").then((module) => ({ default: module.AdminPanel })));
+// Set once the trip form's code is in. Pending filter changes only come from the form: before
+// that, a draft that differs from the trip is the previous trip's, until the draft effect
+// replaces it, and must not download the form into the closed filters card.
+let filtersLoaded = false;
+const importFilters = () =>
+  import("./SearchForm").then(({ SearchForm }) => {
+    filtersLoaded = true;
+    return { default: SearchForm };
+  });
+let filtersCode: ReturnType<typeof importFilters> | undefined;
+/** The form's code, for the lazy component and for an early start on the editor's page. Both
+ * share one download, so the form waits for its stylesheet; a failure allows a new attempt. */
+const loadFilters = () =>
+  (filtersCode ??= importFilters().catch((error) => {
+    filtersCode = undefined;
+    throw error;
+  }));
+const Filters = lazy(loadFilters);
 import {
   House,
   PlaneTakeoff,
@@ -296,6 +317,11 @@ export default function App({
   useEffect(() => {
     if (data) focusPageHeading();
   });
+  useEffect(() => {
+    // A link or reload into the editor downloads the form alongside the trip data, not after
+    // it. A failure shows where the form renders.
+    if (route.editor) loadFilters().catch(() => {});
+  }, []);
   useEffect(() => {
     if (!search || route.editor === "new") return;
     const cached = drafts.current.get(search.id);
@@ -880,75 +906,76 @@ export default function App({
                 </p>
               )}
               {(modal === "new" && creationDraft) || (modal !== "new" && draft) ? (
-                <Filters
-                  key={modal}
-                  config={(modal === "new" ? creationDraft : draft)!}
-                  setConfig={updateDraft}
-                  airports={data.airports}
-                  emailRecipients={data.user.emails}
-                  emailAvailable={data.email_available}
-                  onManageContacts={() => navigate({ view: "settings" })}
-                  whatsappAvailable={data.whatsapp_available}
-                  whatsappRecipients={whatsappTargets(data.user)}
-                  onSave={save}
-                  savedCurrency={modal === "new" ? undefined : search?.config.currency}
-                  saving={busy}
-                  general={modal !== "alerts"}
-                  editing={modal === "edit"}
-                  alertsOnly={modal === "alerts"}
-                  dirty={dirty}
-                  draftSaved={modal === "new" && draftHasContent(creationDraft)}
-                  journey={
-                    modal !== "alerts"
-                      ? {
-                          step: route.step || 0,
-                          direction: route.leg || "outbound",
-                          maxStep: modal === "edit" ? 2 : creationProgress.maxStep,
-                          onChange: (step, leg) => {
-                            if (modal === "new") setCreationProgress((previous) => ({step, leg, maxStep: Math.max(previous.maxStep, step)}));
-                            navigate((current) => ({ ...current, step, leg }));
-                          },
-                        }
-                      : undefined
-                  }
-                >
-                  {modal === "new" && draftResumed && (
-                    <div className="search-note draft-notice" role="status">
-                      <span>
-                        <Save size={16} aria-hidden="true" />
-                        {t("Rascunho salvo neste navegador. Você pode continuar de onde parou.")}
-                      </span>
-                      <Button type="button" variant="ghost" size="small" onClick={() => setDiscardCreation(true)}>
-                        {t("Começar do zero")}
-                      </Button>
-                    </div>
-                  )}
-                  {modal === "edit" && (
-                    <div className="search-note editor-preview">
-                      <span>
-                        <Eye size={16} aria-hidden="true" />
-                        {previewCompatible
-                          ? plural(eligibleFlights.length, "{0} opção na prévia", "{0} opções na prévia")
-                          : t("Nova coleta após salvar")}
-                      </span>
-                      <Button type="button" variant="ghost" size="small" onClick={closeEditor}>
-                        {t("Ver resultados")}
-                      </Button>
-                    </div>
-                  )}
-                  {modal === "alerts" && alertPending && (
-                    <p className="search-note is-warning" role="status">
-                      <span>
-                        <CircleAlert size={16} aria-hidden="true" />
-                        {t("Salvar também aplica as alterações pendentes da busca.")}
-                      </span>
-                    </p>
-                  )}
-                </Filters>
+                // The heading above shows at once; the form's code may still be downloading.
+                <Suspense fallback={<FormSkeleton steps={modal !== "alerts"} />}>
+                  <Filters
+                    key={modal}
+                    config={(modal === "new" ? creationDraft : draft)!}
+                    setConfig={updateDraft}
+                    airports={data.airports}
+                    emailRecipients={data.user.emails}
+                    emailAvailable={data.email_available}
+                    onManageContacts={() => navigate({ view: "settings" })}
+                    whatsappAvailable={data.whatsapp_available}
+                    whatsappRecipients={whatsappTargets(data.user)}
+                    onSave={save}
+                    savedCurrency={modal === "new" ? undefined : search?.config.currency}
+                    saving={busy}
+                    general={modal !== "alerts"}
+                    editing={modal === "edit"}
+                    alertsOnly={modal === "alerts"}
+                    dirty={dirty}
+                    draftSaved={modal === "new" && draftHasContent(creationDraft)}
+                    journey={
+                      modal !== "alerts"
+                        ? {
+                            step: route.step || 0,
+                            direction: route.leg || "outbound",
+                            maxStep: modal === "edit" ? 2 : creationProgress.maxStep,
+                            onChange: (step, leg) => {
+                              if (modal === "new") setCreationProgress((previous) => ({step, leg, maxStep: Math.max(previous.maxStep, step)}));
+                              navigate((current) => ({ ...current, step, leg }));
+                            },
+                          }
+                        : undefined
+                    }
+                  >
+                    {modal === "new" && draftResumed && (
+                      <div className="search-note draft-notice" role="status">
+                        <span>
+                          <Save size={16} aria-hidden="true" />
+                          {t("Rascunho salvo neste navegador. Você pode continuar de onde parou.")}
+                        </span>
+                        <Button type="button" variant="ghost" size="small" onClick={() => setDiscardCreation(true)}>
+                          {t("Começar do zero")}
+                        </Button>
+                      </div>
+                    )}
+                    {modal === "edit" && (
+                      <div className="search-note editor-preview">
+                        <span>
+                          <Eye size={16} aria-hidden="true" />
+                          {previewCompatible
+                            ? plural(eligibleFlights.length, "{0} opção na prévia", "{0} opções na prévia")
+                            : t("Nova coleta após salvar")}
+                        </span>
+                        <Button type="button" variant="ghost" size="small" onClick={closeEditor}>
+                          {t("Ver resultados")}
+                        </Button>
+                      </div>
+                    )}
+                    {modal === "alerts" && alertPending && (
+                      <p className="search-note is-warning" role="status">
+                        <span>
+                          <CircleAlert size={16} aria-hidden="true" />
+                          {t("Salvar também aplica as alterações pendentes da busca.")}
+                        </span>
+                      </p>
+                    )}
+                  </Filters>
+                </Suspense>
               ) : (
-                <p role="status" className="muted">
-                  {t("Carregando…")}
-                </p>
+                <FormSkeleton steps={modal !== "alerts"} />
               )}
             </div>
           </section>
@@ -1130,21 +1157,27 @@ export default function App({
                 onConfigureAlerts={configureAlerts}
                 onShowAlerts={() => navigate({ view: "searches", searchId: search.id, panel: "alerts" })}
                 onManageContacts={() => navigate({ view: "settings" })}
+                pendingFilters={previewing && filtersLoaded}
                 filters={
-                  <Filters
-                    key={search.id + ":" + search.version}
-                    config={draft}
-                    setConfig={updateDraft}
-                    airports={data.airports}
-                    emailRecipients={data.user.emails}
-                    emailAvailable={data.email_available}
-                    onManageContacts={() => navigate({ view: "settings" })}
-                    whatsappAvailable={data.whatsapp_available}
-                    whatsappRecipients={whatsappTargets(data.user)}
-                    onSave={save}
-                    saving={busy}
-                    dirty={dirty}
-                  />
+                  // A form that cannot load fails inside its card: the trip page stays.
+                  <ErrorBoundary scope="section" resetKey={search.id + ":" + search.version}>
+                    <Suspense fallback={<FormSkeleton compact />}>
+                      <Filters
+                        key={search.id + ":" + search.version}
+                        config={draft}
+                        setConfig={updateDraft}
+                        airports={data.airports}
+                        emailRecipients={data.user.emails}
+                        emailAvailable={data.email_available}
+                        onManageContacts={() => navigate({ view: "settings" })}
+                        whatsappAvailable={data.whatsapp_available}
+                        whatsappRecipients={whatsappTargets(data.user)}
+                        onSave={save}
+                        saving={busy}
+                        dirty={dirty}
+                      />
+                    </Suspense>
+                  </ErrorBoundary>
                 }
               />
             )}
