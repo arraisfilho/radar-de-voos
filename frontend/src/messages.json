@@ -2879,6 +2879,10 @@
     "en": "Name, phone or email",
     "es": "Nombre, teléfono o correo"
   },
+  "Admin": {
+    "en": "Admin",
+    "es": "Admin"
+  },
   "Administrador": {
     "en": "Administrator",
     "es": "Administrador"
@@ -3667,6 +3671,10 @@
     "en": "Name, phone, email or #ID",
     "es": "Nombre, teléfono, correo o #ID"
   },
+  "Cliente": {
+    "en": "Customer",
+    "es": "Cliente"
+  },
   "Cliente #{0}": {
     "en": "Customer #{0}",
     "es": "Cliente #{0}"
@@ -4250,6 +4258,10 @@
   "Solicite a configuração Google ao administrador.": {
     "en": "Ask your administrator to configure Google.",
     "es": "Solicita la configuración de Google al administrador."
+  },
+  "Esta instalação ainda não tem cliente Google. Siga “Instalação local: cliente Desktop” em docs/GOOGLE_MAIL.md ou use a configuração manual SMTP.": {
+    "en": "This installation has no Google client yet. Follow “Local installation: Desktop client” in docs/GOOGLE_MAIL.md or use the manual SMTP setup.",
+    "es": "Esta instalación aún no tiene cliente de Google. Siga “Instalación local: cliente de escritorio” en docs/GOOGLE_MAIL.md o use la configuración manual SMTP."
   },
   "Configure a integração Google antes de conectar a conta.": {
     "en": "Configure the Google integration before connecting an account.",

@@ -30,6 +30,10 @@ for(const term of ['Ana Maria','ana.silva@example.org','#7','Ana-Lu'])assert.equ
 mode='list';html=render();assert.ok(html.includes('class="table-frame user-table-frame"'));
 // Stacked on phones, the phone and the role carry their names, and the table parts keep explicit roles.
 assert.ok(html.includes('<td role="cell" class="cell-phone cell-field"><span class="cell-label">Telefone</span><span>+12025550123</span></td>'));
-assert.ok(/<td role="cell" class="cell-role cell-field"><span class="cell-label">Papel<\/span><span class="status-pill is-ended">Usuário<\/span><\/td>/.test(html));
+assert.ok(/<td role="cell" class="cell-role cell-field"><span class="cell-label">Papel<\/span><span class="status-pill is-ended">Cliente<\/span><\/td>/.test(html));
 assert.ok(html.includes('<table role="table" class="data-table user-table">'));
+// Short role names on a single line: the role column never breaks the pill inside a word.
+user.role='admin';html=render();assert.ok(/<span class="status-pill is-info">Admin<\/span>/.test(html));user.role='user';
+let rolePillNowrap=false;fromFrontend('postcss').parse(fs.readFileSync(path.join(__dirname,'../frontend/src/admin.css'),'utf8')).walkRules(rule=>{if(rule.parent.type==='root'&&rule.selectors.includes('.user-table .cell-role .status-pill'))rule.walkDecls('white-space',d=>{if(d.value==='nowrap')rolePillNowrap=true;});});
+assert.ok(rolePillNowrap,'The role pill keeps a single line outside any media query');
 console.log('User search by displayed phone and the scrolling user table frame passed.');

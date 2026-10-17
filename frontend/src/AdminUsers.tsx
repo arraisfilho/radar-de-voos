@@ -693,7 +693,7 @@ export function AdminUsers({
                     <td role="cell" className="cell-role cell-field">
                       <CellLabel>{t("Papel")}</CellLabel>
                       <span className={clsx("status-pill", user.role === "admin" ? "is-info" : "is-ended")}>
-                        {user.role === "admin" ? t("Administrador") : t("Usuário")}
+                        {user.role === "admin" ? t("Admin") : t("Cliente")}
                       </span>
                     </td>
                     <td role="cell" className="cell-quota">

@@ -157,7 +157,7 @@ export function GoogleMailPanel({
           t(
             status.deployment === "public"
               ? "Configure a integração Google antes de conectar a conta."
-              : "Solicite a configuração Google ao administrador.",
+              : "Esta instalação ainda não tem cliente Google. Siga “Instalação local: cliente Desktop” em docs/GOOGLE_MAIL.md ou use a configuração manual SMTP.",
           ),
         );
         return;
