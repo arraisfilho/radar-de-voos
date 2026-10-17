@@ -34,6 +34,12 @@ assert.equal(fareTrend({price:92000,collected:2,ref:{price:100000,collected:1}})
 assert.equal(fareTrend({price:108000,collected:2,ref:{price:100000,collected:1}}).kind,'up');
 const priced={...generated,summary:{outbound:{price:100000,collected:190,ref:{price:108000,collected:190-86400,basis:'day'}},inbound:{price:50000,collected:190}}};
 const pricedHtml=renderToStaticMarkup(React.createElement(output.Home,{...props,searches:[priced]}));
-assert.ok(pricedHtml.includes('Total estimado ida + volta'),'Round trips show the sum of both legs');assert.ok(pricedHtml.includes('fare-trend is-down'));assert.ok(pricedHtml.includes('em 24 h'));
-assert.equal((pricedHtml.match(/fare-trend/g)||[]).length,1,'A leg without reference shows no trend');
+assert.ok(pricedHtml.includes('Total estimado · ida + volta'),'Round trips lead with the sum of both legs');assert.ok(pricedHtml.indexOf('trip-card-amount')<pricedHtml.indexOf('trip-card-legs'),'The total comes before the legs');assert.ok(/trip-card-amount">R\$\s1\.500/.test(pricedHtml),'The total adds both legs');assert.ok(pricedHtml.includes('fare-trend is-down'));
+assert.equal((pricedHtml.match(/class="fare-trend/g)||[]).length,1,'Only the leg with a reference shows a trend; the total needs both');
+const pairedHtml=renderToStaticMarkup(React.createElement(output.Home,{...props,searches:[{...priced,summary:{...priced.summary,inbound:{price:50000,collected:190,ref:{price:50000,collected:190-86400,basis:'day'}}}}]}));
+assert.ok(/trip-card-amount">R\$\s1\.500<span class="fare-trend is-down">/.test(pairedHtml),'With both references the total shows its own trend');assert.ok(pairedHtml.includes('em 24 h'));
+const legs=pairedHtml.slice(pairedHtml.indexOf('trip-card-legs'),pairedHtml.indexOf('trip-card-party'));assert.ok(legs.includes('is-compact')&&!legs.includes('em 24 h'),'Leg trends are compact; the total states the period');
+const {combinedQuote}=output;
+const both=combinedQuote({price:100,collected:5,ref:{price:120,collected:1,basis:'day'}},{price:50,collected:6,ref:{price:50,collected:2,basis:'first'}});
+assert.equal(both.price,150);assert.equal(both.ref.price,170);assert.equal(both.ref.basis,'first','A total compares over 24 h only when both legs do');
 console.log('Home fare totals and trends passed.');

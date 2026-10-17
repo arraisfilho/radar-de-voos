@@ -1,5 +1,10 @@
 # Alterações
 
+## 0.27.1
+
+### Changed
+- Cartões de ida e volta passaram a destacar o total estimado como valor principal, com a tendência do total, e a mostrar ida e volta numa linha compacta abaixo.
+
 ## 0.27.0
 
 ### Added

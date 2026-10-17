@@ -307,18 +307,38 @@
 .fare-trend.is-stable {
   color: var(--status-gray-text);
 }
-.trip-card-total {
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 18px;
-}
-.trip-card-total strong {
-  margin-left: 4px;
+.trip-card-amount {
+  margin-top: 6px;
   color: var(--ink);
-  font-size: 17px;
+  font-size: 28px;
+  line-height: 34px;
   font-weight: 700;
+  letter-spacing: -.02em;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+.trip-card-fares .trip-card-legs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  margin-top: 10px;
+}
+.trip-card-fares .trip-card-legs dt {
+  font-size: 12px;
+  line-height: 16px;
+}
+.trip-card-fares .trip-card-legs dd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.fare-trend.is-compact {
+  font-size: 12px;
+  line-height: 16px;
 }
 .trip-card-party,
 .trip-card-note {
