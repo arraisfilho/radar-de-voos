@@ -80,12 +80,33 @@ class RefinementTests(unittest.TestCase):
     def test_fixed_interval_refresh_blocked_and_pause_resume_no_flood(self):
         sid,config=self.search();config['interval']=60
         self.assertEqual(self.client.put('/api/searches/'+sid,json=config,headers=self.headers).status_code,422)
-        self.assertEqual(self.client.post('/api/searches/'+sid+'/action',json={'action':'refresh'},headers=self.headers).status_code,422)
         now=time.time()
         with store.db() as c:c.execute('UPDATE searches SET last_started=? WHERE id=?',(now,sid))
         for action in ('pause','resume'):
             self.assertEqual(self.client.post('/api/searches/'+sid+'/action',json={'action':action},headers=self.headers).status_code,200)
         self.assertGreaterEqual(self.client.get('/api/state').json()['selected']['next_due'],now+300)
+    def test_manual_refresh_is_spaced_per_trip_and_capped_per_account(self):
+        sid,_=self.search()
+        refresh=lambda target=sid:self.client.post('/api/searches/'+target+'/action',json={'action':'refresh'},headers=self.headers)
+        with store.db() as c:c.execute("UPDATE searches SET last_started=?,state='done',next_due=? WHERE id=?",(time.time()-120,time.time()+300,sid))
+        self.assertEqual(refresh().status_code,200)
+        with store.db() as c:self.assertEqual(c.execute('SELECT next_due FROM searches WHERE id=?',(sid,)).fetchone()[0],0,'A manual refresh goes to the front of the queue')
+        again=refresh();self.assertEqual(again.status_code,429,'One refresh per trip every 60 s');self.assertIn('Retry-After',again.headers)
+        self.assertGreater(self.client.get('/api/state').json()['selected']['refresh_after'],time.time()+50,'The page gets when the button frees again')
+        with store.db() as c:c.execute("UPDATE searches SET state='collecting' WHERE id=?",(sid,));c.execute('UPDATE manual_refreshes SET at=at-120')
+        self.assertEqual(refresh().status_code,409,'Not while the trip is collecting')
+        with store.db() as c:
+            c.execute("UPDATE searches SET state='done',last_started=? WHERE id=?",(time.time()-120,sid))
+            owner=c.execute('SELECT owner_id FROM searches WHERE id=?',(sid,)).fetchone()[0]
+            for n in range(10):c.execute('INSERT INTO manual_refreshes(owner_id,search_id,at) VALUES(?,?,?)',(owner,'other-'+str(n),time.time()-600))
+        self.assertEqual(refresh().status_code,429,'At most ten manual refreshes per hour per account')
+        with store.db() as c:c.execute("UPDATE searches SET active=0 WHERE id=?",(sid,))
+        self.assertEqual(refresh().status_code,422,'A paused trip is resumed first')
+        with store.db() as c:c.execute("UPDATE searches SET active=1 WHERE id=?",(sid,));c.execute('DELETE FROM manual_refreshes')
+        with patch.object(self.module.source,'gate',return_value='paused'):self.assertEqual(refresh().status_code,503,'Not while the fare source is paused')
+    def test_new_trip_goes_first(self):
+        sid,_=self.search()
+        with store.db() as c:self.assertEqual(c.execute('SELECT next_due FROM searches WHERE id=?',(sid,)).fetchone()[0],0)
     def test_preview_pool_is_owner_scoped_and_preserves_saved_filter_counts(self):
         sid,config=self.search();config['outbound']['max_duration']=60;config['outbound']['stops']=[0]
         self.assertEqual(self.client.put('/api/searches/'+sid,json=config,headers=self.headers).status_code,200)

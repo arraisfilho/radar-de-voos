@@ -1082,8 +1082,12 @@
 }
 
 /* "Filtros" in the list bar opens the trip filters under it; the form inside belongs to SearchForm. */
-.filters-button {
+.filters-button,
+.refresh-button {
   flex-shrink: 0;
+}
+.refresh-label {
+  font-variant-numeric: tabular-nums;
 }
 .filters-count {
   min-width: 18px;
@@ -1142,6 +1146,58 @@
   line-height: 18px;
   white-space: nowrap;
 }
+/* Order of this list (screen only): a compact select in the sort label. */
+.sort-label select {
+  width: auto;
+  min-height: 30px;
+  padding: 0 28px 0 10px;
+  border-color: transparent;
+  border-radius: var(--radius-pill);
+  background-color: var(--fill-3);
+  background-position: right 8px center;
+  background-size: 14px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+/* Filters of this list only: stops, departure period and airline. */
+.view-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+}
+.view-filters-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--separator);
+}
+.view-count {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--action);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+@media (pointer: coarse) {
+  .sort-label select {
+    min-height: 44px;
+  }
+  .link-button {
+    min-height: 44px;
+  }
+}
 .results-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -1193,8 +1249,25 @@
     margin-top: 10px;
     gap: 8px;
   }
-  .sort-label {
+  /* The order control stays: only its icon goes, to keep the bar on one row. */
+  .sort-label > svg {
     display: none;
+  }
+  /* View filters in one row that scrolls sideways, so the list starts sooner. */
+  .view-filters {
+    flex-wrap: nowrap;
+    margin-right: -16px;
+    margin-left: -16px;
+    padding: 2px 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .view-filters::-webkit-scrollbar {
+    display: none;
+  }
+  .view-filters > .chip {
+    flex-shrink: 0;
   }
   .results-toolbar {
     align-items: stretch;

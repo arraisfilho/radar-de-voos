@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { clsx } from "clsx";
 import {
   ArrowDownWideNarrow,
@@ -15,6 +15,7 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { Button } from "./ui";
+import { RefreshButton } from "./RefreshButton";
 import { FlightRow } from "./FlightRow";
 import { t } from "./i18n";
 import { formatDate, formatDuration, formatMoney, formatRelative } from "./format";
@@ -24,6 +25,33 @@ import { legDates } from "./tripSummary";
 import { ChannelSummary } from "./AlertChannels";
 import { plainClick, routePath } from "./navigation";
 import type { Alert, Config, Flight, Leg, SearchRecord, User } from "./types";
+import {
+  DEFAULT_VIEW,
+  PERIODS,
+  SORTS,
+  airlinesOf,
+  applyView,
+  isFiltered,
+  loadView,
+  saveView,
+  type FlightView,
+  type Period,
+  type Sort,
+  type StopsView,
+} from "./flightView";
+
+const sortLabel = (sort: Sort) =>
+  ({
+    price: t("Menor preço"),
+    duration: t("Menor duração"),
+    departure: t("Saída mais cedo"),
+    "departure-late": t("Saída mais tarde"),
+    arrival: t("Chegada mais cedo"),
+  })[sort];
+const periodLabel = (period: Period) =>
+  ({ dawn: t("Madrugada"), morning: t("Manhã"), afternoon: t("Tarde"), evening: t("Noite") })[period];
+const stopsViewLabel = (stops: StopsView) =>
+  ({ any: t("Qualquer escala"), direct: t("Diretos"), one: t("Até 1 escala") })[stops];
 
 function Metric({
   icon: Icon,
@@ -102,6 +130,7 @@ export function TripFlights({
   whatsappAvailable = false,
   emailAvailable = false,
   whatsappTo = [],
+  onRefresh,
 }: {
   search: SearchRecord;
   config: Config;
@@ -128,6 +157,8 @@ export function TripFlights({
   emailAvailable?: boolean;
   /** The account's WhatsApp numbers. */
   whatsappTo?: string[];
+  /** Asks a manual refresh; the button counts down to the next one allowed. */
+  onRefresh?: () => Promise<void> | void;
 }) {
   const saved = search.config,
     currency = saved.currency || "BRL",
@@ -144,6 +175,18 @@ export function TripFlights({
   const [panel, setPanel] = useState({ mounted: false, open: false });
   const panelId = "trip-filters-panel",
     activeFilters = filterCount(config);
+  // Order and filters for this screen only, kept on the device per trip and leg.
+  const [view, setView] = useState<FlightView>(() => loadView(search.id, direction));
+  useEffect(() => setView(loadView(search.id, direction)), [search.id, direction]);
+  const changeView = (patch: Partial<FlightView>) => {
+    const next = { ...view, ...patch };
+    setView(next);
+    saveView(search.id, direction, next);
+  };
+  const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((value) => value !== item) : [...list, item]);
+  const airlines = airlinesOf(flights);
+  const shown = applyView(flights, view),
+    filtered = isFiltered(view);
   return (
     <>
       {/* Lowest fares and the trip's alerts in one block, so the first flights show without scrolling. */}
@@ -242,11 +285,26 @@ export function TripFlights({
               {t("por trecho")}
             </p>
           </div>
-          <span className="sort-label">
+          <label className="sort-label">
             <ArrowDownWideNarrow size={15} aria-hidden="true" />
-            {t("Ordenado por menor preço")}
-          </span>
-          {/* "Filtros" opens the trip filters under this bar; its count says how many are on. */}
+            <span className="sr-only">{t("Ordenar por")}</span>
+            <select value={view.sort} onChange={(event) => changeView({ sort: event.target.value as Sort })}>
+              {SORTS.map((sort) => (
+                <option key={sort} value={sort}>
+                  {sortLabel(sort)}
+                </option>
+              ))}
+            </select>
+          </label>
+          {onRefresh && search.active ? (
+            <RefreshButton
+              refreshAfter={search.refresh_after}
+              serverNow={serverNow}
+              collecting={collecting}
+              onRefresh={onRefresh}
+            />
+          ) : null}
+          {/* "Critérios" opens what the trip monitors (it changes the collection); the chips below only change this list. */}
           <Button
             variant="outline"
             size="small"
@@ -256,7 +314,7 @@ export function TripFlights({
             onClick={() => setPanel({ mounted: true, open: !panel.open })}
           >
             <SlidersHorizontal size={15} aria-hidden="true" />
-            {t("Filtros")}
+            {t("Critérios")}
             {activeFilters > 0 && (
               <span className="filters-count">
                 {activeFilters}
@@ -276,7 +334,7 @@ export function TripFlights({
             if (open !== panel.open) setPanel({ mounted: panel.mounted || open, open });
           }}
         >
-          <summary>{t("Filtros da viagem")}</summary>
+          <summary>{t("Critérios do monitoramento")}</summary>
           <div className="quick-filters-body">{(panel.mounted || pendingFilters) && filters}</div>
         </details>
         <div className="results-toolbar">
@@ -303,6 +361,57 @@ export function TripFlights({
             </ul>
           )}
         </div>
+        {flights.length > 0 && (
+          <div className="view-filters" role="group" aria-label={t("Filtrar esta lista")}>
+            {(["any", "direct", "one"] as StopsView[]).map((stops) => (
+              <button
+                key={stops}
+                type="button"
+                className={clsx("chip", view.stops === stops && "is-selected")}
+                aria-pressed={view.stops === stops}
+                onClick={() => changeView({ stops })}
+              >
+                {stopsViewLabel(stops)}
+              </button>
+            ))}
+            <span className="view-filters-sep" aria-hidden="true" />
+            {PERIODS.map((period) => (
+              <button
+                key={period}
+                type="button"
+                className={clsx("chip", view.periods.includes(period) && "is-selected")}
+                aria-pressed={view.periods.includes(period)}
+                onClick={() => changeView({ periods: toggle(view.periods, period) })}
+              >
+                {periodLabel(period)}
+              </button>
+            ))}
+            {airlines.length > 1 && (
+              <>
+                <span className="view-filters-sep" aria-hidden="true" />
+                {airlines.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    className={clsx("chip", view.airlines.includes(name) && "is-selected")}
+                    aria-pressed={view.airlines.includes(name)}
+                    onClick={() => changeView({ airlines: toggle(view.airlines, name) })}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+        {filtered && (
+          <p className="view-count" aria-live="polite">
+            {t("Mostrando {0} de {1}", [shown.length, flights.length])} ·{" "}
+            <button type="button" className="link-button" onClick={() => changeView({ ...DEFAULT_VIEW, sort: view.sort })}>
+              {t("Limpar")}
+            </button>
+          </p>
+        )}
         {previewing && (
           <p className="preview-note">
             {previewCompatible
@@ -329,13 +438,22 @@ export function TripFlights({
                     : t("As tarifas reais aparecerão aqui assim que a fonte responder.")}
               </p>
             </div>
+          ) : !shown.length ? (
+            <div className="empty-state flights-empty">
+              <Search aria-hidden="true" />
+              <h3>{t("Nenhum voo com estes filtros")}</h3>
+              <p>{t("Os filtros desta lista só mostram o que já foi coletado.")}</p>
+              <Button variant="outline" onClick={() => changeView({ ...DEFAULT_VIEW, sort: view.sort })}>
+                {t("Limpar filtros")}
+              </Button>
+            </div>
           ) : (
-            flights.slice(0, visibleCount).map((flight) => <FlightRow key={flight.id + flight.direction} flight={flight} />)
+            shown.slice(0, visibleCount).map((flight) => <FlightRow key={flight.id + flight.direction} flight={flight} />)
           )}
         </div>
-        {flights.length > visibleCount && (
+        {shown.length > visibleCount && (
           <Button className="load-more" variant="outline" onClick={onShowMore}>
-            {t("Mostrar mais · {0} de {1}", [visibleCount, flights.length])}
+            {t("Mostrar mais · {0} de {1}", [visibleCount, shown.length])}
           </Button>
         )}
         <p className="results-disclaimer">{t("Confirme disponibilidade, bagagem e condições no site de compra.")}</p>
