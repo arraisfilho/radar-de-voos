@@ -13,8 +13,7 @@ import { TripHero, TripSections } from "./TripHero";
 import { TripFlights } from "./TripFlights";
 import { AlertDays, AlertRow } from "./AlertRow";
 import { PriceChartCard, PriceVariations } from "./PriceHistory";
-import { LanguagePicker } from "./LanguagePicker";
-import { AppearancePicker } from "./AppearancePicker";
+import { QuickPreferences } from "./QuickPreferences";
 import { AppIcon } from "./AppIcon";
 import { Avatar } from "./Avatar";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -763,8 +762,7 @@ export default function App({
             </div>
           )}
           <div className="sidebar-meta">
-            <LanguagePicker />
-            <AppearancePicker />
+            <QuickPreferences placement="up" />
             <SystemVersion />
           </div>
           <Button variant="ghost" onClick={() => void onLogout()}>

@@ -55,8 +55,13 @@ const blocked = load('appearance.ts', {localStorage: doc.localStorage, document:
 assert.equal(blocked.getAppearance(), 'system'); assert.doesNotThrow(() => blocked.setAppearance('light')); assert.equal(doc.attributes['data-theme'], 'light', 'Applied for this visit without storage');
 const picker = renderToStaticMarkup(React.createElement(load('AppearancePicker.tsx', {window: undefined}).AppearancePicker, {labeled: true}));
 assert.ok(picker.includes('Aparência') && /<option value="system" selected="">Sistema<\/option><option value="light">Claro<\/option><option value="dark">Escuro<\/option>/.test(picker), 'Sistema, Claro, Escuro; Sistema by default');
-for (const file of ['App.tsx', 'Profile.tsx', 'SignIn.tsx', 'Accounts.tsx', 'RecoveryForm.tsx'])
-  assert.match(fs.readFileSync(path.join(source, file), 'utf8'), /<LanguagePicker[^>]*\/>\s*\n?\s*(<\/div>\s*<div className="list-row">\s*)?<AppearancePicker/, `${file}: beside the language`);
+assert.match(fs.readFileSync(path.join(source, 'Profile.tsx'), 'utf8'), /<LanguagePicker[^>]*\/>\s*\n?\s*(<\/div>\s*<div className="list-row">\s*)?<AppearancePicker/, 'Profile: beside the language');
+// Sidebar and entry screens: one icon menu for the language and one for the appearance.
+for (const file of ['App.tsx', 'SignIn.tsx', 'Accounts.tsx', 'RecoveryForm.tsx'])
+  assert.match(fs.readFileSync(path.join(source, file), 'utf8'), /<QuickPreferences[^>]*\/>/, `${file}: quick preferences`);
+assert.match(fs.readFileSync(path.join(source, 'App.tsx'), 'utf8'), /<QuickPreferences placement="up" \/>/, 'The sidebar menu opens upward');
+const quick = fs.readFileSync(path.join(source, 'QuickPreferences.tsx'), 'utf8');
+assert.ok(/value: "system"[\s\S]*value: "light"[\s\S]*value: "dark"/.test(quick) && quick.includes('aria-pressed') && quick.includes('summaryLabel'), 'Sistema, Claro and Escuro as pressed buttons, the trigger named with the current choice');
 console.log('Appearance: Sistema, Claro or Escuro saved on the device, applied by the head script before the first paint, beside every language picker passed.');
 
 // ---------- "Alertas" counts only what arrived after the last visit on this device ---------------------------------------
