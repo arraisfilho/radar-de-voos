@@ -9,7 +9,6 @@ import math
 import time
 from collections import Counter, defaultdict
 from . import canary, source, store
-from .domain import Search, pending_jobs
 from .store import db
 
 logger = logging.getLogger('radar.health')
@@ -28,15 +27,15 @@ QUEUE_DELAY_WARNING = 900  # seconds the most overdue trip has been waiting
 STALE_TRIP_WARNING = 3600  # seconds an active trip has gone without a source answer
 CHANNEL_FAILURES = 3  # latest sends of a configured channel, all failed within the last hour
 CANARY_FAILURES = 3  # latest canary queries, all failed
-CAPACITY_WARNING = .8  # share of the source throughput the active trips need
-# Capacity: seconds of a collection cycle (Search.interval) and the queries per cycle of a trip like the
-# common one-way one (one route, a seven-date window), used to count the trips that fit when there is none.
+# Pace (ritmo), measured only: queries sent and their response times over PACE_SECONDS, and the gap between
+# consecutive cycle starts of each active trip over INTERVAL_SECONDS, against CYCLE_SECONDS (Search.interval).
+PACE_SECONDS = 900
+INTERVAL_SECONDS = 3600
 CYCLE_SECONDS = 300
-TYPICAL_QUERIES = 7
 # Every reason code of assess() with its level, in reading order.
 LEVELS = {'source_paused': 'critical', 'collector_late': 'critical', 'whatsapp_late': 'critical', 'email_late': 'critical',
           'error_rate': 'warning', 'queue_delay': 'warning', 'stale_trip': 'warning', 'whatsapp_failing': 'warning', 'email_failing': 'warning',
-          'source_canary': 'warning', 'capacity_high': 'warning'}
+          'source_canary': 'warning'}
 # The worker behind each heartbeat code.
 WORKERS = {'collector_late': 'collector', 'whatsapp_late': 'whatsapp_sender', 'email_late': 'email_sender'}
 
@@ -186,9 +185,6 @@ def assess(metrics):
     probe = metrics.get('canary')
     if probe and probe['enabled'] and probe['failed_streak'] >= CANARY_FAILURES:
         found.add('source_canary')
-    used = (metrics.get('capacity') or {}).get('used')
-    if used is not None and used > CAPACITY_WARNING:
-        found.add('capacity_high')
     reasons = sorted(found, key=lambda code: (LEVELS[code] != 'critical', list(LEVELS).index(code)))
     return {'level': 'critical' if any(LEVELS[c] == 'critical' for c in reasons) else 'warning' if reasons else 'ok', 'reasons': reasons}
 
@@ -214,30 +210,37 @@ def details(code, metrics):
         probe = metrics['canary']
         return {'failed_streak': probe['failed_streak'], 'origin': probe['origin'], 'destination': probe['destination'],
                 'kind': (probe['last'] or {}).get('kind'), 'last_at': (probe['last'] or {}).get('at')}
-    if code == 'capacity_high':
-        return {key: metrics['capacity'][key] for key in ('used', 'more_trips', 'trips', 'queries_per_cycle', 'throughput_per_cycle')}
     channel = metrics['channels'][code.split('_')[0]]
     return {'failed_streak': channel['failed_streak'], 'last_failure_at': channel['last_failure_at']}
 
 
-def capacity(queries, p50_ms, interval=CYCLE_SECONDS, parallel=2, min_gap=5.0, typical=TYPICAL_QUERIES):
-    """How much of the source throughput the active trips need, and about how many more trips fit.
+GAP_CEILING = 1800  # a longer gap is a pause and resume of the trip, not the collection's pace
 
-    queries holds the queries per cycle of each active trip (domain.pending_jobs). Per cycle of `interval`
-    seconds the trips need Σ queries; the source answers `parallel` queries at once at the median latency,
-    and the query gate starts at most one query every `min_gap` seconds, so it serves
-    min(parallel / p50, 1 / min_gap) × interval queries per cycle. used is the first over the second;
-    more_trips counts trips like the average active one (or `typical` queries with none) in what is left.
-    Both are None with no latency measured."""
-    need = sum(queries)
-    item = {'trips': len(queries), 'queries_per_cycle': need, 'interval_s': interval, 'parallel': parallel, 'min_gap_s': min_gap, 'p50_ms': p50_ms}
-    if not p50_ms:
-        return {**item, 'throughput_per_cycle': None, 'used': None, 'more_trips': None, 'limit': None}
-    by_latency, by_gap = parallel/(p50_ms/1000)*interval, interval/min_gap
-    served = min(by_latency, by_gap)
-    per_trip = need/len(queries) if queries else typical
-    return {**item, 'throughput_per_cycle': round(served, 1), 'used': round(need/served, 4),
-            'more_trips': max(0, math.floor((served-need)/per_trip+1e-9)) if per_trip else None, 'limit': 'gap' if by_gap <= by_latency else 'latency'}
+
+def gaps(starts):
+    """Seconds between consecutive cycle starts of each trip, from (search_id, started) rows in order; a trip with one
+    cycle has none, and a gap above GAP_CEILING (the trip was paused and resumed) is left out."""
+    result, last = [], {}
+    for sid, started in starts:
+        if sid in last and started-last[sid] <= GAP_CEILING:
+            result.append(started-last[sid])
+        last[sid] = started
+    return result
+
+
+def pace(c, now, min_gap):
+    """What the collection does now, measured and never estimated; a field without data is None.
+
+    per_min: queries sent to the source per minute over PACE_SECONDS (the canary too), limit_per_min: what the
+    query gate allows (one start every min_gap seconds), p50_ms and p95_ms of those queries, interval_s: the median
+    gap between consecutive cycle starts of an active trip over INTERVAL_SECONDS, against target_s."""
+    durations = [r[0] for r in c.execute('SELECT duration_ms FROM source_queries WHERE at>=?', (now-PACE_SECONDS,))]
+    starts = c.execute('''SELECT c.search_id,c.started FROM cycles c JOIN searches s ON s.id=c.search_id
+      WHERE s.active=1 AND s.archived=0 AND c.started>=? ORDER BY c.search_id,c.started''', (now-INTERVAL_SECONDS,)).fetchall()
+    between = gaps((r[0], r[1]) for r in starts)
+    return {'per_min': round(len(durations)/(PACE_SECONDS/60), 1) if durations else None, 'limit_per_min': round(60/min_gap, 1),
+            'p50_ms': percentile(durations, .5), 'p95_ms': percentile(durations, .95),
+            'interval_s': None if not between else round(percentile(between, .5)), 'target_s': CYCLE_SECONDS}
 
 
 def channel_health(c, channel, available, now):
@@ -280,6 +283,8 @@ def collect(worker_status, now=None):
                  for r in active if r['collected'] and not r['priced']]
         state = source.load(c)
         probe = canary.metrics(c, now)
+        from .query_gate import MIN_GAP
+        rhythm = pace(c, now, MIN_GAP)
         from . import mail, whatsapp
         channels = {'whatsapp': channel_health(c, 'whatsapp', whatsapp.available(), now), 'email': channel_health(c, 'email', mail.available(), now)}
     trips = {r['id']: trip(r) for r in list(active)+list(others)}
@@ -290,15 +295,6 @@ def collect(worker_status, now=None):
     oldest = max(stale, key=lambda item: item[0], default=None)
     current = source.describe(state, now)
     current['paused_since'] = (state['opened_at'] or state['last_failure_at']) if current['status'] == 'paused' else None
-    queries = []
-    for r in active:
-        try:
-            queries.append(len(pending_jobs(Search.model_validate_json(r['config']), now)))
-        except (ValueError, KeyError):
-            # A saved trip the current rules no longer read (an airport left the catalog): outside the estimate.
-            continue
-    from .engine import CYCLE_LIMIT
-    from .query_gate import CONCURRENCY, MIN_GAP
     linked = lambda items: [{**{k: v for k, v in item.items() if k != 'search_id'}, 'trip': trips.get(item['search_id'])} for item in items]
     timed = timing['percentiles']
     metrics = {
@@ -314,7 +310,7 @@ def collect(worker_status, now=None):
         'workers': workers(worker_status),
         'channels': channels,
         'canary': probe,
-        'capacity': capacity(queries, timed['day'][0], parallel=min(CYCLE_LIMIT, CONCURRENCY), min_gap=MIN_GAP),
+        'pace': rhythm,
         'slow_routes': linked(timing['slow']),
         'failing_routes': linked(timing['failing']),
         'empty_trips': sorted(({**trips[r['id']], 'cycles': info[0], 'since': info[1]} for r, info in empty),

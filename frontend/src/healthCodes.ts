@@ -13,7 +13,6 @@ export function healthCodeLabels(): Record<string, string> {
     whatsapp_failing: t("Falhas no envio de WhatsApp"),
     email_failing: t("Falhas no envio de e-mail"),
     source_canary: t("Rota de controle falhando"),
-    capacity_high: t("Capacidade da fonte alta"),
   };
 }
 

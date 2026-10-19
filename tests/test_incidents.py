@@ -29,8 +29,7 @@ def metrics(now, *reasons, **changes):
             'queue': {'due': 2, 'max_delay_s': 1500.0},
             'freshness': {'active': 1, 'fresh': 0, 'stalest': {'id': 'trip', 'title': 'Lisboa', 'route': 'GRU → LIS', 'owner_id': None, 'age_s': 7200}},
             'channels': {'whatsapp': {'available': True, 'failed_streak': 3, 'last_failure_at': now-60}, 'email': {'available': True, 'failed_streak': 4, 'last_failure_at': now-60}},
-            'canary': {'enabled': True, 'origin': 'GRU', 'destination': 'REC', 'failed_streak': 3, 'last': {'at': now-60, 'status': 'error', 'kind': 'timeout', 'duration_ms': 35000}},
-            'capacity': {'used': .92, 'more_trips': 0, 'trips': 9, 'queries_per_cycle': 55, 'throughput_per_cycle': 60.0}}
+            'canary': {'enabled': True, 'origin': 'GRU', 'destination': 'REC', 'failed_streak': 3, 'last': {'at': now-60, 'status': 'error', 'kind': 'timeout', 'duration_ms': 35000}}}
     return base | changes
 
 

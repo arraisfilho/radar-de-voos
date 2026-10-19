@@ -6603,10 +6603,6 @@
     "en": "The control route {0} failed its last {1} queries.",
     "es": "La ruta de control {0} falló en sus últimas {1} consultas."
   },
-  "A fonte está com {0} da capacidade em uso (limite: 80%).": {
-    "en": "The fare source has {0} of its capacity in use (limit: 80%).",
-    "es": "La fuente tiene el {0} de su capacidad en uso (límite: 80%)."
-  },
   "Incidente reconhecido. Os lembretes foram encerrados.": {
     "en": "Incident acknowledged. Its reminders have stopped.",
     "es": "Incidente reconocido. Se terminaron los recordatorios."
@@ -6703,50 +6699,6 @@
     "en": "Save route",
     "es": "Guardar ruta"
   },
-  "Capacidade da fonte": {
-    "en": "Source capacity",
-    "es": "Capacidad de la fuente"
-  },
-  "Como a capacidade é estimada": {
-    "en": "How the capacity is estimated",
-    "es": "Cómo se estima la capacidad"
-  },
-  "Carga: as viagens ativas pedem {0} consultas a cada 5 minutos (rotas × datas ainda por vir de cada viagem).": {
-    "en": "Load: the active trips need {0} queries every 5 minutes (each trip's routes × dates still ahead).",
-    "es": "Carga: los viajes activos piden {0} consultas cada 5 minutos (rutas × fechas aún por venir de cada viaje)."
-  },
-  "Vazão: desconhecida até haver consultas nas últimas 24 horas.": {
-    "en": "Throughput: unknown until there are queries in the last 24 hours.",
-    "es": "Capacidad de respuesta: desconocida hasta que haya consultas en las últimas 24 horas."
-  },
-  "Vazão: até {0} consultas a cada 5 minutos — {1} consultas ao mesmo tempo com a mediana de resposta de {2}, e no máximo uma nova consulta a cada {3}.": {
-    "en": "Throughput: up to {0} queries every 5 minutes — {1} queries at a time at the median response of {2}, and at most one new query every {3}.",
-    "es": "Capacidad de respuesta: hasta {0} consultas cada 5 minutos — {1} consultas a la vez con la mediana de respuesta de {2}, y como máximo una consulta nueva cada {3}."
-  },
-  "É uma estimativa: não conta a espera entre consultas de uma mesma conta, as novas tentativas nem a rota de controle.": {
-    "en": "It is an estimate: it leaves out the wait between queries of one account, retries and the control route.",
-    "es": "Es una estimación: no cuenta la espera entre consultas de una misma cuenta, los reintentos ni la ruta de control."
-  },
-  "Quanto da vazão da fonte as viagens ativas usam.": {
-    "en": "How much of the source throughput the active trips use.",
-    "es": "Cuánto de la capacidad de respuesta de la fuente usan los viajes activos."
-  },
-  "Sem consultas nas últimas 24 horas para estimar a vazão.": {
-    "en": "No queries in the last 24 hours to estimate the throughput.",
-    "es": "Sin consultas en las últimas 24 horas para estimar la capacidad de respuesta."
-  },
-  "Capacidade usada: {0}": {
-    "en": "Capacity in use: {0}",
-    "es": "Capacidad usada: {0}"
-  },
-  "cabe cerca de {0} viagem a mais": {
-    "en": "about {0} more trip fits",
-    "es": "cabe cerca de {0} viaje más"
-  },
-  "cabem cerca de {0} viagens a mais": {
-    "en": "about {0} more trips fit",
-    "es": "caben cerca de {0} viajes más"
-  },
   "Configuração de saúde alterada": {
     "en": "Health settings changed",
     "es": "Configuración de salud modificada"
@@ -6762,10 +6714,6 @@
   "Rota de controle falhando": {
     "en": "Control route failing",
     "es": "Ruta de control con fallos"
-  },
-  "Capacidade da fonte alta": {
-    "en": "Source capacity high",
-    "es": "Capacidad de la fuente alta"
   },
   "Escolha aeroportos com código IATA válido para a rota de controle": {
     "en": "Choose airports with a valid IATA code for the control route",
@@ -6786,5 +6734,49 @@
   "Excluir…": {
     "en": "Delete…",
     "es": "Eliminar…"
+  },
+  "Ritmo": {
+    "en": "Pace",
+    "es": "Ritmo"
+  },
+  "Sobre o ritmo": {
+    "en": "About the pace",
+    "es": "Sobre el ritmo"
+  },
+  "Consultas por minuto: quantas consultas foram de fato enviadas à fonte nos últimos 15 minutos, com a rota de controle. O limite de {0} por minuto (uma nova consulta a cada {1}) é uma proteção contra bloqueios da fonte.": {
+    "en": "Queries per minute: how many queries were actually sent to the source in the last 15 minutes, the control route included. The limit of {0} per minute (one new query every {1}) protects against the source blocking us.",
+    "es": "Consultas por minuto: cuántas consultas se enviaron de verdad a la fuente en los últimos 15 minutos, con la ruta de control. El límite de {0} por minuto (una consulta nueva cada {1}) es una protección contra bloqueos de la fuente."
+  },
+  "Resposta: quanto a fonte levou para responder nos últimos 15 minutos, na mediana e no p95. Um tempo alto significa que a fonte está lenta.": {
+    "en": "Response: how long the source took to answer in the last 15 minutes, as the median and the p95. A high time means the source is slow.",
+    "es": "Respuesta: cuánto tardó la fuente en responder en los últimos 15 minutos, en la mediana y en el p95. Un tiempo alto significa que la fuente está lenta."
+  },
+  "Intervalo: de quanto em quanto tempo cada viagem ativa foi de fato atualizada na última hora. Acima da meta, as viagens estão demorando mais para atualizar.": {
+    "en": "Interval: how often each active trip was actually refreshed in the last hour. Above the target, trips are taking longer to refresh.",
+    "es": "Intervalo: cada cuánto se actualizó de verdad cada viaje activo en la última hora. Por encima de la meta, los viajes tardan más en actualizarse."
+  },
+  "Medido nos últimos 15 minutos e, o intervalo, na última hora.": {
+    "en": "Measured over the last 15 minutes, and the interval over the last hour.",
+    "es": "Medido en los últimos 15 minutos y, el intervalo, en la última hora."
+  },
+  "{0} consultas por minuto": {
+    "en": "{0} queries per minute",
+    "es": "{0} consultas por minuto"
+  },
+  "Resposta {0} · p95 {1}": {
+    "en": "Response {0} · p95 {1}",
+    "es": "Respuesta {0} · p95 {1}"
+  },
+  "Viagens atualizadas a cada {0} (meta: {1})": {
+    "en": "Trips refreshed every {0} (target: {1})",
+    "es": "Viajes actualizados cada {0} (meta: {1})"
+  },
+  "Intervalo das viagens: ainda sem dois ciclos de uma mesma viagem na última hora.": {
+    "en": "Trip interval: no trip has had two cycles in the last hour yet.",
+    "es": "Intervalo de los viajes: todavía ningún viaje tuvo dos ciclos en la última hora."
+  },
+  "acima da meta": {
+    "en": "above target",
+    "es": "por encima de la meta"
   }
 }

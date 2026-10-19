@@ -51,6 +51,10 @@ def setup(c):
     # The outbox rows of each notice; event is 'opened', 'reminder-N', 'resolved-N' or 'reopened-N'.
     c.execute('CREATE TABLE IF NOT EXISTS health_notices(outbox_id TEXT PRIMARY KEY,incident_id INTEGER NOT NULL,event TEXT NOT NULL)')
     c.execute('CREATE INDEX IF NOT EXISTS health_notices_incident ON health_notices(incident_id)')
+    # capacity_high (an estimate, never a measured effect) is gone: its incidents go with it, without a "Resolvido".
+    c.execute("UPDATE outbox SET status='cancelled',error='Incidente resolvido antes do envio' WHERE status='pending' AND id IN (SELECT n.outbox_id FROM health_notices n JOIN health_incidents i ON i.id=n.incident_id WHERE i.code='capacity_high')")
+    c.execute("DELETE FROM health_notices WHERE incident_id IN (SELECT id FROM health_incidents WHERE code='capacity_high')")
+    c.execute("DELETE FROM health_incidents WHERE code='capacity_high'")
 
 
 def notices_enabled(c):
@@ -75,8 +79,7 @@ TEXTS = {
                queue_delay='Uma viagem espera na fila de coletas há {delay}.', stale_trip='A viagem {route} está sem coleta há {age}.',
                whatsapp_failing='As últimas {count} mensagens de WhatsApp falharam.', email_failing='Os últimos {count} e-mails falharam.',
                source_canary='A rota de controle {route} falhou nas últimas {count} consultas.',
-               capacity_high='A capacidade usada da fonte está em {used} (limite: 80%).',
-               labels=dict(source_canary='Rota de controle falhando', capacity_high='Capacidade da fonte alta', source_paused='Fonte de tarifas pausada', collector_late='Coletor de tarifas sem sinal', whatsapp_late='Envio de WhatsApp sem sinal',
+               labels=dict(source_canary='Rota de controle falhando', source_paused='Fonte de tarifas pausada', collector_late='Coletor de tarifas sem sinal', whatsapp_late='Envio de WhatsApp sem sinal',
                            email_late='Envio de e-mail sem sinal', error_rate='Falhas nas consultas à fonte', queue_delay='Fila de coletas atrasada',
                            stale_trip='Viagem sem coleta', whatsapp_failing='Falhas no envio de WhatsApp', email_failing='Falhas no envio de e-mail')),
     'en': dict(critical='Critical', warning='Attention', reminder='reminder', resolved='Resolved in {0}', reopened='Back: {0}', since='Since {0}.', link='See {0}',
@@ -86,8 +89,7 @@ TEXTS = {
                queue_delay='A trip has been waiting in the collection queue for {delay}.', stale_trip='The trip {route} has not been collected for {age}.',
                whatsapp_failing='The last {count} WhatsApp messages failed.', email_failing='The last {count} e-mails failed.',
                source_canary='The control route {route} failed its last {count} queries.',
-               capacity_high='The fare source capacity in use is {used} (limit: 80%).',
-               labels=dict(source_canary='Control route failing', capacity_high='Fare source capacity high', source_paused='Fare source paused', collector_late='Fare collector silent', whatsapp_late='WhatsApp sending silent',
+               labels=dict(source_canary='Control route failing', source_paused='Fare source paused', collector_late='Fare collector silent', whatsapp_late='WhatsApp sending silent',
                            email_late='E-mail sending silent', error_rate='Fare source queries failing', queue_delay='Collection queue delayed',
                            stale_trip='Trip not collected', whatsapp_failing='WhatsApp sending failing', email_failing='E-mail sending failing')),
     'es': dict(critical='Crítico', warning='Atención', reminder='recordatorio', resolved='Resuelto en {0}', reopened='Volvió: {0}', since='Desde las {0}.', link='Ver en {0}',
@@ -97,8 +99,7 @@ TEXTS = {
                queue_delay='Un viaje espera en la cola de consultas desde hace {delay}.', stale_trip='El viaje {route} no se consulta desde hace {age}.',
                whatsapp_failing='Fallaron los últimos {count} mensajes de WhatsApp.', email_failing='Fallaron los últimos {count} correos.',
                source_canary='La ruta de control {route} falló en sus últimas {count} consultas.',
-               capacity_high='La capacidad usada de la fuente está en {used} (límite: 80%).',
-               labels=dict(source_canary='Ruta de control con fallos', capacity_high='Capacidad de la fuente alta', source_paused='Fuente de tarifas en pausa', collector_late='Consultas de tarifas sin señal', whatsapp_late='Envío de WhatsApp sin señal',
+               labels=dict(source_canary='Ruta de control con fallos', source_paused='Fuente de tarifas en pausa', collector_late='Consultas de tarifas sin señal', whatsapp_late='Envío de WhatsApp sin señal',
                            email_late='Envío de correo sin señal', error_rate='Fallos en las consultas a la fuente', queue_delay='Cola de consultas retrasada',
                            stale_trip='Viaje sin consultar', whatsapp_failing='Fallos en el envío de WhatsApp', email_failing='Fallos en el envío de correo')),
 }
@@ -143,8 +144,6 @@ def describe(code, details, language='pt'):
         return l[code].format(count=details.get('failed_streak'))
     if code == 'source_canary':
         return l[code].format(route=f"{details.get('origin')} → {details.get('destination')}", count=details.get('failed_streak'))
-    if code == 'capacity_high':
-        return l[code].format(used=f"{round(100*(details.get('used') or 0))}%")
     return l['labels'].get(code, code)
 
 
