@@ -1,5 +1,10 @@
 # Alterações
 
+## 0.28.1
+
+### Fixed
+- Redimensionar o navegador com viagens de alturas diferentes na barra lateral deixou de levar à tela "Algo deu errado".
+
 ## 0.28.0
 
 ### Changed
