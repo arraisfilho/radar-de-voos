@@ -1,5 +1,17 @@
 # Alterações
 
+## 0.28.0
+
+### Changed
+- Barra lateral, barras do celular, menus, diálogos, avisos e barra de alterações passaram a usar vidro translúcido (Liquid Glass) sobre um fundo com luz ambiente; listas, cartões e formulários continuam sólidos.
+- No computador a barra lateral flutua afastada das bordas, e no celular a barra de abas virou uma pílula flutuante.
+- Transparência reduzida, contraste aumentado e navegadores sem desfoque recebem superfícies opacas.
+- Idioma e tema viraram dois botões de ícone na barra lateral e nas telas de entrada, com bandeiras e Sistema, Claro e Escuro num menu pequeno.
+- A lista de viagens da barra lateral passou a mostrar todas as viagens que cabem na altura da tela, e só pagina quando falta espaço, com o paginador na linha do título.
+
+### Fixed
+- A paginação da lista de viagens deixou de aparecer empilhada na barra lateral.
+
 ## 0.27.1
 
 ### Changed
