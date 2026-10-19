@@ -5974,5 +5974,13 @@
   "Estável": {
     "en": "Stable",
     "es": "Estable"
+  },
+  "Idioma: {0}": {
+    "en": "Language: {0}",
+    "es": "Idioma: {0}"
+  },
+  "Aparência: {0}": {
+    "en": "Appearance: {0}",
+    "es": "Apariencia: {0}"
   }
 }

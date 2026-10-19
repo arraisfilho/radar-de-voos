@@ -82,7 +82,7 @@ const document = {
 const location = {host: 'radar.example.org', hash: ''};
 const translate = (key, values = []) => (language === 'pt' ? key : catalog[key]?.[language] || key).replace(/\{(\d+)\}/g, (_, i) => String(values[Number(i)] ?? ''));
 const stubs = {
-  './i18n': {t: translate, getLanguage: () => language, getLocale: () => ({pt: 'pt-BR', en: 'en-US', es: 'es-ES'})[language], useLanguage: () => language},
+  './i18n': {t: translate, getLanguage: () => language, getLocale: () => ({pt: 'pt-BR', en: 'en-US', es: 'es-ES'})[language], useLanguage: () => language, usePendingLanguage: () => null, setLanguage: async () => {}},
   '@tanstack/react-query': {useQuery: () => query, useQueryClient: () => client},
   '@radix-ui/react-dialog': Dialog,
   './navigationGuard': {useUnsavedChanges: (dirty, prompt) => { guard = {dirty, prompt}; }},
@@ -93,6 +93,7 @@ const stubs = {
   './TimeZoneField': {TimeZoneField: () => null, validTimeZone: () => true},
   './LanguagePicker': {LanguagePicker: () => null},
   './AppearancePicker': {AppearancePicker: () => null},
+  './QuickPreferences': {QuickPreferences: () => null},
   './SystemVersion': {SystemVersion: () => null},
   './AppIcon': {AppIcon: () => null},
   './Avatar': {Avatar: () => null},

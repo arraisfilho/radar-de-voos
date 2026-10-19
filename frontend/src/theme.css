@@ -59,6 +59,16 @@
   --material-popover: #fffffff2;
   --material-popover-solid: #ffffff;
   --sidebar-selected: #0071e31f;
+  /* Liquid Glass: camada de navegação translúcida sobre um fundo com luz ambiente. */
+  --glass-fill: #ffffff99;
+  --glass-fill-strong: #ffffffcc;
+  --glass-stroke: #ffffffb3;
+  --glass-edge: #0000000f;
+  --glass-highlight: #ffffffe6;
+  --glass-shadow: 0 10px 36px #0000001f, 0 1px 3px #00000014;
+  --ambient-1: #d6e6ff;
+  --ambient-2: #ece2ff;
+  --ambient-3: #dcf4ec;
   --overlay: #00000052;
   /* Monogram avatar: white initials on a graphite gradient. */
   --avatar-start: #8e8e93;
@@ -244,6 +254,16 @@
     --material-popover: #2c2c2ef2;
     --material-popover-solid: #2c2c2e;
     --sidebar-selected: #0a84ff33;
+    /* Liquid Glass: camada de navegação translúcida sobre um fundo com luz ambiente. */
+    --glass-fill: #1c1c1e99;
+    --glass-fill-strong: #2c2c2ed9;
+    --glass-stroke: #ffffff24;
+    --glass-edge: #00000080;
+    --glass-highlight: #ffffff2e;
+    --glass-shadow: 0 12px 40px #00000099, 0 1px 3px #00000066;
+    --ambient-1: #0b2550;
+    --ambient-2: #26164a;
+    --ambient-3: #062b25;
     --overlay: #00000099;
     --avatar-start: #8e8e93;
     --avatar-end: #48484a;
@@ -341,6 +361,16 @@
   --material-popover: #2c2c2ef2;
   --material-popover-solid: #2c2c2e;
   --sidebar-selected: #0a84ff33;
+  /* Liquid Glass: camada de navegação translúcida sobre um fundo com luz ambiente. */
+  --glass-fill: #1c1c1e99;
+  --glass-fill-strong: #2c2c2ed9;
+  --glass-stroke: #ffffff24;
+  --glass-edge: #00000080;
+  --glass-highlight: #ffffff2e;
+  --glass-shadow: 0 12px 40px #00000099, 0 1px 3px #00000066;
+  --ambient-1: #0b2550;
+  --ambient-2: #26164a;
+  --ambient-3: #062b25;
   --overlay: #00000099;
   --avatar-start: #8e8e93;
   --avatar-end: #48484a;

@@ -9,8 +9,7 @@ import { PhoneField } from "./PhoneField";
 import { PasswordField } from "./PasswordField";
 import { CodeField } from "./CodeField";
 import { EmailFields } from "./EmailFields";
-import { LanguagePicker } from "./LanguagePicker";
-import { AppearancePicker } from "./AppearancePicker";
+import { QuickPreferences } from "./QuickPreferences";
 import { SystemVersion } from "./SystemVersion";
 import { AppIcon } from "./AppIcon";
 import { usePageTitle } from "./pageTitle";
@@ -158,8 +157,7 @@ export function SignIn({
   return (
     <main className="auth-page">
       <div className="auth-toolbar">
-        <LanguagePicker />
-        <AppearancePicker />
+        <QuickPreferences />
       </div>
       <Card className="auth-card">
         <div className="auth-intro">

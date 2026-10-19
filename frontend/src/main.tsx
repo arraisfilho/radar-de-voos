@@ -3,6 +3,8 @@ import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@fontsource-variable/inter";
 import "./style.css";
+// Liquid Glass depois da base: só a camada de navegação. O CSS das páginas não redefine essas camadas.
+import "./glass.css";
 import { AuthGate } from "./Accounts";
 import { ErrorBoundary } from "./ErrorBoundary";
 

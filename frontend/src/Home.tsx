@@ -130,101 +130,105 @@ function TripCard({
   const route = ended ? { view: "history" as const, searchId: search.id } : { view: "searches" as const, searchId: search.id };
   return (
     <article className="home-monitor card card-interactive" aria-labelledby={headingId}>
-      <div className="trip-card-top">
+      {/* Two halves with transparent cutouts at the fold: a real boarding-pass notch on any background. */}
+      <div className="trip-card-head">
+        <div className="trip-card-top">
+          {summary.secondaryRoute ? (
+            <h2 id={headingId} className="trip-card-name">
+              {summary.title}
+            </h2>
+          ) : (
+            <span className="trip-card-kind">{config.inbound ? t("Ida e volta") : t("Somente ida")}</span>
+          )}
+          <span className={`status-pill is-${status}`}>{statusLabel(status)}</span>
+        </div>
         {summary.secondaryRoute ? (
-          <h2 id={headingId} className="trip-card-name">
-            {summary.title}
-          </h2>
-        ) : (
-          <span className="trip-card-kind">{config.inbound ? t("Ida e volta") : t("Somente ida")}</span>
-        )}
-        <span className={`status-pill is-${status}`}>{statusLabel(status)}</span>
-      </div>
-      {summary.secondaryRoute ? (
-        <RouteCodes config={config} className="trip-card-route" />
-      ) : (
-        <h2 id={headingId} className="trip-card-heading">
           <RouteCodes config={config} className="trip-card-route" />
-        </h2>
-      )}
-      <RoutePlaces config={config} airports={airports} className="trip-card-places" />
-      <p className="trip-card-dates">
-        <CalendarDays size={16} aria-hidden="true" />
-        <span>
-          <strong>{t("Ida")}</strong> {legDates(config.outbound)}
-        </span>
-        {config.inbound && (
-          <span>
-            <strong>{t("Volta")}</strong> {legDates(config.inbound)}
-          </span>
+        ) : (
+          <h2 id={headingId} className="trip-card-heading">
+            <RouteCodes config={config} className="trip-card-route" />
+          </h2>
         )}
-      </p>
-      <div className="trip-card-divider" aria-hidden="true" />
-      {ended ? (
-        <p className="trip-card-note">{t("Monitoramento encerrado. O histórico de preços continua disponível.")}</p>
-      ) : (
-        <div className="trip-card-fares">
-          {total ? (
-            <>
-              {/* Round trip: the total leads, the legs follow in a compact row. */}
-              <p className="trip-card-label">{t("Total estimado · ida + volta")}</p>
-              <p className="trip-card-amount">
-                {formatMoney(total.price, config.currency)}
-                <FareTrend quote={total} currency={config.currency} />
-              </p>
-              <dl className="trip-card-legs">
+        <RoutePlaces config={config} airports={airports} className="trip-card-places" />
+        <p className="trip-card-dates">
+          <CalendarDays size={16} aria-hidden="true" />
+          <span>
+            <strong>{t("Ida")}</strong> {legDates(config.outbound)}
+          </span>
+          {config.inbound && (
+            <span>
+              <strong>{t("Volta")}</strong> {legDates(config.inbound)}
+            </span>
+          )}
+        </p>
+      </div>
+      <div className="trip-card-body">
+        {ended ? (
+          <p className="trip-card-note">{t("Monitoramento encerrado. O histórico de preços continua disponível.")}</p>
+        ) : (
+          <div className="trip-card-fares">
+            {total ? (
+              <>
+                {/* Round trip: the total leads, the legs follow in a compact row. */}
+                <p className="trip-card-label">{t("Total estimado · ida + volta")}</p>
+                <p className="trip-card-amount">
+                  {formatMoney(total.price, config.currency)}
+                  <FareTrend quote={total} currency={config.currency} />
+                </p>
+                <dl className="trip-card-legs">
+                  {sides.map((side) => {
+                    const quote = search.summary![side]!;
+                    return (
+                      <div key={side}>
+                        <dt>{side === "outbound" ? t("Ida") : t("Volta")}</dt>
+                        <dd>
+                          {formatMoney(quote.price, config.currency)}
+                          <FareTrend quote={quote} currency={config.currency} compact />
+                        </dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+                <p className="trip-card-party">{t("Para {0} · soma do menor preço de cada trecho", [partyLabel(config)])}</p>
+              </>
+            ) : (
+              <>
+              <p className="trip-card-label">{t("Menor preço agora")}</p>
+              <dl>
                 {sides.map((side) => {
-                  const quote = search.summary![side]!;
+                  const quote = search.summary?.[side];
                   return (
                     <div key={side}>
                       <dt>{side === "outbound" ? t("Ida") : t("Volta")}</dt>
                       <dd>
-                        {formatMoney(quote.price, config.currency)}
-                        <FareTrend quote={quote} currency={config.currency} compact />
+                        {quote ? formatMoney(quote.price, config.currency) : "—"}
+                        {quote && <FareTrend quote={quote} currency={config.currency} />}
                       </dd>
                     </div>
                   );
                 })}
               </dl>
-              <p className="trip-card-party">{t("Para {0} · soma do menor preço de cada trecho", [partyLabel(config)])}</p>
-            </>
-          ) : (
-            <>
-            <p className="trip-card-label">{t("Menor preço agora")}</p>
-            <dl>
-              {sides.map((side) => {
-                const quote = search.summary?.[side];
-                return (
-                  <div key={side}>
-                    <dt>{side === "outbound" ? t("Ida") : t("Volta")}</dt>
-                    <dd>
-                      {quote ? formatMoney(quote.price, config.currency) : "—"}
-                      {quote && <FareTrend quote={quote} currency={config.currency} />}
-                    </dd>
-                  </div>
-                );
-              })}
-            </dl>
-            <p className="trip-card-party">{t("Total para {0} · por trecho", [partyLabel(config)])}</p>
-            </>
-          )}
-        </div>
-      )}
-      <div className="trip-card-footer">
-        {!ended && (
-          <span className="trip-card-updated">
-            {updated ? t("Atualizado {0}", [formatRelative(updated, serverNow)]) : t("Aguardando a primeira coleta")}
-          </span>
+              <p className="trip-card-party">{t("Total para {0} · por trecho", [partyLabel(config)])}</p>
+              </>
+            )}
+          </div>
         )}
-        <a
-          className="stretched-link trip-card-action"
-          href={routePath(route)}
-          aria-describedby={headingId}
-          onClick={(event) => plainClick(event) && onOpen(search.id, ended)}
-        >
-          {ended ? t("Ver histórico") : t("Ver voos")}
-          <ChevronRight size={17} aria-hidden="true" />
-        </a>
+        <div className="trip-card-footer">
+          {!ended && (
+            <span className="trip-card-updated">
+              {updated ? t("Atualizado {0}", [formatRelative(updated, serverNow)]) : t("Aguardando a primeira coleta")}
+            </span>
+          )}
+          <a
+            className="stretched-link trip-card-action"
+            href={routePath(route)}
+            aria-describedby={headingId}
+            onClick={(event) => plainClick(event) && onOpen(search.id, ended)}
+          >
+            {ended ? t("Ver histórico") : t("Ver voos")}
+            <ChevronRight size={17} aria-hidden="true" />
+          </a>
+        </div>
       </div>
     </article>
   );

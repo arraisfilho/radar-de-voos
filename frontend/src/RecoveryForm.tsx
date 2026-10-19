@@ -3,8 +3,7 @@ import {CheckCircle2} from 'lucide-react';
 import {t,getLanguage,useLanguage} from './i18n';
 import {PasswordField} from './PasswordField';
 import {PhoneField} from './PhoneField';
-import {LanguagePicker} from './LanguagePicker';
-import {AppearancePicker} from './AppearancePicker';
+import {QuickPreferences} from './QuickPreferences';
 import {SystemVersion} from './SystemVersion';
 import {AppIcon} from './AppIcon';
 import {usePageTitle} from './pageTitle';
@@ -15,7 +14,7 @@ export function RecoveryForm({token,onBack}:{token:string;onBack:()=>void}) {
   const [country,setCountry]=useState('BR'),[phone,setPhone]=useState(''),[password,setPassword]=useState(''),[confirm,setConfirm]=useState(''),[busy,setBusy]=useState(false),[done,setDone]=useState(false),[error,setError]=useState('');
   useEffect(()=>{if(token)history.replaceState(null,'',location.pathname+location.search)},[token]);
   return <main className="auth-page">
-    <div className="auth-toolbar"><LanguagePicker/><AppearancePicker/></div>
+    <div className="auth-toolbar"><QuickPreferences/></div>
     <Card className="auth-card">
       <div className="auth-intro">
         <AppIcon size="lg"/>
