@@ -346,6 +346,7 @@ class Monitor:
                             logger.exception('Falha inesperada na coleta',extra={'search_id':row['id']})
                             if not self.stop_event.is_set():self.cycle_error(row)
                 owners={row['owner_id'] or row['id'] for row in running.values()}
+                busy={row['id'] for row in running.values()}
                 try:
                     # While the source breaker is open nothing starts; when it may be tested, one cycle at a time.
                     limit={'closed':2,'probe':1}.get(source.gate(),0)
@@ -353,8 +354,10 @@ class Monitor:
                         with db() as c:due=c.execute("SELECT * FROM searches WHERE active=1 AND archived=0 AND next_due<=? ORDER BY next_due,id",(time.time(),)).fetchall()
                         for item in due:
                             row=dict(item);owner=row['owner_id'] or row['id']
-                            if owner in owners:continue
-                            running[pool.submit(self.run_cycle,row)]=row;owners.add(owner)
+                            # A new trip or a manual refresh (next_due 0) does not wait for the
+                            # owner's other running trip; the query gate still spaces their queries.
+                            if row['id'] in busy or (owner in owners and row['next_due']):continue
+                            running[pool.submit(self.run_cycle,row)]=row;owners.add(owner);busy.add(row['id'])
                             if len(running)>=limit:break
                 except Exception:logger.exception('Falha no agendador de coletas')
                 self.stop_event.wait(.25)

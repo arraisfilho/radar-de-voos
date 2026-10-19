@@ -48,7 +48,7 @@ async def lifespan(app):
         await asyncio.to_thread(monitor.stop)
 
 
-app = FastAPI(title="Radar de Voos", version="0.28.1", lifespan=lifespan,
+app = FastAPI(title="Radar de Voos", version="0.29.0", lifespan=lifespan,
               docs_url=None, redoc_url=None)
 
 
@@ -228,6 +228,7 @@ def state(request: Request, search_id: str | None = None, preview_pool: bool = F
                                                      {k:collection[k] for k in ('status','kind','retry_at')} if collection else None])
         if since==revision:return {'unchanged':True,'revision':revision,'server_time':time.time()}
         searches = [decode_search(r) for r in c.execute("SELECT * FROM searches WHERE archived=0 AND owner_id=? ORDER BY created",(user["id"],)).fetchall()]
+        for item in searches:item['refresh_after']=refresh_after(c,item['id'],item['last_started'])
         archived = [decode_search(r) for r in c.execute("SELECT * FROM searches WHERE archived=1 AND owner_id=? ORDER BY created DESC",(user["id"],)).fetchall()]
         if search_id and scope in ('legacy','searches','history') and not any(r['id']==search_id for r in searches+archived):
             raise HTTPException(404,'Monitoramento não encontrado.')
@@ -323,10 +324,23 @@ class Action(BaseModel):
     action: str
 
 
+# Manual refresh: each one is a real query to the source, so it is spaced per trip and capped per account.
+REFRESH_COOLDOWN = 60
+REFRESH_PER_HOUR = 10
+
+
+def refresh_after(c, sid, last_started):
+    """When a manual refresh of this trip may run again (epoch seconds)."""
+    last = c.execute("SELECT MAX(at) FROM manual_refreshes WHERE search_id=?", (sid,)).fetchone()[0] or 0
+    return max(last, last_started or 0) + REFRESH_COOLDOWN
+
+
 @app.post("/api/searches/{sid}/action")
 def search_action(request: Request, sid: str, data: Action):
     user = accounts.current_user(request)
     with db() as c:
+        # One write transaction from the read: two quick refreshes cannot both pass the limits.
+        c.execute("BEGIN IMMEDIATE")
         row = require_search(c,sid,user["id"])
         if data.action == "pause":
             c.execute("UPDATE searches SET active=0,state='paused',next_due=NULL WHERE id=?", (sid,))
@@ -335,7 +349,24 @@ def search_action(request: Request, sid: str, data: Action):
                 raise HTTPException(422,"A janela de viagem já terminou; revise as datas para retomar")
             c.execute("UPDATE searches SET active=1,state='scheduled',next_due=? WHERE id=?", (max(time.time(),(row["last_started"] or 0)+300),sid))
         elif data.action == "refresh":
-            raise HTTPException(422,"As consultas são automáticas a cada cinco minutos")
+            now=time.time()
+            if not row["active"]:
+                raise HTTPException(422,"Retome a viagem para atualizar")
+            if row["state"]=="collecting":
+                raise HTTPException(409,"A viagem já está sendo atualizada")
+            if source.gate(now)=="paused":
+                raise HTTPException(503,"A fonte de tarifas está em pausa; a atualização volta em instantes")
+            ready=refresh_after(c,sid,row["last_started"])
+            if now<ready:
+                raise HTTPException(429,"Aguarde para atualizar de novo",headers={"Retry-After":str(int(ready-now)+1)})
+            used=c.execute("SELECT COUNT(*) FROM manual_refreshes WHERE owner_id=? AND at>?",(user["id"],now-3600)).fetchone()[0]
+            if used>=REFRESH_PER_HOUR:
+                first=c.execute("SELECT MIN(at) FROM manual_refreshes WHERE owner_id=? AND at>?",(user["id"],now-3600)).fetchone()[0]
+                raise HTTPException(429,"Limite de atualizações manuais por hora atingido",headers={"Retry-After":str(int(first+3600-now)+1)})
+            c.execute("DELETE FROM manual_refreshes WHERE at<?",(now-86400,))
+            c.execute("INSERT INTO manual_refreshes(owner_id,search_id,at) VALUES(?,?,?)",(user["id"],sid,now))
+            c.execute("UPDATE searches SET state='scheduled',next_due=0 WHERE id=?",(sid,))
+            return {"ok":True,"retry_at":now+REFRESH_COOLDOWN}
         elif data.action == "archive":
             c.execute("UPDATE searches SET active=0,archived=1,state='ended',next_due=NULL WHERE id=?", (sid,))
         else:

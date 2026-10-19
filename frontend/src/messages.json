@@ -5982,5 +5982,113 @@
   "Aparência: {0}": {
     "en": "Appearance: {0}",
     "es": "Apariencia: {0}"
+  },
+  "Menor duração": {
+    "en": "Shortest duration",
+    "es": "Menor duración"
+  },
+  "Saída mais cedo": {
+    "en": "Earliest departure",
+    "es": "Salida más temprana"
+  },
+  "Saída mais tarde": {
+    "en": "Latest departure",
+    "es": "Salida más tarde"
+  },
+  "Chegada mais cedo": {
+    "en": "Earliest arrival",
+    "es": "Llegada más temprana"
+  },
+  "Madrugada": {
+    "en": "Overnight",
+    "es": "Madrugada"
+  },
+  "Manhã": {
+    "en": "Morning",
+    "es": "Mañana"
+  },
+  "Tarde": {
+    "en": "Afternoon",
+    "es": "Tarde"
+  },
+  "Noite": {
+    "en": "Evening",
+    "es": "Noche"
+  },
+  "Qualquer escala": {
+    "en": "Any stops",
+    "es": "Cualquier escala"
+  },
+  "Diretos": {
+    "en": "Nonstop",
+    "es": "Directos"
+  },
+  "Até 1 escala": {
+    "en": "Up to 1 stop",
+    "es": "Hasta 1 escala"
+  },
+  "Ordenar por": {
+    "en": "Sort by",
+    "es": "Ordenar por"
+  },
+  "Critérios": {
+    "en": "Criteria",
+    "es": "Criterios"
+  },
+  "Critérios do monitoramento": {
+    "en": "Monitoring criteria",
+    "es": "Criterios del monitoreo"
+  },
+  "Filtrar esta lista": {
+    "en": "Filter this list",
+    "es": "Filtrar esta lista"
+  },
+  "Mostrando {0} de {1}": {
+    "en": "Showing {0} of {1}",
+    "es": "Mostrando {0} de {1}"
+  },
+  "Nenhum voo com estes filtros": {
+    "en": "No flights match these filters",
+    "es": "Ningún vuelo con estos filtros"
+  },
+  "Os filtros desta lista só mostram o que já foi coletado.": {
+    "en": "These filters only show what has already been collected.",
+    "es": "Estos filtros solo muestran lo que ya se recopiló."
+  },
+  "Atualizando…": {
+    "en": "Updating…",
+    "es": "Actualizando…"
+  },
+  "Atualizar em {0} s": {
+    "en": "Update in {0} s",
+    "es": "Actualizar en {0} s"
+  },
+  "Uma atualização manual por viagem a cada 60 segundos.": {
+    "en": "One manual update per trip every 60 seconds.",
+    "es": "Una actualización manual por viaje cada 60 segundos."
+  },
+  "Atualização iniciada.": {
+    "en": "Update started.",
+    "es": "Actualización iniciada."
+  },
+  "Retome a viagem para atualizar": {
+    "en": "Resume the trip to update it",
+    "es": "Reanuda el viaje para actualizarlo"
+  },
+  "A viagem já está sendo atualizada": {
+    "en": "The trip is already being updated",
+    "es": "El viaje ya se está actualizando"
+  },
+  "A fonte de tarifas está em pausa; a atualização volta em instantes": {
+    "en": "The fare source is paused; updates resume shortly",
+    "es": "La fuente de tarifas está en pausa; la actualización vuelve en instantes"
+  },
+  "Aguarde para atualizar de novo": {
+    "en": "Wait before updating again",
+    "es": "Espera para actualizar de nuevo"
+  },
+  "Limite de atualizações manuais por hora atingido": {
+    "en": "Hourly limit of manual updates reached",
+    "es": "Límite de actualizaciones manuales por hora alcanzado"
   }
 }

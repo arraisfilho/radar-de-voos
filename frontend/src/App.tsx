@@ -1181,6 +1181,7 @@ export default function App({
                 previewCompatible={previewCompatible}
                 lastAlert={data.alerts[0]}
                 serverNow={serverNow}
+                onRefresh={() => perform(() => request(`/searches/${search.id}/action`, { action: "refresh" }), t("Atualização iniciada."))}
                 onConfigureAlerts={configureAlerts}
                 onShowAlerts={() => navigate({ view: "searches", searchId: search.id, panel: "alerts" })}
                 onManageContacts={() => navigate({ view: "settings" })}

@@ -60,6 +60,8 @@ export type SearchRecord = {
   state: string;
   next_due: number | null;
   last_started: number | null;
+  /** When a manual refresh may run again (epoch seconds). */
+  refresh_after?: number;
   last_finished: number | null;
   last_success: number | null;
   progress: number;

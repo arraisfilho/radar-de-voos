@@ -48,6 +48,10 @@ def setup(seed=True):
         CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY);
         INSERT OR IGNORE INTO schema_version VALUES (1);
+        CREATE TABLE IF NOT EXISTS manual_refreshes (
+            owner_id TEXT NOT NULL, search_id TEXT NOT NULL, at REAL NOT NULL);
+        CREATE INDEX IF NOT EXISTS manual_refreshes_owner ON manual_refreshes(owner_id, at);
+        CREATE INDEX IF NOT EXISTS manual_refreshes_search ON manual_refreshes(search_id, at);
         CREATE TABLE IF NOT EXISTS searches (
             id TEXT PRIMARY KEY, config TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1,
             active INTEGER NOT NULL DEFAULT 1, archived INTEGER NOT NULL DEFAULT 0,
@@ -199,7 +203,8 @@ def setup(seed=True):
 
 def add_search(c, config, owner_id=None):
     sid = uuid.uuid4().hex
-    c.execute("INSERT INTO searches(id,config,created,next_due,owner_id) VALUES(?,?,?,?,?)", (sid, config.model_dump_json(), time.time(), time.time(), owner_id))
+    # next_due 0: a new trip goes ahead of the overdue ones, so its first view comes right away.
+    c.execute("INSERT INTO searches(id,config,created,next_due,owner_id) VALUES(?,?,?,?,?)", (sid, config.model_dump_json(), time.time(), 0, owner_id))
     return sid
 
 
