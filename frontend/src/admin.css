@@ -561,33 +561,32 @@
 .canary-form > .field {
   flex: 1 1 120px;
 }
-/* Capacity: the share in use, what still fits, and a bar. */
-.capacity-used {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 12px;
+/* Ritmo: measured lines, and a thin bar of the queries per minute against the gate's limit. */
+.pace-line {
+  color: var(--muted);
   font-size: 15px;
-  line-height: 20px;
+  line-height: 22px;
 }
-.capacity-used strong {
-  font-size: 22px;
-  line-height: 28px;
+.pace-line strong {
+  color: var(--text);
+  font-size: 17px;
   font-variant-numeric: tabular-nums;
 }
-.capacity-used span {
-  color: var(--muted);
+.pace-line > svg {
+  margin-right: 6px;
+  vertical-align: -2px;
 }
-.capacity-used.is-warning strong {
+.pace-line.is-warning,
+.pace-line.is-warning strong {
   color: var(--status-amber-text);
 }
-.capacity-bar {
+.pace-bar {
   overflow: hidden;
-  height: 8px;
+  height: 4px;
   border-radius: var(--radius-pill);
   background: var(--fill-3);
 }
-.capacity-bar > span {
+.pace-bar > span {
   display: block;
   height: 100%;
   border-radius: inherit;
@@ -1542,10 +1541,10 @@
   .health-chart-plot,
   .health-swatch,
   .canary-dot,
-  .capacity-bar > span {
+  .pace-bar > span {
     forced-color-adjust: none;
   }
-  .capacity-bar {
+  .pace-bar {
     border: 1px solid CanvasText;
   }
   .channel-link.is-selected {

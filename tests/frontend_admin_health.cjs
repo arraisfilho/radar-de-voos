@@ -136,7 +136,7 @@ assert.ok(html.includes('<li>O envio de WhatsApp parou.</li><li>O envio de e-mai
 const result=(status,at,ms=3000)=>({at,status,kind:status==='error'?'timeout':null,duration_ms:ms});
 metrics={...full,canary:{enabled:true,origin:'GRU',destination:'REC',failed_streak:1,next_at:now+1200,
   history:[result('ok',now-5400),result('empty',now-3600),result('blocked',now-1800),result('error',now-600)],last:result('error',now-600),day:{total:46,success_rate:.9565,mean_ms:3900}},
- capacity:{trips:9,queries_per_cycle:42,interval_s:300,parallel:2,min_gap_s:5,p50_ms:4100,throughput_per_cycle:60,used:.7,more_trips:2,limit:'gap'},settings:{notices:true,digest:false,canary:{enabled:true,origin:'GRU',destination:'REC'}}};
+ pace:{per_min:11.8,limit_per_min:12,p50_ms:1500,p95_ms:1900,interval_s:420,target_s:300},settings:{notices:true,digest:false,canary:{enabled:true,origin:'GRU',destination:'REC'}}};
 html=render();
 const card=html.split('id="canary-title"')[1].split('</section>')[0];
 assert.ok(card.includes('GRU → REC · a cada 30 minutos')&&card.includes('<span class="status-pill is-warning">Erro</span>'));
@@ -144,15 +144,21 @@ assert.match(card,/<dt>Último resultado<\/dt><dd>Erro<small>[^<]+<\/small><\/dd
 assert.ok(card.includes('<dt>Latência média (24 h)</dt><dd>3,9 s</dd>')&&card.includes('<dt>Sucesso (24 h)</dt><dd>95,7%<small>46 consultas</small></dd>'));
 assert.match(card,/<div class="canary-dots" role="img" aria-label="Últimos 4 resultados, do mais antigo ao mais recente: com resultado, sem resultado, bloqueio, erro\.">(<span class="canary-dot is-(ok|empty|blocked|error)" title="[^"]+"><\/span>){4}<\/div>/);
 assert.ok(card.includes('value="GRU"')&&card.includes('value="REC"')&&card.includes('Salvar rota'));
-// Capacity: the share in use, what still fits, and the estimate explained.
-const capacityCard=html.split('id="capacity-title"')[1].split('</section>')[0];
-assert.match(capacityCard,/<p class="capacity-used"><strong>Capacidade usada: 70%<\/strong><span>cabem cerca de 2 viagens a mais<\/span><\/p>/);
-assert.ok(capacityCard.includes('aria-label="Como a capacidade é estimada"'));
-metrics={...metrics,capacity:{...metrics.capacity,used:null,more_trips:null,throughput_per_cycle:null,p50_ms:null}};html=render();
-assert.ok(html.includes('Sem consultas nas últimas 24 horas para estimar a vazão.'));
-metrics={...metrics,status:{level:'warning',reasons:['source_canary','capacity_high']},canary:{...metrics.canary,failed_streak:3},capacity:{...metrics.capacity,used:.85,more_trips:0,throughput_per_cycle:60,p50_ms:4100}};html=render();
-assert.ok(html.includes('<li>A rota de controle GRU → REC falhou nas últimas 3 consultas.</li><li>A fonte está com 85% da capacidade em uso (limite: 80%).</li>'));
-assert.match(html,/<p class="capacity-used is-warning"><strong>Capacidade usada: 85%<\/strong><span>cabem cerca de 0 viagens a mais<\/span>/);
+// Ritmo: measured lines, the bar of queries per minute against the limit, and the plain-language help. No capacity estimate anywhere.
+const paceCard=html.split('id="pace-title"')[1].split('</section>')[0];
+assert.ok(paceCard.includes('<p class="pace-line"><strong>11,8 / 12</strong> consultas por minuto</p>'));
+assert.ok(paceCard.includes('<div class="pace-bar" aria-hidden="true"><span style="width:98%"></span></div>'));
+assert.ok(paceCard.includes('<p class="pace-line">Resposta <strong>1,5 s</strong> · p95 1,9 s</p>'));
+assert.match(paceCard,/<p class="pace-line is-warning"><svg[^>]*>[\s\S]*?<\/svg>Viagens atualizadas a cada <strong>7 min<\/strong> \(meta: 5 min\)<span class=\"sr-only\"> · acima da meta<\/span><\/p>/,'420 s is above 1.2 × 300: the warning tone');
+assert.ok(paceCard.includes('aria-label="Sobre o ritmo"'));
+assert.ok(!/[Cc]apacidade/.test(html),'The capacity card and its alert are gone');
+// Up to 1.2 × the target (360 s), no warning; without data, dashes and a sentence.
+metrics={...metrics,pace:{...metrics.pace,interval_s:360}};html=render();assert.ok(html.includes('<p class="pace-line">Viagens atualizadas a cada <strong>6 min</strong> (meta: 5 min)</p>'));
+metrics={...metrics,pace:{per_min:null,limit_per_min:12,p50_ms:null,p95_ms:null,interval_s:null,target_s:300}};html=render();
+assert.ok(html.includes('<strong>— / 12</strong> consultas por minuto')&&html.includes('<span style="width:0%"></span>')&&html.includes('Resposta <strong>—</strong> · p95 —'));
+assert.ok(html.includes('<p class="pace-line">Intervalo das viagens: ainda sem dois ciclos de uma mesma viagem na última hora.</p>'));
+metrics={...metrics,status:{level:'warning',reasons:['source_canary']},canary:{...metrics.canary,failed_streak:3}};html=render();
+assert.ok(html.includes('<li>A rota de controle GRU → REC falhou nas últimas 3 consultas.</li></ul>'));
 metrics={...metrics,canary:{...metrics.canary,enabled:false}};html=render();assert.ok(html.includes('Desligada: a fonte é medida só pelas viagens.'));
 // The summary switch, off by default.
 assert.match(html,/<strong>Resumo diário<\/strong><small>Às 08:00 no fuso de cada administrador: [^<]+<\/small><\/span><input type="checkbox" role="switch" class="switch"\/>/);
@@ -194,5 +200,5 @@ assert.deepEqual(rule('.health-banner.is-warning'),{background:'var(--status-amb
 for(const [key,tone] of [['ok','green'],['empty','gray'],['error','amber'],['blocked','red']])assert.equal(rule('.health-bar.is-'+key).fill,`var(--status-${tone}-text)`);
 assert.equal(rule('.health-latency').stroke,'var(--chart-out)');
 assert.match(rule('.health-tiles')['grid-template-columns'],/minmax\(min\(100%, 140px\), 1fr\)/,'Two tiles side by side at 375 px');
-console.log('Admin health: first tab and default route, notices and summary switches (aria-busy), control route card and dots, capacity with its estimate, open incidents with Reconhecer and notice counts, history, banner levels and reasons, tiles, accessible 24 h chart, source and services, linked route lists, empty, loading and error states passed.');
+console.log('Admin health: first tab and default route, notices and summary switches (aria-busy), control route card and dots, the measured pace (Ritmo), open incidents with Reconhecer and notice counts, history, banner levels and reasons, tiles, accessible 24 h chart, source and services, linked route lists, empty, loading and error states passed.');
 })().catch(error=>{console.error(error);process.exit(1);});

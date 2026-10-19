@@ -310,7 +310,7 @@ class EndpointTests(unittest.TestCase):
             response = self.admin.get('/api/admin/health')
         self.assertEqual(response.status_code, 200); self.assertEqual(response.headers['cache-control'], 'no-store')
         body = response.json()
-        self.assertEqual(set(body), {'generated_at', 'trips', 'queries', 'series', 'cycles', 'freshness', 'queue', 'source', 'workers', 'channels', 'canary', 'capacity',
+        self.assertEqual(set(body), {'generated_at', 'trips', 'queries', 'series', 'cycles', 'freshness', 'queue', 'source', 'workers', 'channels', 'canary', 'pace',
                                      'slow_routes', 'failing_routes', 'empty_trips', 'status', 'incidents', 'settings'})
         self.assertEqual((body['incidents'], body['settings']['notices']), ([], True))
         self.assertEqual(set(body['queries']), {'hour', 'day'}); self.assertEqual(len(body['series']), 24)

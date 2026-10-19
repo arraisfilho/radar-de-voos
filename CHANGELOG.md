@@ -1,5 +1,13 @@
 # Alterações
 
+## 0.31.0
+
+### Added
+- Cartão Ritmo na aba Saúde com números medidos nos últimos 15 min: consultas por minuto ao lado do limite de 12, tempo de resposta (mediana e p95) e de quanto em quanto tempo as viagens são atualizadas, contra a meta de 5 min.
+
+### Removed
+- Estimativa de capacidade da fonte e o alerta "capacidade alta", que avisava sobre uma projeção e não sobre um efeito real; o atraso da fila e as falhas da fonte continuam vigiados.
+
 ## 0.30.1
 
 ### Changed

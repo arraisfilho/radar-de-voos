@@ -1312,17 +1312,14 @@ export type HealthMetrics = {
     day: { total: number; success_rate: number | null; mean_ms: number | null };
     next_at: number | null;
   };
-  capacity?: {
-    trips: number;
-    queries_per_cycle: number;
-    interval_s: number;
-    parallel: number;
-    min_gap_s: number;
+  /** Measured over the last 15 min (queries, response) and the last hour (interval); null without data. */
+  pace?: {
+    per_min: number | null;
+    limit_per_min: number;
     p50_ms: number | null;
-    throughput_per_cycle: number | null;
-    used: number | null;
-    more_trips: number | null;
-    limit: "gap" | "latency" | null;
+    p95_ms: number | null;
+    interval_s: number | null;
+    target_s: number;
   };
 };
 type CanaryResult = { at: number; status: "ok" | "empty" | "error" | "blocked"; kind: string | null; duration_ms: number };
@@ -1346,6 +1343,19 @@ const failureKinds = (): Record<string, string> => ({
 /** Milliseconds: "850 ms", "4,1 s". */
 const millis = (ms: number | null | undefined) =>
   ms == null ? "—" : ms < 1000 ? t("{0} ms", [formatNumber(ms)]) : t("{0} s", [formatNumber(ms / 1000, 1)]);
+/** A translated sentence whose {0} is an element (a bold number), placed where each language puts it. */
+function withValue(key: string, value: ReactNode, values: unknown[] = []) {
+  const [before, after = ""] = t(key, ["\u0000", ...values]).split("\u0000");
+  return (
+    <>
+      {before}
+      {value}
+      {after}
+    </>
+  );
+}
+/** Trips refreshed this much slower than the target tint the pace's interval line. */
+const PACE_SLOW = 1.2;
 /** Seconds: "45 s", "12 min", "2 h 5 min". */
 const lasting = (seconds: number | null | undefined) =>
   seconds == null ? "—" : seconds < 60 ? t("{0} s", [formatNumber(Math.max(0, seconds))]) : formatDuration(seconds / 60);
@@ -1382,8 +1392,6 @@ function reasonText(code: string, m: HealthMetrics): string {
         m.canary ? `${m.canary.origin} → ${m.canary.destination}` : "",
         formatNumber(m.canary?.failed_streak ?? 0),
       ]);
-    case "capacity_high":
-      return t("A fonte está com {0} da capacidade em uso (limite: 80%).", [formatPercent(m.capacity?.used)]);
     case "whatsapp_failing":
       return t("As últimas {0} mensagens de WhatsApp falharam.", [formatNumber(m.channels?.whatsapp?.failed_streak ?? 0)]);
     case "email_failing":
@@ -1606,7 +1614,8 @@ function HealthPanel({ navigate, request }: { navigate?: Navigate; request: Requ
   }
   const outcome = outcomeLabels();
   const draft = route ?? { origin: probe?.origin || "GRU", destination: probe?.destination || "REC" };
-  const capacity = m.capacity;
+  const pace = m.pace;
+  const slow = !!pace?.interval_s && pace.interval_s > PACE_SLOW * pace.target_s;
   return (
     <div className="admin-stack health">
       <section className="card admin-card" aria-labelledby="health-title">
@@ -1931,49 +1940,40 @@ function HealthPanel({ navigate, request }: { navigate?: Navigate; request: Requ
             </details>
           </section>
         )}
-        {capacity && (
-          <section className="card admin-card capacity-card" aria-labelledby="capacity-title">
+        {pace && (
+          <section className="card admin-card pace-card" aria-labelledby="pace-title">
             <header className="admin-card-heading">
               <div>
                 <div className="admin-card-title">
-                  <h2 id="capacity-title">{t("Capacidade da fonte")}</h2>
-                  <InfoTip label={t("Como a capacidade é estimada")}>
+                  <h2 id="pace-title">{t("Ritmo")}</h2>
+                  <InfoTip label={t("Sobre o ritmo")}>
                     <p>
-                      {t("Carga: as viagens ativas pedem {0} consultas a cada 5 minutos (rotas × datas ainda por vir de cada viagem).", [
-                        formatNumber(capacity.queries_per_cycle),
+                      {t("Consultas por minuto: quantas consultas foram de fato enviadas à fonte nos últimos 15 minutos, com a rota de controle. O limite de {0} por minuto (uma nova consulta a cada {1}) é uma proteção contra bloqueios da fonte.", [
+                        formatNumber(pace.limit_per_min, 1),
+                        lasting(60 / pace.limit_per_min),
                       ])}
                     </p>
-                    <p>
-                      {capacity.throughput_per_cycle == null
-                        ? t("Vazão: desconhecida até haver consultas nas últimas 24 horas.")
-                        : t("Vazão: até {0} consultas a cada 5 minutos — {1} consultas ao mesmo tempo com a mediana de resposta de {2}, e no máximo uma nova consulta a cada {3}.", [
-                            formatNumber(capacity.throughput_per_cycle),
-                            formatNumber(capacity.parallel),
-                            millis(capacity.p50_ms),
-                            lasting(capacity.min_gap_s),
-                          ])}
-                    </p>
-                    <p>{t("É uma estimativa: não conta a espera entre consultas de uma mesma conta, as novas tentativas nem a rota de controle.")}</p>
+                    <p>{t("Resposta: quanto a fonte levou para responder nos últimos 15 minutos, na mediana e no p95. Um tempo alto significa que a fonte está lenta.")}</p>
+                    <p>{t("Intervalo: de quanto em quanto tempo cada viagem ativa foi de fato atualizada na última hora. Acima da meta, as viagens estão demorando mais para atualizar.")}</p>
                   </InfoTip>
                 </div>
-                <p>{t("Quanto da vazão da fonte as viagens ativas usam.")}</p>
+                <p>{t("Medido nos últimos 15 minutos e, o intervalo, na última hora.")}</p>
               </div>
             </header>
-            {capacity.used == null ? (
-              <p className="admin-footnote">{t("Sem consultas nas últimas 24 horas para estimar a vazão.")}</p>
-            ) : (
-              <>
-                <p className={clsx("capacity-used", reasons.has("capacity_high") && "is-warning")}>
-                  <strong>{t("Capacidade usada: {0}", [formatPercent(capacity.used)])}</strong>
-                  {capacity.more_trips != null && (
-                    <span>{plural(capacity.more_trips, "cabe cerca de {0} viagem a mais", "cabem cerca de {0} viagens a mais", formatNumber(capacity.more_trips))}</span>
-                  )}
-                </p>
-                <div className="capacity-bar" aria-hidden="true">
-                  <span style={{ width: Math.min(100, Math.round(capacity.used * 100)) + "%" }} />
-                </div>
-              </>
-            )}
+            <p className="pace-line">
+              {withValue("{0} consultas por minuto", <strong>{(pace.per_min == null ? "—" : formatNumber(pace.per_min, 1)) + " / " + formatNumber(pace.limit_per_min, 1)}</strong>)}
+            </p>
+            <div className="pace-bar" aria-hidden="true">
+              <span style={{ width: Math.min(100, Math.round((100 * (pace.per_min || 0)) / pace.limit_per_min)) + "%" }} />
+            </div>
+            <p className="pace-line">{withValue("Resposta {0} · p95 {1}", <strong>{millis(pace.p50_ms)}</strong>, [millis(pace.p95_ms)])}</p>
+            <p className={clsx("pace-line", slow && "is-warning")}>
+              {slow && <TriangleAlert size={15} aria-hidden="true" />}
+              {pace.interval_s == null
+                ? t("Intervalo das viagens: ainda sem dois ciclos de uma mesma viagem na última hora.")
+                : withValue("Viagens atualizadas a cada {0} (meta: {1})", <strong>{lasting(pace.interval_s)}</strong>, [lasting(pace.target_s)])}
+              {slow && <span className="sr-only"> · {t("acima da meta")}</span>}
+            </p>
           </section>
         )}
       </div>

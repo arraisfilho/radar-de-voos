@@ -1,4 +1,4 @@
-"""Rota de controle (canary) and source capacity: interval, breaker, records, assess and the estimate; no source requests."""
+"""Rota de controle (canary) and the measured pace (ritmo): interval, breaker, records, assess; no source requests."""
 import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
 import tempfile
 import threading
@@ -102,14 +102,6 @@ class CanaryTests(Isolated):
         with store.db() as c: data = source.load(c)
         self.assertEqual((source.gate(), data['state'], data['probe_at']), ('probe', 'half_open', None))
 
-    def test_a_trip_the_rules_no_longer_read_is_left_out_of_the_estimate(self):
-        from backend import accounts
-        owner = accounts.register(accounts.Registration(name='Capacity fixture', country='US', phone='6502530000', password='fixture-password-only'), Response())['id']
-        with store.db() as c: store.add_search(c, Search(origins=['THE'], destinations=['GRU'], outbound=Leg(start='2090-11-05T00:00', end='2090-11-05T23:59')), owner)
-        with patch.object(health, 'pending_jobs', side_effect=KeyError('XXX')):
-            result = health.collect(WORKERS)['capacity']
-        self.assertEqual((result['trips'], result['queries_per_cycle']), (0, 0))
-
     def test_three_failures_in_a_row_warn_and_the_card_reads_the_configured_route(self):
         now = time.time()
         for index, status in enumerate(['ok', 'empty', 'error', 'blocked']):
@@ -150,45 +142,67 @@ class CanaryTests(Isolated):
         self.assertEqual(canary.settings(), {'enabled': True, 'origin': 'GRU', 'destination': 'REC'})
 
 
-class CapacityTests(unittest.TestCase):
-    def test_load_over_throughput_bound_by_the_gate_or_the_latency(self):
-        # 21 queries per 5 min; 2 at a time at 4 s would serve 150, but the gate starts one every 5 s: 60.
-        result = health.capacity([7, 14], 4000)
-        self.assertEqual({k: result[k] for k in ('queries_per_cycle', 'throughput_per_cycle', 'used', 'more_trips', 'limit')},
-                         {'queries_per_cycle': 21, 'throughput_per_cycle': 60.0, 'used': .35, 'more_trips': 3, 'limit': 'gap'})
-        # At 20 s per query, the latency binds: 2/20 × 300 = 30 per cycle.
-        result = health.capacity([7, 14], 20000)
-        self.assertEqual((result['throughput_per_cycle'], result['used'], result['more_trips'], result['limit']), (30.0, .7, 0, 'latency'))
-        self.assertEqual(health.capacity([60], 4000)['more_trips'], 0)
-        self.assertEqual(health.capacity([90], 4000)['used'], 1.5)
+class PaceTests(Isolated):
+    def trip(self, owner, active=True):
+        search = Search(origins=['THE'], destinations=['GRU'], outbound=Leg(start='2090-11-05T00:00', end='2090-11-05T23:59'))
+        with store.db() as c:
+            sid = store.add_search(c, search, owner)
+            if not active: c.execute('UPDATE searches SET active=0 WHERE id=?', (sid,))
+        return sid
 
-    def test_no_trips_and_unknown_latency(self):
-        empty = health.capacity([], 4000)
-        self.assertEqual((empty['used'], empty['more_trips']), (0, 60//health.TYPICAL_QUERIES))
-        unknown = health.capacity([7], None)
-        self.assertEqual((unknown['used'], unknown['more_trips'], unknown['throughput_per_cycle'], unknown['queries_per_cycle']), (None, None, None, 7))
+    def cycles(self, sid, *starts):
+        with store.db() as c:
+            for started in starts:
+                c.execute("INSERT INTO cycles(search_id,version,started,finished,status,total) VALUES(?,1,?,?,'scheduled',1)", (sid, started, started+30))
 
-    def test_warning_above_eighty_percent(self):
-        base = {'generated_at': 0, 'source': None, 'workers': {}, 'queries': {'hour': {'total': 0, 'error': 0, 'blocked': 0}},
-                'queue': {'max_delay_s': None}, 'freshness': {'stalest': None}}
-        for used, reasons in ((.8, []), (.8001, ['capacity_high']), (None, [])):
-            with self.subTest(used=used):
-                self.assertEqual(health.assess({**base, 'capacity': {'used': used}})['reasons'], reasons)
+    def test_without_data_every_measure_is_null(self):
+        self.assertEqual(health.collect(WORKERS)['pace'], {'per_min': None, 'limit_per_min': 12.0, 'p50_ms': None, 'p95_ms': None, 'interval_s': None, 'target_s': 300})
 
-    def test_collect_counts_the_queries_each_active_trip_still_makes(self):
-        with tempfile.TemporaryDirectory() as folder, patch.object(store, 'DATA_DIR', Path(folder)):
-            store.setup(seed=False)
-            owner = accounts.register(accounts.Registration(name='Capacity fixture', country='US', phone='6502530000', password='fixture-password-only'), Response())['id']
-            search = Search(origins=['THE'], destinations=['GRU', 'CGH'], outbound=Leg(start='2090-11-05T00:00', end='2090-11-07T23:59'))
-            with store.db() as c:
-                store.add_search(c, search, owner)
-                paused = store.add_search(c, search, owner); c.execute('UPDATE searches SET active=0 WHERE id=?', (paused,))
-                c.execute("INSERT INTO source_queries(at,search_id,route_key,status,duration_ms) VALUES(?,?,?,?,?)", (time.time()-60, 'x', 'k', 'ok', 8000))
-            result = health.collect(WORKERS)['capacity']
-        self.assertEqual({k: result[k] for k in ('trips', 'queries_per_cycle', 'parallel', 'min_gap_s', 'interval_s', 'p50_ms')},
-                         {'trips': 1, 'queries_per_cycle': 6, 'parallel': 2, 'min_gap_s': 5.0, 'interval_s': 300, 'p50_ms': 8000})
-        self.assertEqual((result['throughput_per_cycle'], result['used'], result['more_trips']), (60.0, .1, 9))
+    def test_queries_per_minute_and_response_times_of_the_last_fifteen_minutes(self):
+        now = time.time()
+        # 177 queries in 15 min, the canary among them, and one just outside the window.
+        for index in range(177):
+            self.put(now-10-index*5, 'ok', sid='trip' if index % 3 else canary.ID, duration=1000+index*10)
+        self.put(now-901, 'ok', sid='trip', duration=99999)
+        pace = health.collect(WORKERS, now)['pace']
+        self.assertEqual({k: pace[k] for k in ('per_min', 'limit_per_min', 'p50_ms', 'p95_ms')}, {'per_min': 11.8, 'limit_per_min': 12.0, 'p50_ms': 1880, 'p95_ms': 2680})
+
+    def test_the_median_gap_between_consecutive_cycles_of_each_active_trip(self):
+        owner = accounts.register(accounts.Registration(name='Pace fixture', country='US', phone='6502530000', password='fixture-password-only'), Response())['id']
+        now = time.time()
+        first, second, single, paused = self.trip(owner), self.trip(owner), self.trip(owner), self.trip(owner, active=False)
+        # The cycle before the last hour does not count; a trip with one cycle has no gap; a paused trip is left out.
+        self.cycles(first, now-3700, now-3000, now-2700, now-2340)
+        self.cycles(second, now-1800, now-1440, now-1080, now-660)
+        self.cycles(single, now-100)
+        self.cycles(paused, now-200, now-170, now-140)
+        self.assertEqual(health.collect(WORKERS, now)['pace']['interval_s'], 360)
+        self.assertEqual(health.gaps([('a', 0), ('a', 300), ('b', 10), ('a', 660)]), [300, 360])
+        self.assertEqual(health.gaps([('a', 0)]), [])
+
+    def test_no_capacity_estimate_and_no_alert_for_it(self):
+        metrics = health.collect(WORKERS)
+        self.assertNotIn('capacity', metrics); self.assertNotIn('capacity_high', health.LEVELS)
+        self.assertFalse(hasattr(health, 'capacity'))
+        # An old estimate in the metrics warns of nothing.
+        self.assertEqual(health.assess({**metrics, 'capacity': {'used': 1.25}})['reasons'], [])
+        # An incident of the removed code goes at the next start, with its pending notice and without a "Resolvido".
+        with store.db() as c:
+            iid = c.execute("INSERT INTO health_incidents(code,level,opened_at,updated_at) VALUES('capacity_high','warning',?,?)", (time.time(), time.time())).lastrowid
+            c.execute("INSERT INTO outbox(id,created,alert_ids,subject,body,status,next_due,channel,kind) VALUES('held',?,'[]','s','b','pending',?,'email','health')", (time.time(), time.time()+3600))
+            c.execute("INSERT INTO health_notices VALUES('held',?,'opened')", (iid,))
+        store.setup(seed=False)
+        with store.db() as c:
+            self.assertEqual(c.execute("SELECT COUNT(*) FROM health_incidents WHERE code='capacity_high'").fetchone()[0], 0)
+            self.assertEqual(c.execute("SELECT status FROM outbox WHERE id='held'").fetchone()[0], 'cancelled')
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM health_notices').fetchone()[0], 0)
 
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class PaceGapTests(unittest.TestCase):
+    def test_a_pause_and_resume_is_not_the_collection_pace(self):
+        self.assertEqual(health.gaps([('a',0),('a',300),('a',2400),('b',100),('b',460)]),[300,360],'A gap above 30 min is a pause of the trip')
+
