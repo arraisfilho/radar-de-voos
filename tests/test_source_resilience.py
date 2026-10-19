@@ -879,7 +879,7 @@ class HealthTests(Isolated):
 
     def test_real_monitor_reports_heartbeats(self):
         monitor = Monitor()
-        self.assertEqual({name: value['age'] for name, value in monitor.status().items()}, dict.fromkeys(('collector', 'email_sender', 'whatsapp_sender')))
+        self.assertEqual({name: value['age'] for name, value in monitor.status().items()}, dict.fromkeys(('collector', 'email_sender', 'whatsapp_sender', 'health_watcher')))
         monitor.beat('collector')
         status = monitor.status(); self.assertLess(status['collector']['age'], 1); self.assertFalse(status['collector']['alive'])
 

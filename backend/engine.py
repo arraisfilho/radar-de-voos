@@ -14,9 +14,9 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
-from .domain import Search, jobs, eligible, local_instant, monitoring_deadline, ADAPTER_VERSION as SOURCE_VERSION
+from .domain import Search, jobs, pending_jobs, eligible, local_instant, monitoring_deadline, ADAPTER_VERSION as SOURCE_VERSION
 from .store import db
-from . import mail,whatsapp,source
+from . import mail,whatsapp,source,health
 from .notifications import sync_alerts,link
 from .query_gate import QueryGate,Stopped
 from .alert_messages import money
@@ -24,7 +24,7 @@ from .alert_messages import money
 ROOT = Path(__file__).resolve().parents[1]
 logger = logging.getLogger("radar.engine")
 # Seconds without a loop iteration before /api/health reports the worker as stale.
-HEARTBEAT_LIMITS = {"collector": 120, "email_sender": 300, "whatsapp_sender": 300}
+HEARTBEAT_LIMITS = {"collector": 120, "email_sender": 300, "whatsapp_sender": 300, "health_watcher": 180}
 COLLECTOR = (sys.executable, "-m", "backend.collector")
 # Monitor.stop waits this long; with uvicorn's 10 s HTTP drain it fits compose's stop_grace_period (45 s).
 STOP_TIMEOUT = 30
@@ -39,6 +39,10 @@ CHILDREN_LOCK = threading.Lock()
 REMINDER_INTERVAL = 86400
 # Seconds between two alerts of one direction.
 MIN_GAP = 600
+# Collection cycles at once (one per account unless a trip is new or refreshed); the canary takes one of them.
+CYCLE_LIMIT = 2
+# Seconds after the collector starts before the canary is first considered: after a restart the trips go first.
+CANARY_DELAY = 60
 
 
 def recent(last_alerted, now):
@@ -273,7 +277,9 @@ class Monitor:
         self.worker = threading.Thread(target=self.loop, daemon=True, name="radar-collector")
         self.sender = threading.Thread(target=self.send_loop, daemon=True, name="radar-smtp")
         self.whatsapp_sender=threading.Thread(target=self.whatsapp_loop,daemon=True,name="radar-whatsapp")
-        self.threads = {"collector": self.worker, "email_sender": self.sender, "whatsapp_sender": self.whatsapp_sender}
+        # The health watcher has a thread of its own: it must see the collector and the senders stuck.
+        self.watcher=threading.Thread(target=self.watch_loop,daemon=True,name="radar-health")
+        self.threads = {"collector": self.worker, "email_sender": self.sender, "whatsapp_sender": self.whatsapp_sender, "health_watcher": self.watcher}
         self.heartbeats = {}
 
     def start(self):
@@ -283,6 +289,7 @@ class Monitor:
         self.worker.start()
         self.sender.start()
         self.whatsapp_sender.start()
+        self.watcher.start()
 
     def stop(self, timeout=STOP_TIMEOUT):
         """Stop the workers, waiting up to timeout seconds; True when all of them ended in time.
@@ -325,7 +332,8 @@ class Monitor:
     def loop(self):
         running={}
         maintenance_due=0
-        with ThreadPoolExecutor(max_workers=2,thread_name_prefix='radar-cycle') as pool:
+        canary_check=time.monotonic()+CANARY_DELAY
+        with ThreadPoolExecutor(max_workers=CYCLE_LIMIT,thread_name_prefix='radar-cycle') as pool:
             while not self.stop_event.is_set():
                 self.beat("collector")
                 if time.monotonic()>=maintenance_due:
@@ -337,6 +345,8 @@ class Monitor:
                         from .audit import cleanup as audit_cleanup
                         audit_cleanup()
                     except Exception:logger.exception('Falha na manutenção de retenção')
+                    try:health.cleanup()
+                    except Exception:logger.exception('Falha na limpeza das consultas à fonte')
                     maintenance_due=time.monotonic()+3600
                 for future,row in list(running.items()):
                     if future.done():
@@ -344,12 +354,19 @@ class Monitor:
                         try:future.result()
                         except Exception:
                             logger.exception('Falha inesperada na coleta',extra={'search_id':row['id']})
-                            if not self.stop_event.is_set():self.cycle_error(row)
+                            if not self.stop_event.is_set() and not row.get('canary'):self.cycle_error(row)
                 owners={row['owner_id'] or row['id'] for row in running.values()}
                 busy={row['id'] for row in running.values()}
                 try:
                     # While the source breaker is open nothing starts; when it may be tested, one cycle at a time.
-                    limit={'closed':2,'probe':1}.get(source.gate(),0)
+                    gate=source.gate()
+                    limit={'closed':CYCLE_LIMIT,'probe':1}.get(gate,0)
+                    # The canary (rota de controle) takes a cycle slot when due, with the breaker closed only: never
+                    # while the source is paused, and the half-open test query stays with the trips.
+                    if gate=='closed' and len(running)<limit and time.monotonic()>=canary_check and not any(r.get('canary') for r in running.values()):
+                        canary_check=time.monotonic()+60
+                        from . import canary
+                        if canary.due():running[pool.submit(self.run_canary)]={'id':canary.ID,'owner_id':canary.ID,'canary':True}
                     if len(running)<limit:
                         with db() as c:due=c.execute("SELECT * FROM searches WHERE active=1 AND archived=0 AND next_due<=? ORDER BY next_due,id",(time.time(),)).fetchall()
                         for item in due:
@@ -369,22 +386,34 @@ class Monitor:
     def skipped(self,job):
         return {'status':'skipped','flights':[],'direction':job[0],'origin':job[1],'destination':job[2],'date':job[3],'collected_at':time.time()}
 
-    def gated_fetch(self,search,job,row):
+    def run_canary(self):
+        """One canary query through gated_fetch: the query gate, the breaker and source_queries like any route."""
+        from . import canary
+        config=canary.settings()
+        if not config['enabled']:return None
+        search,job=canary.query(config)
+        return self.gated_fetch(search,job,{'id':canary.ID,'owner_id':canary.ID,'version':0},canary=True)
+
+    def gated_fetch(self,search,job,row,canary=False):
         # Nothing starts while stopping. Do not wait for a gate slot while the source is paused; during a probe, wait for its result.
         if self.stop_event.is_set() or source.gate()=='paused':return self.skipped(job)
         try:
             with self.query_gate.slot(row.get('owner_id') or row['id'],self.stop_event):
                 with db() as c:current=c.execute('SELECT active,archived,version FROM searches WHERE id=?',(row['id'],)).fetchone()
                 # Paused, archived or edited meanwhile: the route was not queried, so it is skipped (no result row).
-                if not current or not current['active'] or current['archived'] or current['version']!=row['version']:
+                if not canary and (not current or not current['active'] or current['archived'] or current['version']!=row['version']):
                     return self.skipped(job)
                 # Stopping: skipped before admission, so no breaker test query is taken.
                 if self.stop_event.is_set():return self.skipped(job)
                 admission=source.admit()
                 if admission is None:return self.skipped(job)
+                # The breaker's half-open test query stays with the trips: the canary gives it back unused.
+                if canary and admission.kind=='probe':
+                    source.release(admission);return self.skipped(job)
                 # admit() can wait for the breaker's locks: a stop requested meanwhile frees the admission unused.
                 if self.stop_event.is_set():
                     source.release(admission);return self.skipped(job)
+                started=time.monotonic()
                 try:result=fetch(search,job)
                 except QueryInterrupted:
                     # Ended by a shutdown, maybe before Monitor.stop: no answer, so neither a failure nor a backoff.
@@ -392,7 +421,10 @@ class Monitor:
                     return self.skipped(job)
                 except BaseException:
                     source.release(admission);raise
+                elapsed=(time.monotonic()-started)*1000
                 source.observe(result,admission,route=job[1]+'-'+job[2])
+                # Only queries that reached the source are recorded, after the breaker: a locked database never holds it up.
+                health.record(row,job,result,elapsed)
                 if result.get('status')=='error':
                     logger.warning('Consulta à fonte falhou',extra={'search_id':row['id'],'kind':result.get('kind')})
                 return result
@@ -406,7 +438,7 @@ class Monitor:
                 c.execute("UPDATE searches SET active=0,archived=1,state='expired',next_due=NULL WHERE id=? AND version=?", (sid,version))
             return
         start = time.time()
-        tasks = [j for j in jobs(search) if local_instant(min((search.outbound if j[0]=='outbound' else search.inbound).end,j[3]+"T23:59:59"),j[1]).timestamp() > start]
+        tasks = pending_jobs(search, start)
         if not tasks:
             return
         with db() as c:
@@ -476,6 +508,18 @@ class Monitor:
             except Exception:logger.exception('Falha inesperada na fila WhatsApp')
             self.stop_event.wait(2)
 
+    def watch_loop(self):
+        from . import incidents
+        while not self.stop_event.is_set():
+            self.beat("health_watcher")
+            try:incidents.watch(self.status())
+            except Exception:logger.exception('Falha na vigilância de saúde')
+            try:
+                from . import digest
+                digest.send_due()
+            except Exception:logger.exception('Falha no resumo diário de saúde')
+            self.stop_event.wait(incidents.CHECK_SECONDS)
+
     def send_one(self):
         config = mail.delivery_settings()
         with db() as c:
@@ -532,3 +576,6 @@ class Monitor:
             # No blind SMTP retries after an ambiguous transport failure.
             c.execute("UPDATE outbox SET status=?,error=?,sent=? WHERE id=?", (status,error,time.time() if status=="sent" else None,row["id"]))
             sync_alerts(c,json.loads(row['alert_ids']))
+            if status=="sent" and row.get("kind")=="health":
+                from .incidents import mark_sent
+                mark_sent(c,row["id"],time.time())

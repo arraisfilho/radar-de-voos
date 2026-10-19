@@ -235,7 +235,7 @@ export function Profile({
           {onAdmin && (
             <a
               className="list-row"
-              href={routePath({ view: "admin", section: "deliveries" })}
+              href={routePath({ view: "admin", section: "health" })}
               onClick={(event) => plainClick(event) && onAdmin()}
             >
               <Shield size={18} aria-hidden="true" />

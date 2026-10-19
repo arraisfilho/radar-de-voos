@@ -6090,5 +6090,705 @@
   "Limite de atualizações manuais por hora atingido": {
     "en": "Hourly limit of manual updates reached",
     "es": "Límite de actualizaciones manuales por hora alcanzado"
+  },
+  "Saúde": {
+    "en": "Health",
+    "es": "Salud"
+  },
+  "Acompanhe as consultas à fonte, a fila de coletas e os serviços.": {
+    "en": "Follow the fare source queries, the collection queue and the services.",
+    "es": "Sigue las consultas a la fuente, la cola de consultas y los servicios."
+  },
+  "Saúde do radar": {
+    "en": "Radar health",
+    "es": "Salud del radar"
+  },
+  "Atualizado às {0} · atualização automática a cada 30 segundos.": {
+    "en": "Updated at {0} · refreshes automatically every 30 seconds.",
+    "es": "Actualizado a las {0} · se actualiza automáticamente cada 30 segundos."
+  },
+  "Saudável": {
+    "en": "Healthy",
+    "es": "Saludable"
+  },
+  "Atenção": {
+    "en": "Attention",
+    "es": "Atención"
+  },
+  "Crítico": {
+    "en": "Critical",
+    "es": "Crítico"
+  },
+  "Consultas, fila e serviços dentro dos limites.": {
+    "en": "Queries, queue and services within limits.",
+    "es": "Consultas, cola y servicios dentro de los límites."
+  },
+  "Não foi possível atualizar agora. Os dados mostrados são das {0}.": {
+    "en": "Could not refresh now. The data shown is from {0}.",
+    "es": "No se pudo actualizar ahora. Los datos mostrados son de las {0}."
+  },
+  "A fonte de tarifas está pausada há {0}.": {
+    "en": "The fare source has been paused for {0}.",
+    "es": "La fuente de tarifas está en pausa desde hace {0}."
+  },
+  "O coletor de tarifas parou.": {
+    "en": "The fare collector has stopped.",
+    "es": "Las consultas de tarifas se detuvieron."
+  },
+  "O coletor de tarifas está sem sinal há {0} (limite: {1}).": {
+    "en": "The fare collector has been silent for {0} (limit: {1}).",
+    "es": "Las consultas de tarifas no dan señales desde hace {0} (límite: {1})."
+  },
+  "{0} das consultas da última hora falharam ({1} de {2}).": {
+    "en": "{0} of the last hour's queries failed ({1} of {2}).",
+    "es": "Fallaron el {0} de las consultas de la última hora ({1} de {2})."
+  },
+  "Uma viagem espera na fila de coletas há {0}.": {
+    "en": "A trip has been waiting in the collection queue for {0}.",
+    "es": "Un viaje espera en la cola de consultas desde hace {0}."
+  },
+  "“{0}” está sem coleta há {1}.": {
+    "en": "“{0}” has not been collected for {1}.",
+    "es": "“{0}” no se consulta desde hace {1}."
+  },
+  "Há uma viagem ativa sem coleta há mais de uma hora.": {
+    "en": "An active trip has not been collected for more than an hour.",
+    "es": "Hay un viaje activo sin consultar desde hace más de una hora."
+  },
+  "Viagens ativas": {
+    "en": "Active trips",
+    "es": "Viajes activos"
+  },
+  "em {0} conta": {
+    "en": "in {0} account",
+    "es": "en {0} cuenta"
+  },
+  "em {0} contas": {
+    "en": "in {0} accounts",
+    "es": "en {0} cuentas"
+  },
+  "Consultas em 1 h": {
+    "en": "Queries in 1 h",
+    "es": "Consultas en 1 h"
+  },
+  "{0} em 24 h": {
+    "en": "{0} in 24 h",
+    "es": "{0} en 24 h"
+  },
+  "Taxa de sucesso": {
+    "en": "Success rate",
+    "es": "Tasa de éxito"
+  },
+  "24 h: {0}": {
+    "en": "24 h: {0}",
+    "es": "24 h: {0}"
+  },
+  "Sem consultas na última hora": {
+    "en": "No queries in the last hour",
+    "es": "Sin consultas en la última hora"
+  },
+  "Resposta (p95)": {
+    "en": "Response (p95)",
+    "es": "Respuesta (p95)"
+  },
+  "mediana {0} na última hora": {
+    "en": "median {0} in the last hour",
+    "es": "mediana {0} en la última hora"
+  },
+  "Viagens atualizadas": {
+    "en": "Trips up to date",
+    "es": "Viajes actualizados"
+  },
+  "{0} de {1}": {
+    "en": "{0} of {1}",
+    "es": "{0} de {1}"
+  },
+  "nos últimos 10 min · mais antiga há {0}": {
+    "en": "in the last 10 min · oldest {0} ago",
+    "es": "en los últimos 10 min · el más antiguo hace {0}"
+  },
+  "nos últimos 10 min": {
+    "en": "in the last 10 min",
+    "es": "en los últimos 10 min"
+  },
+  "Atraso da fila": {
+    "en": "Queue delay",
+    "es": "Retraso de la cola"
+  },
+  "Sem atraso": {
+    "en": "No delay",
+    "es": "Sin retraso"
+  },
+  "{0} viagem aguardando coleta": {
+    "en": "{0} trip waiting to be collected",
+    "es": "{0} viaje esperando la consulta"
+  },
+  "{0} viagens aguardando coleta": {
+    "en": "{0} trips waiting to be collected",
+    "es": "{0} viajes esperando la consulta"
+  },
+  "Consultas nas últimas 24 horas": {
+    "en": "Queries in the last 24 hours",
+    "es": "Consultas en las últimas 24 horas"
+  },
+  "Cada barra é uma hora; a última é a hora atual.": {
+    "en": "Each bar is one hour; the last one is the current hour.",
+    "es": "Cada barra es una hora; la última es la hora actual."
+  },
+  "Com resultado": {
+    "en": "With results",
+    "es": "Con resultados"
+  },
+  "Sem resultado": {
+    "en": "No results",
+    "es": "Sin resultados"
+  },
+  "Erro": {
+    "en": "Error",
+    "es": "Error"
+  },
+  "Bloqueio": {
+    "en": "Block",
+    "es": "Bloqueo"
+  },
+  "Mediana de resposta": {
+    "en": "Median response",
+    "es": "Mediana de respuesta"
+  },
+  "Consultas por hora nas últimas 24 horas: {0} no total, {1} com resultado, {2} sem resultado, {3} com erro e {4} bloqueadas. Pico de {5} por hora; mediana de resposta de até {6}.": {
+    "en": "Queries per hour in the last 24 hours: {0} in total, {1} with results, {2} without results, {3} with errors and {4} blocked. Peak of {5} per hour; median response up to {6}.",
+    "es": "Consultas por hora en las últimas 24 horas: {0} en total, {1} con resultados, {2} sin resultados, {3} con error y {4} bloqueadas. Pico de {5} por hora; mediana de respuesta de hasta {6}."
+  },
+  "Nenhuma consulta à fonte nas últimas 24 horas.": {
+    "en": "No fare source queries in the last 24 hours.",
+    "es": "Ninguna consulta a la fuente en las últimas 24 horas."
+  },
+  "Barras: consultas por hora, até {0}. Linha: mediana do tempo de resposta.": {
+    "en": "Bars: queries per hour, up to {0}. Line: median response time.",
+    "es": "Barras: consultas por hora, hasta {0}. Línea: mediana del tiempo de respuesta."
+  },
+  "Serviços": {
+    "en": "Services",
+    "es": "Servicios"
+  },
+  "Coletor de tarifas": {
+    "en": "Fare collector",
+    "es": "Consultas de tarifas"
+  },
+  "Envio de e-mail": {
+    "en": "E-mail sending",
+    "es": "Envío de correo"
+  },
+  "Envio de WhatsApp": {
+    "en": "WhatsApp sending",
+    "es": "Envío de WhatsApp"
+  },
+  "Sem sinal ainda": {
+    "en": "No signal yet",
+    "es": "Sin señal todavía"
+  },
+  "Último sinal há {0}": {
+    "en": "Last signal {0} ago",
+    "es": "Última señal hace {0}"
+  },
+  "Parado": {
+    "en": "Stopped",
+    "es": "Detenido"
+  },
+  "Atrasado": {
+    "en": "Late",
+    "es": "Retrasado"
+  },
+  "{0} ciclo de coleta em 24 h": {
+    "en": "{0} collection cycle in 24 h",
+    "es": "{0} ciclo de consulta en 24 h"
+  },
+  "{0} ciclos de coleta em 24 h": {
+    "en": "{0} collection cycles in 24 h",
+    "es": "{0} ciclos de consulta en 24 h"
+  },
+  "duração média {0}": {
+    "en": "average length {0}",
+    "es": "duración media {0}"
+  },
+  "Rotas mais lentas": {
+    "en": "Slowest routes",
+    "es": "Rutas más lentas"
+  },
+  "Pela mediana do tempo de resposta nas últimas 24 horas.": {
+    "en": "By median response time in the last 24 hours.",
+    "es": "Por la mediana del tiempo de respuesta en las últimas 24 horas."
+  },
+  "Nenhuma consulta nas últimas 24 horas.": {
+    "en": "No queries in the last 24 hours.",
+    "es": "Ninguna consulta en las últimas 24 horas."
+  },
+  "mediana {0}": {
+    "en": "median {0}",
+    "es": "mediana {0}"
+  },
+  "p95 {0} · {1}": {
+    "en": "p95 {0} · {1}",
+    "es": "p95 {0} · {1}"
+  },
+  "{0} consulta": {
+    "en": "{0} query",
+    "es": "{0} consulta"
+  },
+  "{0} consultas": {
+    "en": "{0} queries",
+    "es": "{0} consultas"
+  },
+  "Rotas com falhas": {
+    "en": "Failing routes",
+    "es": "Rutas con fallos"
+  },
+  "Erros e bloqueios nas últimas 24 horas.": {
+    "en": "Errors and blocks in the last 24 hours.",
+    "es": "Errores y bloqueos en las últimas 24 horas."
+  },
+  "Nenhuma falha nas últimas 24 horas.": {
+    "en": "No failures in the last 24 hours.",
+    "es": "Ningún fallo en las últimas 24 horas."
+  },
+  "Viagens sem resultado": {
+    "en": "Trips without results",
+    "es": "Viajes sin resultados"
+  },
+  "Viagens ativas com resposta da fonte desde a última edição, mas sem nenhum preço completo para comparar.": {
+    "en": "Active trips the source has answered since their last edit, still without any complete price to compare.",
+    "es": "Viajes activos con respuesta de la fuente desde la última edición, pero sin ningún precio completo para comparar."
+  },
+  "Todas as viagens consultadas têm preço.": {
+    "en": "Every queried trip has a price.",
+    "es": "Todos los viajes consultados tienen precio."
+  },
+  "{0} ciclo sem preço": {
+    "en": "{0} cycle without a price",
+    "es": "{0} ciclo sin precio"
+  },
+  "{0} ciclos sem preço": {
+    "en": "{0} cycles without a price",
+    "es": "{0} ciclos sin precio"
+  },
+  "desde {0}": {
+    "en": "since {0}",
+    "es": "desde {0}"
+  },
+  "volta": {
+    "en": "return",
+    "es": "vuelta"
+  },
+  "Viagem excluída": {
+    "en": "Deleted trip",
+    "es": "Viaje eliminado"
+  },
+  "Limite da fonte": {
+    "en": "Source limit",
+    "es": "Límite de la fuente"
+  },
+  "Tempo esgotado": {
+    "en": "Timed out",
+    "es": "Tiempo agotado"
+  },
+  "Falha de rede": {
+    "en": "Network failure",
+    "es": "Fallo de red"
+  },
+  "Fonte indisponível": {
+    "en": "Source unavailable",
+    "es": "Fuente no disponible"
+  },
+  "Formato alterado": {
+    "en": "Format changed",
+    "es": "Formato modificado"
+  },
+  "Resposta sem voos": {
+    "en": "Answer without flights",
+    "es": "Respuesta sin vuelos"
+  },
+  "Falha desconhecida": {
+    "en": "Unknown failure",
+    "es": "Fallo desconocido"
+  },
+  "{0} ms": {
+    "en": "{0} ms",
+    "es": "{0} ms"
+  },
+  "{0} s": {
+    "en": "{0} s",
+    "es": "{0} s"
+  },
+  "{0} em pausa": {
+    "en": "{0} paused",
+    "es": "{0} en pausa"
+  },
+  "máx. {0}": {
+    "en": "max. {0}",
+    "es": "máx. {0}"
+  },
+  "O envio de WhatsApp parou.": {
+    "en": "WhatsApp sending has stopped.",
+    "es": "El envío de WhatsApp se detuvo."
+  },
+  "O envio de WhatsApp está sem sinal há {0} (limite: {1}).": {
+    "en": "WhatsApp sending has been silent for {0} (limit: {1}).",
+    "es": "El envío de WhatsApp no da señales desde hace {0} (límite: {1})."
+  },
+  "O envio de e-mail parou.": {
+    "en": "E-mail sending has stopped.",
+    "es": "El envío de correo se detuvo."
+  },
+  "O envio de e-mail está sem sinal há {0} (limite: {1}).": {
+    "en": "E-mail sending has been silent for {0} (limit: {1}).",
+    "es": "El envío de correo no da señales desde hace {0} (límite: {1})."
+  },
+  "As últimas {0} mensagens de WhatsApp falharam.": {
+    "en": "The last {0} WhatsApp messages failed.",
+    "es": "Fallaron los últimos {0} mensajes de WhatsApp."
+  },
+  "Os últimos {0} e-mails falharam.": {
+    "en": "The last {0} e-mails failed.",
+    "es": "Fallaron los últimos {0} correos."
+  },
+  "Não notificado: avisos de saúde desligados": {
+    "en": "Not notified: health notices are off",
+    "es": "Sin aviso: los avisos de salud están desactivados"
+  },
+  "Não notificado: nenhum canal disponível": {
+    "en": "Not notified: no channel available",
+    "es": "Sin aviso: ningún canal disponible"
+  },
+  "{0} aviso enviado": {
+    "en": "{0} notice sent",
+    "es": "{0} aviso enviado"
+  },
+  "{0} avisos enviados": {
+    "en": "{0} notices sent",
+    "es": "{0} avisos enviados"
+  },
+  "o próximo sai às {0}, depois do horário silencioso": {
+    "en": "the next one goes out at {0}, after quiet hours",
+    "es": "el próximo sale a las {0}, después del horario silencioso"
+  },
+  "Vigilância de saúde": {
+    "en": "Health watcher",
+    "es": "Vigilancia de salud"
+  },
+  "Avisos de saúde": {
+    "en": "Health notices",
+    "es": "Avisos de salud"
+  },
+  "Os administradores recebem os incidentes no WhatsApp e no e-mail do perfil.": {
+    "en": "Administrators get incidents on the WhatsApp and e-mail of their profile.",
+    "es": "Los administradores reciben los incidentes en el WhatsApp y el correo de su perfil."
+  },
+  "Desligados: os incidentes continuam registrados aqui, sem avisos.": {
+    "en": "Off: incidents are still recorded here, without notices.",
+    "es": "Desactivados: los incidentes siguen registrándose aquí, sin avisos."
+  },
+  "Incidentes abertos": {
+    "en": "Open incidents",
+    "es": "Incidentes abiertos"
+  },
+  "Desde {0} · há {1}": {
+    "en": "Since {0} · {1} ago",
+    "es": "Desde {0} · hace {1}"
+  },
+  "Reconhecido": {
+    "en": "Acknowledged",
+    "es": "Reconocido"
+  },
+  "por {0} às {1}": {
+    "en": "by {0} at {1}",
+    "es": "por {0} a las {1}"
+  },
+  "às {0}": {
+    "en": "at {0}",
+    "es": "a las {0}"
+  },
+  "Reconhecer: {0}": {
+    "en": "Acknowledge: {0}",
+    "es": "Reconocer: {0}"
+  },
+  "Reconhecer": {
+    "en": "Acknowledge",
+    "es": "Reconocer"
+  },
+  "Nenhum incidente aberto.": {
+    "en": "No open incidents.",
+    "es": "Ningún incidente abierto."
+  },
+  "Um incidente abre quando o problema aparece em duas verificações seguidas e fecha após três sem ele. Reconhecer encerra os lembretes.": {
+    "en": "An incident opens when the problem shows up in two checks in a row and closes after three without it. Acknowledging ends the reminders.",
+    "es": "Un incidente se abre cuando el problema aparece en dos verificaciones seguidas y se cierra tras tres sin él. Reconocerlo termina los recordatorios."
+  },
+  "Resolvido em {0} · durou {1}": {
+    "en": "Resolved on {0} · lasted {1}",
+    "es": "Resuelto el {0} · duró {1}"
+  },
+  "{0} aviso": {
+    "en": "{0} notice",
+    "es": "{0} aviso"
+  },
+  "{0} avisos": {
+    "en": "{0} notices",
+    "es": "{0} avisos"
+  },
+  "Nenhum incidente resolvido ainda.": {
+    "en": "No resolved incidents yet.",
+    "es": "Todavía no hay incidentes resueltos."
+  },
+  "Os últimos 20 incidentes resolvidos.": {
+    "en": "The last 20 resolved incidents.",
+    "es": "Los últimos 20 incidentes resueltos."
+  },
+  "Incidente de saúde reconhecido": {
+    "en": "Health incident acknowledged",
+    "es": "Incidente de salud reconocido"
+  },
+  "Avisos de saúde alterados": {
+    "en": "Health notices changed",
+    "es": "Avisos de salud modificados"
+  },
+  "Incidente": {
+    "en": "Incident",
+    "es": "Incidente"
+  },
+  "Fonte de tarifas pausada": {
+    "en": "Fare source paused",
+    "es": "Fuente de tarifas en pausa"
+  },
+  "Coletor de tarifas sem sinal": {
+    "en": "Fare collector silent",
+    "es": "Consultas de tarifas sin señal"
+  },
+  "Envio de WhatsApp sem sinal": {
+    "en": "WhatsApp sending silent",
+    "es": "Envío de WhatsApp sin señal"
+  },
+  "Envio de e-mail sem sinal": {
+    "en": "E-mail sending silent",
+    "es": "Envío de correo sin señal"
+  },
+  "Falhas nas consultas à fonte": {
+    "en": "Fare source queries failing",
+    "es": "Fallos en las consultas a la fuente"
+  },
+  "Fila de coletas atrasada": {
+    "en": "Collection queue delayed",
+    "es": "Cola de consultas retrasada"
+  },
+  "Viagem sem coleta": {
+    "en": "Trip not collected",
+    "es": "Viaje sin consultar"
+  },
+  "Falhas no envio de WhatsApp": {
+    "en": "WhatsApp sending failing",
+    "es": "Fallos en el envío de WhatsApp"
+  },
+  "Falhas no envio de e-mail": {
+    "en": "E-mail sending failing",
+    "es": "Fallos en el envío de correo"
+  },
+  "Incidente não encontrado": {
+    "en": "Incident not found",
+    "es": "Incidente no encontrado"
+  },
+  "Este incidente já foi resolvido.": {
+    "en": "This incident has already been resolved.",
+    "es": "Este incidente ya se resolvió."
+  },
+  "Incidente resolvido antes do envio": {
+    "en": "Incident resolved before sending",
+    "es": "Incidente resuelto antes del envío"
+  },
+  "Incidente reconhecido antes do envio": {
+    "en": "Incident acknowledged before sending",
+    "es": "Incidente reconocido antes del envío"
+  },
+  "Resumo diário": {
+    "en": "Daily summary",
+    "es": "Resumen diario"
+  },
+  "A rota de controle {0} falhou nas últimas {1} consultas.": {
+    "en": "The control route {0} failed its last {1} queries.",
+    "es": "La ruta de control {0} falló en sus últimas {1} consultas."
+  },
+  "A fonte está com {0} da capacidade em uso (limite: 80%).": {
+    "en": "The fare source has {0} of its capacity in use (limit: 80%).",
+    "es": "La fuente tiene el {0} de su capacidad en uso (límite: 80%)."
+  },
+  "Incidente reconhecido. Os lembretes foram encerrados.": {
+    "en": "Incident acknowledged. Its reminders have stopped.",
+    "es": "Incidente reconocido. Se terminaron los recordatorios."
+  },
+  "Avisos de saúde ligados.": {
+    "en": "Health notices on.",
+    "es": "Avisos de salud activados."
+  },
+  "Avisos de saúde desligados. Os incidentes continuam registrados.": {
+    "en": "Health notices off. Incidents are still recorded.",
+    "es": "Avisos de salud desactivados. Los incidentes siguen registrándose."
+  },
+  "Às 08:00 no fuso de cada administrador: consultas, alertas, incidentes e rota de controle do dia anterior.": {
+    "en": "At 08:00 in each administrator's time zone: the previous day's queries, alerts, incidents and control route.",
+    "es": "A las 08:00 en la zona horaria de cada administrador: consultas, alertas, incidentes y ruta de control del día anterior."
+  },
+  "Resumo diário ligado: sai às 08:00 no fuso de cada administrador.": {
+    "en": "Daily summary on: it goes out at 08:00 in each administrator's time zone.",
+    "es": "Resumen diario activado: sale a las 08:00 en la zona horaria de cada administrador."
+  },
+  "Resumo diário desligado.": {
+    "en": "Daily summary off.",
+    "es": "Resumen diario desactivado."
+  },
+  "Rota de controle": {
+    "en": "Control route",
+    "es": "Ruta de control"
+  },
+  "Sobre a rota de controle": {
+    "en": "About the control route",
+    "es": "Sobre la ruta de control"
+  },
+  "Uma consulta fixa a cada 30 minutos mede a fonte mesmo sem viagens: um adulto, classe econômica, 30 dias à frente.": {
+    "en": "A fixed query every 30 minutes measures the source even with no trips: one adult, economy, 30 days ahead.",
+    "es": "Una consulta fija cada 30 minutos mide la fuente incluso sin viajes: un adulto, clase económica, 30 días adelante."
+  },
+  "Ela passa pela mesma fila e pela mesma proteção das viagens: não roda com a fonte pausada e uma falha conta como falha da fonte.": {
+    "en": "It goes through the trips' queue and protection: it does not run while the source is paused, and a failure counts as a source failure.",
+    "es": "Pasa por la misma cola y protección de los viajes: no se ejecuta con la fuente en pausa y un fallo cuenta como fallo de la fuente."
+  },
+  "{0} → {1} · a cada 30 minutos": {
+    "en": "{0} → {1} · every 30 minutes",
+    "es": "{0} → {1} · cada 30 minutos"
+  },
+  "Desligada: a fonte é medida só pelas viagens.": {
+    "en": "Off: the source is measured by the trips only.",
+    "es": "Desactivada: la fuente se mide solo con los viajes."
+  },
+  "Último resultado": {
+    "en": "Last result",
+    "es": "Último resultado"
+  },
+  "Latência média (24 h)": {
+    "en": "Mean latency (24 h)",
+    "es": "Latencia media (24 h)"
+  },
+  "Sucesso (24 h)": {
+    "en": "Success (24 h)",
+    "es": "Éxito (24 h)"
+  },
+  "Últimos {0} resultados, do mais antigo ao mais recente: {1}.": {
+    "en": "Last {0} results, oldest to newest: {1}.",
+    "es": "Últimos {0} resultados, del más antiguo al más reciente: {1}."
+  },
+  "Configurar a rota de controle": {
+    "en": "Set up the control route",
+    "es": "Configurar la ruta de control"
+  },
+  "Consultar a rota de controle": {
+    "en": "Query the control route",
+    "es": "Consultar la ruta de control"
+  },
+  "Rota de controle ligada.": {
+    "en": "Control route on.",
+    "es": "Ruta de control activada."
+  },
+  "Rota de controle desligada.": {
+    "en": "Control route off.",
+    "es": "Ruta de control desactivada."
+  },
+  "Rota de controle salva: {0} → {1}.": {
+    "en": "Control route saved: {0} → {1}.",
+    "es": "Ruta de control guardada: {0} → {1}."
+  },
+  "Origem (IATA)": {
+    "en": "Origin (IATA)",
+    "es": "Origen (IATA)"
+  },
+  "Destino (IATA)": {
+    "en": "Destination (IATA)",
+    "es": "Destino (IATA)"
+  },
+  "Salvar rota": {
+    "en": "Save route",
+    "es": "Guardar ruta"
+  },
+  "Capacidade da fonte": {
+    "en": "Source capacity",
+    "es": "Capacidad de la fuente"
+  },
+  "Como a capacidade é estimada": {
+    "en": "How the capacity is estimated",
+    "es": "Cómo se estima la capacidad"
+  },
+  "Carga: as viagens ativas pedem {0} consultas a cada 5 minutos (rotas × datas ainda por vir de cada viagem).": {
+    "en": "Load: the active trips need {0} queries every 5 minutes (each trip's routes × dates still ahead).",
+    "es": "Carga: los viajes activos piden {0} consultas cada 5 minutos (rutas × fechas aún por venir de cada viaje)."
+  },
+  "Vazão: desconhecida até haver consultas nas últimas 24 horas.": {
+    "en": "Throughput: unknown until there are queries in the last 24 hours.",
+    "es": "Capacidad de respuesta: desconocida hasta que haya consultas en las últimas 24 horas."
+  },
+  "Vazão: até {0} consultas a cada 5 minutos — {1} consultas ao mesmo tempo com a mediana de resposta de {2}, e no máximo uma nova consulta a cada {3}.": {
+    "en": "Throughput: up to {0} queries every 5 minutes — {1} queries at a time at the median response of {2}, and at most one new query every {3}.",
+    "es": "Capacidad de respuesta: hasta {0} consultas cada 5 minutos — {1} consultas a la vez con la mediana de respuesta de {2}, y como máximo una consulta nueva cada {3}."
+  },
+  "É uma estimativa: não conta a espera entre consultas de uma mesma conta, as novas tentativas nem a rota de controle.": {
+    "en": "It is an estimate: it leaves out the wait between queries of one account, retries and the control route.",
+    "es": "Es una estimación: no cuenta la espera entre consultas de una misma cuenta, los reintentos ni la ruta de control."
+  },
+  "Quanto da vazão da fonte as viagens ativas usam.": {
+    "en": "How much of the source throughput the active trips use.",
+    "es": "Cuánto de la capacidad de respuesta de la fuente usan los viajes activos."
+  },
+  "Sem consultas nas últimas 24 horas para estimar a vazão.": {
+    "en": "No queries in the last 24 hours to estimate the throughput.",
+    "es": "Sin consultas en las últimas 24 horas para estimar la capacidad de respuesta."
+  },
+  "Capacidade usada: {0}": {
+    "en": "Capacity in use: {0}",
+    "es": "Capacidad usada: {0}"
+  },
+  "cabe cerca de {0} viagem a mais": {
+    "en": "about {0} more trip fits",
+    "es": "cabe cerca de {0} viaje más"
+  },
+  "cabem cerca de {0} viagens a mais": {
+    "en": "about {0} more trips fit",
+    "es": "caben cerca de {0} viajes más"
+  },
+  "Configuração de saúde alterada": {
+    "en": "Health settings changed",
+    "es": "Configuración de salud modificada"
+  },
+  "Origem da rota de controle": {
+    "en": "Control route origin",
+    "es": "Origen de la ruta de control"
+  },
+  "Destino da rota de controle": {
+    "en": "Control route destination",
+    "es": "Destino de la ruta de control"
+  },
+  "Rota de controle falhando": {
+    "en": "Control route failing",
+    "es": "Ruta de control con fallos"
+  },
+  "Capacidade da fonte alta": {
+    "en": "Source capacity high",
+    "es": "Capacidad de la fuente alta"
+  },
+  "Escolha aeroportos com código IATA válido para a rota de controle": {
+    "en": "Choose airports with a valid IATA code for the control route",
+    "es": "Elige aeropuertos con código IATA válido para la ruta de control"
+  },
+  "A rota de controle precisa de origem e destino diferentes": {
+    "en": "The control route needs different origin and destination",
+    "es": "La ruta de control necesita origen y destino distintos"
+  },
+  "Contato alterado; o aviso será refeito": {
+    "en": "Contact changed; the notice will be rebuilt",
+    "es": "Contacto modificado; el aviso se rehará"
   }
 }

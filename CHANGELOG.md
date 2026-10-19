@@ -1,5 +1,21 @@
 # Alterações
 
+## 0.30.0
+
+### Added
+- Aba Saúde na Administração, agora a primeira e a que abre por padrão, com indicador geral (Saudável, Atenção, Crítico) e o motivo.
+- Números de saúde: viagens ativas, consultas na hora e em 24 h, taxa de sucesso, tempo de resposta (mediana e p95), viagens atualizadas e atraso da fila.
+- Gráfico de 24 h das consultas por hora (com resultado, sem resultado, erro, bloqueio) e mediana de resposta.
+- Listas de rotas lentas, rotas com falha e viagens sem resultado, com link para o monitoramento.
+- Incidentes com abertura e fechamento por checagens seguidas, botão "Reconhecer" e histórico.
+- Avisos de saúde ao administrador por WhatsApp e e-mail: ao abrir, lembrete a cada 2 h, e "Resolvido"; o canal com problema não é usado para avisar dele mesmo.
+- Rota de controle consultada a cada 30 min para medir a fonte mesmo sem viagens.
+- Capacidade usada da fonte e quantas viagens ainda cabem no intervalo de 5 min.
+- Resumo diário opcional às 08:00 com os números do dia anterior.
+
+### Changed
+- O tempo de cada consulta à fonte passou a ser registrado, por 7 dias.
+
 ## 0.29.0
 
 ### Added

@@ -151,3 +151,6 @@ def send_one(stop_event=None):
             c.execute('UPDATE outbox SET status=?,error=?,sent=?,provider_message_id=? WHERE id=?',(status,error,time.time() if status=='sent' else None,provider_id,row['id']));sync_alerts(c,json.loads(row['alert_ids']))
             from . import whatsapp_receipts
             whatsapp_receipts.reconcile(c,row['id'])
+            if status=='sent' and row.get('kind')=='health':
+                from .incidents import mark_sent
+                mark_sent(c,row['id'],time.time())

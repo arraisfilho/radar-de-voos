@@ -1,6 +1,6 @@
 /* =============================================================================
    Administration (F4): sections as a segmented control, fare source health,
-   deliveries, channels (grouped list), users, retention and the task pages.
+   deliveries, channels (grouped list), users, retention, health and the task pages.
    Loaded with AdminPanel: every administration rule lives here, so the order
    in which the lazy chunks arrive never changes the result. Tables, filters
    and pagination come from data-view.css; base components from style.css.
@@ -29,7 +29,7 @@
   gap: 20px;
   min-width: 0;
 }
-/* Envios | Canais | Usuários | Auditoria | Retenção: ARIA tabs in the segmented style. */
+/* Envios | Canais | Usuários | Auditoria | Retenção | Saúde: ARIA tabs in the segmented style. */
 .admin-tabs {
   display: flex;
   width: -webkit-fit-content;
@@ -314,6 +314,290 @@
   .source-card-head {
     align-items: flex-start;
   }
+}
+
+/* ---------- Health (Saúde) ----------------------------------------------------------- */
+/* The level in the delivery status colors: green, amber, red, each text 4.5:1 on its fill. */
+.health-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--status-green-bg);
+  color: var(--status-green-text);
+}
+.health-banner.is-warning {
+  background: var(--status-amber-bg);
+  color: var(--status-amber-text);
+}
+.health-banner.is-critical {
+  background: var(--status-red-bg);
+  color: var(--status-red-text);
+}
+.health-banner > svg {
+  flex-shrink: 0;
+}
+.health-banner-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+.health-banner-title {
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 700;
+}
+.health-banner ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding-left: 18px;
+}
+/* Six tiles on one row on a wide screen, two side by side on a phone. */
+.health-tiles {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+}
+.health-tiles > .is-warning {
+  background: var(--status-amber-bg);
+}
+.health-tiles > .is-warning dt,
+.health-tiles > .is-warning dd,
+.health-tiles > .is-warning dd small {
+  color: var(--status-amber-text);
+}
+/* 24 hours: stacked bars per outcome and the median response line, drawn in the viewBox and
+   stretched to the card; strokes keep their width (non-scaling). */
+.health-chart {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+}
+.health-chart-plot {
+  display: block;
+  width: 100%;
+  height: 160px;
+  border-bottom: 1px solid var(--separator);
+}
+.health-bar {
+  stroke: var(--surface);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+.health-bar.is-ok {
+  fill: var(--status-green-text);
+}
+.health-bar.is-empty {
+  fill: var(--status-gray-text);
+}
+.health-bar.is-error {
+  fill: var(--status-amber-text);
+}
+.health-bar.is-blocked {
+  fill: var(--status-red-text);
+}
+.health-latency,
+.health-latency-halo {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.health-latency-halo {
+  stroke: var(--surface);
+  stroke-width: 5px;
+}
+.health-latency {
+  stroke: var(--chart-out);
+  stroke-width: 2px;
+}
+.health-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.health-chart figcaption {
+  display: grid;
+  gap: 6px;
+}
+.health-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+.health-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.health-legend strong {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.health-swatch {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.health-swatch.is-ok {
+  background: var(--status-green-text);
+}
+.health-swatch.is-empty {
+  background: var(--status-gray-text);
+}
+.health-swatch.is-error {
+  background: var(--status-amber-text);
+}
+.health-swatch.is-blocked {
+  background: var(--status-red-text);
+}
+.health-swatch.is-latency {
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--chart-out);
+}
+/* Source and services, then the route lists: as many columns as fit. */
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  align-items: start;
+  gap: 20px;
+  min-width: 0;
+}
+.health-row-text {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.health-row-title {
+  overflow-wrap: anywhere;
+}
+.health-row-detail {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+.health-row-value {
+  display: grid;
+  flex-shrink: 0;
+  justify-items: end;
+  max-width: 45%;
+  font-size: 14px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.health-row-value small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+.health-row > .status-pill {
+  flex-shrink: 0;
+}
+/* Notices on or off for every administrator; the row is the tap target (44 px). */
+.health-switch {
+  padding: 4px 0;
+}
+/* Open incident: level, what and since when, then Reconhecer; on a phone the button goes below. */
+.health-incident {
+  flex-wrap: wrap;
+}
+.health-incident > .health-row-text {
+  flex: 1 1 160px;
+}
+.health-incident > .button,
+.health-incident > .health-row-value {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+/* Rota de controle: the last results as dots (their text is the label of the row) and the route form. */
+.canary-stats {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
+}
+.canary-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.canary-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--status-gray-text);
+}
+.canary-dot.is-ok {
+  background: var(--status-green-text);
+}
+.canary-dot.is-error {
+  background: var(--status-amber-text);
+}
+.canary-dot.is-blocked {
+  background: var(--status-red-text);
+}
+.canary-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+.canary-form > .field {
+  flex: 1 1 120px;
+}
+/* Capacity: the share in use, what still fits, and a bar. */
+.capacity-used {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  font-size: 15px;
+  line-height: 20px;
+}
+.capacity-used strong {
+  font-size: 22px;
+  line-height: 28px;
+  font-variant-numeric: tabular-nums;
+}
+.capacity-used span {
+  color: var(--muted);
+}
+.capacity-used.is-warning strong {
+  color: var(--status-amber-text);
+}
+.capacity-bar {
+  overflow: hidden;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--fill-3);
+}
+.capacity-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--chart-out);
+}
+.health-list-empty {
+  padding: 11px 16px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 22px;
 }
 
 /* ---------- Deliveries --------------------------------------------------------------- */
@@ -1250,7 +1534,18 @@
   .delivery-error,
   .admin-channel-icon,
   .channel-card-icon,
-  .source-card-icon {
+  .source-card-icon,
+  .health-banner {
+    border: 1px solid CanvasText;
+  }
+  /* The chart and its legend keep their colors, so that each swatch still matches its bars. */
+  .health-chart-plot,
+  .health-swatch,
+  .canary-dot,
+  .capacity-bar > span {
+    forced-color-adjust: none;
+  }
+  .capacity-bar {
     border: 1px solid CanvasText;
   }
   .channel-link.is-selected {

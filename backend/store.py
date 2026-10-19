@@ -178,6 +178,15 @@ def setup(seed=True):
         c.execute("CREATE INDEX IF NOT EXISTS results_route_revision ON results(search_id,version,route_key,id)")
         c.execute("CREATE INDEX IF NOT EXISTS snapshots_cycle ON snapshots(cycle_id)")
         c.execute("CREATE INDEX IF NOT EXISTS alerts_cycle ON alerts(cycle_id)")
+        # One row per query that reached the fare source (engine.Monitor.gated_fetch), kept for health.QUERY_DAYS.
+        c.execute("CREATE TABLE IF NOT EXISTS source_queries(at REAL NOT NULL,search_id TEXT,route_key TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('ok','empty','error','blocked')),kind TEXT,duration_ms INTEGER NOT NULL)")
+        c.execute("CREATE INDEX IF NOT EXISTS source_queries_time ON source_queries(at)")
+        c.execute("CREATE INDEX IF NOT EXISTS source_queries_search ON source_queries(search_id,status,at)")
+        c.execute("CREATE INDEX IF NOT EXISTS cycles_started ON cycles(started)")
+        # Latest sends of a channel (health.channel_health).
+        c.execute("CREATE INDEX IF NOT EXISTS delivery_channel_completed ON outbox(channel,completed)")
+        from . import incidents
+        incidents.setup(c)
         previous_adapter = c.execute("SELECT value FROM metadata WHERE key='adapter_version'").fetchone()
         if previous_adapter and previous_adapter[0] != ADAPTER_VERSION:
             c.execute("UPDATE searches SET version=version+1,error=NULL,error_kind=NULL,last_success=NULL")

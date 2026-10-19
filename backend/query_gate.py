@@ -3,11 +3,16 @@ import threading
 import time
 from contextlib import contextmanager
 
+# Queries at the source at once, and seconds between two query starts (whatever the account).
+CONCURRENCY = 2
+MIN_GAP = 5.0
+
+
 class Stopped(RuntimeError):
     """The monitor stopped while this query waited for a slot."""
 
 class QueryGate:
-    def __init__(self,concurrency=2,min_gap=5.0):
+    def __init__(self,concurrency=CONCURRENCY,min_gap=MIN_GAP):
         self.concurrency=concurrency;self.min_gap=min_gap
         self.condition=threading.Condition();self.waiting=[];self.active=set();self.next_start=0
 
