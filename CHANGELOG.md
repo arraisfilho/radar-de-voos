@@ -1,5 +1,16 @@
 # Alterações
 
+## 0.29.0
+
+### Added
+- A lista de voos da viagem passou a ordenar por menor preço, menor duração, saída mais cedo ou mais tarde e chegada mais cedo, só na tela.
+- Chips de escalas, horário de saída e companhia filtram a lista na hora, com "Mostrando X de Y · Limpar", sem mudar o monitoramento nem os alertas.
+- Botão "Atualizar" na página da viagem, com contagem regressiva de 60 s por viagem e limite de 10 atualizações manuais por hora por conta.
+
+### Changed
+- Uma viagem nova passou a ser coletada logo após a criação, à frente da fila.
+- O botão "Filtros" da lista virou "Critérios", que muda o que a viagem monitora.
+
 ## 0.28.1
 
 ### Fixed
