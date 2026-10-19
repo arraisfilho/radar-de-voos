@@ -27,7 +27,7 @@ export type AppRoute = {
   step?: number;
   leg?: "outbound" | "inbound";
   panel?: "flights" | "alerts";
-  section?: "deliveries" | "channels" | "users" | "audit" | "retention";
+  section?: "deliveries" | "channels" | "users" | "audit" | "retention" | "health";
   channel?: string;
   userId?: string;
   userAction?: "new" | "edit" | "password" | "monitorings";
@@ -52,6 +52,7 @@ const sections = {
   usuarios: "users",
   auditoria: "audit",
   retencao: "retention",
+  saude: "health",
 } as const;
 const sectionPaths = {
   deliveries: "envios",
@@ -59,6 +60,7 @@ const sectionPaths = {
   users: "usuarios",
   audit: "auditoria",
   retention: "retencao",
+  health: "saude",
 };
 const actions = {
   editar: "edit",
@@ -102,7 +104,7 @@ export function parseRoute(path: string, query = ""): AppRoute {
   if (p.length === 1 && p[0] === "alertas") return { view: "alerts" };
   if (p.length === 1 && p[0] === "perfil") return { view: "settings" };
   if (p[0] === "admin") {
-    if (p.length === 1) return { view: "admin", section: "deliveries" };
+    if (p.length === 1) return { view: "admin", section: "health" };
     const section = sections[p[1] as keyof typeof sections];
     if (!section) return { view: "notfound" };
     const base: AppRoute = { view: "admin", section };
@@ -131,7 +133,7 @@ export function routePath(r: AppRoute): string {
   const id = encodeURIComponent;
   let path = "/viagens";
   if (r.view === "admin") {
-    const section = r.section || "deliveries";
+    const section = r.section || "health";
     path = "/admin/" + sectionPaths[section];
     if (section === "channels") path += "/" + (r.channel || "whatsapp");
     if (section === "deliveries" && r.deliveryId)

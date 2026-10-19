@@ -277,6 +277,11 @@ export function formatNumber(value: number, maximumFractionDigits = 0): string {
   return Number.isFinite(value) ? numberFormat({ maximumFractionDigits }).format(value) : EMPTY;
 }
 
+/** A share from 0 to 1 in the current locale, at most one decimal: 0.973 → "97,3%" (pt-BR). */
+export function formatPercent(value: number | null | undefined): string {
+  return value != null && Number.isFinite(value) ? numberFormat({ style: "percent", maximumFractionDigits: 1 }).format(value) : EMPTY;
+}
+
 /**
  * Minutes: "45 min", "2 h", "2 h 30 min" (pt-BR). Negative or non-finite
  * values give "—".

@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ChevronDown, ShieldCheck } from "lucide-react";
 import { clsx } from "clsx";
 import { t } from "./i18n";
+import { healthCodeLabel } from "./healthCodes";
 import { CellLabel, EmptyRows, FilterBar, LoadError, Pager, TableSkeleton } from "./DataView";
 import { dayKey, formatDateTime, formatNumber, formatTime } from "./format";
 import { plural } from "./plural";
@@ -52,6 +53,8 @@ const SETTINGS_EVENTS = [
   "admin_google_disconnected",
   "admin_retention_changed",
   "admin_logs_cleaned",
+  "admin_health_incident_acknowledged",
+  "admin_health_notices_changed",
 ];
 
 /** Event names in plain language. */
@@ -85,6 +88,8 @@ export function auditLabels(): Record<string, string> {
     admin_google_disconnected: t("Conta Google desconectada pelo administrador"),
     admin_retention_changed: t("Retenção alterada pelo administrador"),
     admin_logs_cleaned: t("Limpeza manual de logs"),
+    admin_health_incident_acknowledged: t("Incidente de saúde reconhecido"),
+    admin_health_notices_changed: t("Configuração de saúde alterada"),
   };
 }
 
@@ -108,11 +113,17 @@ function fieldLabels(): Record<string, string> {
     client_id: "Client ID",
     client_secret: "Client Secret",
     client_type: t("Tipo de cliente"),
+    notices: t("Avisos de saúde"),
+    digest: t("Resumo diário"),
+    canary_enabled: t("Rota de controle"),
+    canary_origin: t("Origem da rota de controle"),
+    canary_destination: t("Destino da rota de controle"),
   };
 }
 
 /** Reading order of the known detail fields (the server sends them sorted by name). */
 const DETAIL_ORDER = [
+  "code",
   "scope",
   "provider",
   "client_type",
@@ -166,6 +177,9 @@ export function auditDetails(event: string, details: Details | null | undefined)
         break;
       case "scope":
         rows.push([t("Registros"), scopeLabel(value)]);
+        break;
+      case "code":
+        rows.push([t("Incidente"), healthCodeLabel(String(value))]);
         break;
       case "before":
         rows.push(

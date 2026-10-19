@@ -583,7 +583,7 @@ export default function App({
   const adminTask =
     view === "admin" &&
     data?.user.role === "admin" &&
-    ((route.section || "deliveries") === "deliveries"
+    (route.section === "deliveries"
       ? !!route.deliveryId
       : route.section === "users" && !!route.userAction);
   // The task title also heads the page while the administration code loads.
@@ -617,6 +617,7 @@ export default function App({
     return () => bars.forEach(([name]) => root.classList.remove(name));
   }, [pendingBar, accountForm, saveBar, route.editor]);
   const adminSections: Record<string, string> = {
+    health: t("Saúde"),
     deliveries: t("Envios"),
     channels: t("Canais"),
     users: t("Usuários"),
@@ -629,6 +630,7 @@ export default function App({
     users: t("Gerencie contas, contatos e limites."),
     audit: t("Consulte os acessos e as alterações de conta."),
     retention: t("Gerencie o prazo de armazenamento dos registros."),
+    health: t("Acompanhe as consultas à fonte, a fila de coletas e os serviços."),
   };
   const tripName = search ? tripTitle(search.config).title : "";
   // The trip selector of a trip page: the history tab and an ended trip also
@@ -670,7 +672,7 @@ export default function App({
                 : view === "settings"
                   ? [t("Meu perfil")]
                   : view === "admin"
-                    ? [adminTaskTitle || adminSections[route.section || "deliveries"], t("Administração")]
+                    ? [adminTaskTitle || adminSections[route.section || "health"], t("Administração")]
                     : [t("Página não encontrada")]
     )
       .filter(Boolean)
@@ -804,8 +806,8 @@ export default function App({
             {shell.user.role === "admin" && (
               <a
                 className="menu-item"
-                href={routePath({ view: "admin", section: "deliveries" })}
-                onClick={(e) => plainClick(e) && navigate({ view: "admin", section: "deliveries" })}
+                href={routePath({ view: "admin", section: "health" })}
+                onClick={(e) => plainClick(e) && navigate({ view: "admin", section: "health" })}
               >
                 <Shield size={18} aria-hidden="true" />
                 {t("Administração")}
@@ -890,7 +892,7 @@ export default function App({
                           "Gerencie seus dados e os contatos que recebem seus alertas.",
                         )
                       : view === "admin"
-                        ? adminSubtitles[route.section || "deliveries"]
+                        ? adminSubtitles[route.section || "health"]
                         : view === "alerts"
                           ? t("Avisos enviados e variações de preço das suas viagens.")
                           : view === "history"
@@ -1260,7 +1262,7 @@ export default function App({
                   onLogout={onLogout}
                   onSaved={() => queryClient.invalidateQueries({ queryKey: ["radar"] })}
                   onNotice={(message, error) => setNotice({ message, error })}
-                  onAdmin={data.user.role === "admin" ? () => navigate({ view: "admin", section: "deliveries" }) : undefined}
+                  onAdmin={data.user.role === "admin" ? () => navigate({ view: "admin", section: "health" }) : undefined}
                   onDirtyChange={setProfileDirty}
                 />
               </Suspense>
