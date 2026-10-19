@@ -41,7 +41,7 @@ Admission = namedtuple('Admission', 'kind generation')
 def initial():
     return {'state': 'closed', 'streak': 0, 'streak_routes': [], 'level': 0, 'consecutive_failures': 0, 'kind': None,
             'trip_kind': None, 'last_success_at': None, 'last_failure_at': None,
-            'retry_at': None, 'probe_at': None, 'generation': 0}
+            'retry_at': None, 'probe_at': None, 'generation': 0, 'opened_at': None}
 
 
 def load(c):
@@ -132,13 +132,13 @@ def observe(result, admission, now=None, rng=random, route=None):
             if data['state'] != 'closed' and not probe:
                 return data
             data.update(state='closed', streak=0, streak_routes=[], level=0, consecutive_failures=0, kind=None, trip_kind=None,
-                        last_success_at=now, retry_at=None, probe_at=None)
+                        last_success_at=now, retry_at=None, probe_at=None, opened_at=None)
         else:
             kind = failure_kind(result)
             data.update(consecutive_failures=data['consecutive_failures']+1, kind=kind, last_failure_at=now)
             if probe and kind == 'no_results':
                 # The source answered the test query; only this query had nothing usable.
-                data.update(state='closed', streak=0, streak_routes=[], level=0, trip_kind=None, retry_at=None, probe_at=None)
+                data.update(state='closed', streak=0, streak_routes=[], level=0, trip_kind=None, retry_at=None, probe_at=None, opened_at=None)
             elif probe:
                 level = min(data['level']+1, len(STEPS)-1)
                 data.update(state='open', level=level, trip_kind=kind, retry_at=now+wait_seconds(level, rng), probe_at=None)
@@ -147,8 +147,9 @@ def observe(result, admission, now=None, rng=random, route=None):
                 if route is not None and route not in data['streak_routes'] and len(data['streak_routes']) < TRIP_ROUTES:
                     data['streak_routes'] = data['streak_routes']+[route]
                 if data['streak'] >= TRIP_AFTER and len(data['streak_routes']) >= TRIP_ROUTES:
+                    # opened_at marks the start of the pause; reopening after a failed test query keeps it.
                     data.update(state='open', level=0, trip_kind=kind, retry_at=now+wait_seconds(0, rng), probe_at=None,
-                                generation=data['generation']+1)
+                                generation=data['generation']+1, opened_at=now)
         save(c, data)
     if previous != 'open' and data['state'] == 'open':
         logger.warning('Consultas pausadas pela proteção da fonte', extra={'kind': data['trip_kind'], 'retry_at': round(data['retry_at'], 1)})

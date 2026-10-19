@@ -122,6 +122,11 @@ def jobs(search):
     return result
 
 
+def pending_jobs(search, now):
+    """The jobs a cycle starting at now queries: those whose date (within its leg) has not ended at the origin."""
+    return [j for j in jobs(search) if local_instant(min((search.outbound if j[0] == 'outbound' else search.inbound).end, j[3]+"T23:59:59"), j[1]).timestamp() > now]
+
+
 def local_instant(value, airport):
     return datetime.fromisoformat(value).replace(tzinfo=ZoneInfo(AIRPORTS[airport][2])).astimezone(timezone.utc)
 

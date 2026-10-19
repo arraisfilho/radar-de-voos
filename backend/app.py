@@ -21,7 +21,8 @@ from .airports import airport_record, search_airports
 from .domain import Search, eligible, jobs, validate_future, monitoring_deadline, local_instant
 from .store import db, setup, decode_search, add_search, ping
 from .engine import Monitor
-from . import mail, accounts, google_mail, mail_discovery, audit, logos, recovery, revisions, retention, activity, airlines, deliveries, admin_accounts, whatsapp, whatsapp_receipts, source, two_factor, offer_links
+from . import incidents, mail, accounts, google_mail, mail_discovery, audit, logos, recovery, revisions, retention, activity, airlines, deliveries, admin_accounts, whatsapp, whatsapp_receipts, source, two_factor, offer_links
+from .health import collect as collect_health
 from .network import allowed_client, allowed_host, loopback_request, public_mode, public_origin, public_request_allowed
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -383,7 +384,7 @@ def delete_search(request: Request, sid: str):
             raise HTTPException(404,"Busca não encontrada")
         if c.execute("SELECT 1 FROM outbox WHERE search_id=? AND status='sending'",(sid,)).fetchone():
             raise HTTPException(409,"Aguarde o envio em andamento antes de excluir esta busca")
-        for table in ('outbox','alerts','baselines','snapshots','results','cycles'):
+        for table in ('outbox','alerts','baselines','snapshots','results','cycles','source_queries'):
             c.execute(f"DELETE FROM {table} WHERE search_id=?",(sid,))
         c.execute("DELETE FROM searches WHERE id=?",(sid,))
     return {"ok":True}
@@ -774,6 +775,47 @@ def confirm_delivery_cleanup(request:Request,data:DeliveryCleanup):
     # Written after the deletion, so an access-log cleanup cannot remove its own record.
     audit.record(request,'admin_logs_cleaned',actor_id=user['id'],details={'scope':data.scope,'before':data.before,'removed':result['removed'],'has_more':result['has_more']})
     return result
+
+
+@app.get('/api/admin/health')
+def admin_health(request:Request):
+    accounts.require_admin(request)
+    return {**collect_health(monitor.status()),**incidents.overview()}
+
+
+@app.post('/api/admin/health/incidents/{incident_id}/ack')
+def acknowledge_incident(request:Request,incident_id:int):
+    actor=accounts.require_admin(request)
+    incident,changed=incidents.acknowledge(incident_id,actor['id'])
+    if changed:audit.record(request,'admin_health_incident_acknowledged',actor_id=actor['id'],details={'code':incident['code']})
+    return incident
+
+
+class CanarySettings(BaseModel):
+    enabled: bool | None = None
+    origin: str | None = Field(default=None,max_length=3)
+    destination: str | None = Field(default=None,max_length=3)
+
+
+class HealthSettings(BaseModel):
+    notices: bool | None = None
+    digest: bool | None = None
+    canary: CanarySettings | None = None
+
+
+@app.put('/api/admin/health/settings')
+def health_settings(request:Request,data:HealthSettings):
+    actor=accounts.require_admin(request)
+    from . import canary,digest
+    changed=[]
+    # The canary is validated first: a refused route changes nothing else.
+    if data.canary is not None:
+        before,after=canary.save(**data.canary.model_dump())
+        changed+=['canary_'+key for key in ('enabled','origin','destination') if before[key]!=after[key]]
+    if data.notices is not None and incidents.set_notices(data.notices)!=data.notices:changed.append('notices')
+    if data.digest is not None and digest.set_enabled(data.digest)!=data.digest:changed.append('digest')
+    audit.record(request,'admin_health_notices_changed',actor_id=actor['id'],details={'changed':changed})
+    return incidents.overview()['settings']
 
 
 @app.get("/api/admin/audit")

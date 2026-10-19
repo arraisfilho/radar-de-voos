@@ -456,8 +456,24 @@ def update_contacts(user_id, data):
         return update_contacts_in(c,user_id,data)
 
 
+def contact_points(row):
+    """The e-mails and the WhatsApp number that health notices are addressed to."""
+    import json
+    number=(row['phone'],row['country']) if row['whatsapp_use_login'] else (row['whatsapp_phone'],row['whatsapp_country'])
+    return json.loads(row['emails'] or '[]'),number
+
+
+def contacts_changed(c,user_id,before):
+    """Pending health notices of an account whose e-mails or WhatsApp number changed are cancelled; the next check rebuilds them."""
+    after=c.execute('SELECT * FROM accounts WHERE id=?',(user_id,)).fetchone()
+    if before and after and contact_points(before)!=contact_points(after):
+        from .incidents import cancel_for
+        cancel_for(c,user_id)
+
+
 def update_contacts_in(c,user_id,data):
     import json
+    before = c.execute("SELECT * FROM accounts WHERE id=?",(user_id,)).fetchone()
     previous = c.execute("SELECT emails FROM accounts WHERE id=?",(user_id,)).fetchone()
     if previous and json.loads(previous["emails"]) != data.emails:
         c.execute("UPDATE outbox SET status='cancelled' WHERE id IN (SELECT outbox_id FROM password_resets WHERE user_id=?) AND status='pending'",(user_id,))
@@ -469,6 +485,7 @@ def update_contacts_in(c,user_id,data):
             sync_alerts(c,json.loads(row['alert_ids']))
     c.execute("UPDATE accounts SET name=?,emails=?,additional_phones=?,telegram_username=?,whatsapp_use_login=?,whatsapp_country=?,whatsapp_phone=?,timezone=?,quiet_hours=?,quiet_start=?,quiet_end=? WHERE id=?",(data.name,json.dumps(data.emails),json.dumps([p.model_dump() for p in data.additional_phones]),data.telegram_username,int(data.whatsapp_use_login),data.whatsapp_country,data.whatsapp_phone,data.timezone,int(data.quiet_hours),data.quiet_start,data.quiet_end,user_id))
     release_held(c,user_id)
+    contacts_changed(c,user_id,before)
     return public_user(c.execute("SELECT * FROM accounts WHERE id=?",(user_id,)).fetchone())
 
 
@@ -477,6 +494,9 @@ def release_held(c,user_id,now=None):
     now=time.time() if now is None else now
     for row in c.execute("SELECT o.id,o.search_id FROM outbox o JOIN searches s ON s.id=o.search_id WHERE s.owner_id=? AND o.status='pending' AND o.next_due>?",(user_id,now)).fetchall():
         c.execute('UPDATE outbox SET next_due=? WHERE id=?',(search_quiet_until(c,row['search_id'],now) or now,row['id']))
+    # An administrator's held health notices and daily summary (critical notices are never held).
+    account=c.execute('SELECT * FROM accounts WHERE id=?',(user_id,)).fetchone()
+    if account:c.execute("UPDATE outbox SET next_due=? WHERE owner_id=? AND kind IN ('health','health_digest') AND status='pending' AND next_due>?",(quiet_until(account,now) or now,user_id,now))
 
 
 def alert_recipients(c, search_id):
@@ -497,16 +517,26 @@ def search_is_quiet(c,sid,now=None):
     return is_quiet(row,now) if row else False
 
 
+def quiet_end(config,now):
+    """The next end of an account's quiet hours after now, as a timestamp."""
+    local=datetime.fromtimestamp(now,timezone.utc).astimezone(ZoneInfo(config['timezone']))
+    hour,minute=map(int,config['quiet_end'].split(':'))
+    end=local.replace(hour=hour,minute=minute,second=0,microsecond=0)
+    return (end if end>local else end+timedelta(days=1)).timestamp()
+
+
+def quiet_until(config,now=None):
+    """End of the quiet hours an account is in now, as a timestamp; None outside them."""
+    now=time.time() if now is None else now
+    return quiet_end(config,now) if is_quiet(config,now) else None
+
+
 def search_quiet_until(c,sid,now=None):
     """End of the quiet hours the search's owner is in now, as a timestamp; None outside them."""
     now=time.time() if now is None else now
     if not search_is_quiet(c,sid,now):return None
     row=c.execute('SELECT a.timezone,a.quiet_end FROM accounts a JOIN searches s ON s.owner_id=a.id WHERE s.id=?',(sid,)).fetchone()
-    if not row:return now+300
-    local=datetime.fromtimestamp(now,timezone.utc).astimezone(ZoneInfo(row['timezone']))
-    hour,minute=map(int,row['quiet_end'].split(':'))
-    end=local.replace(hour=hour,minute=minute,second=0,microsecond=0)
-    return (end if end>local else end+timedelta(days=1)).timestamp()
+    return quiet_end(row,now) if row else now+300
 
 
 def ensure_search_capacity(c,user_id):

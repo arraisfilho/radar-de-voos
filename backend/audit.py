@@ -26,7 +26,8 @@ EVENTS = ('login_success','login_failed','login_2fa_started','login_2fa_failed',
           'admin_monitoring_viewed','admin_smtp_saved','admin_smtp_removed',
           'admin_whatsapp_saved','admin_whatsapp_removed','admin_whatsapp_receipts_saved',
           'admin_google_client_saved','admin_google_client_removed','admin_google_connected',
-          'admin_google_disconnected','admin_retention_changed','admin_logs_cleaned')
+          'admin_google_disconnected','admin_retention_changed','admin_logs_cleaned',
+          'admin_health_incident_acknowledged','admin_health_notices_changed')
 
 
 def setup(c):

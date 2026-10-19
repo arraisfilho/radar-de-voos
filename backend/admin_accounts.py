@@ -100,6 +100,8 @@ def update(request,actor,uid,data):
                 c.execute('UPDATE accounts SET search_limit=? WHERE id=?',(data.search_limit,uid))
             accounts.update_contacts_in(c,uid,data)
             c.execute('UPDATE accounts SET country=?,phone=?,language=? WHERE id=?',(data.country,data.phone,data.language,uid))
+            # The login phone may be the WhatsApp number of the health notices.
+            accounts.contacts_changed(c,uid,previous)
             if previous['phone']!=data.phone:
                 c.execute('DELETE FROM sessions WHERE user_id=?',(uid,))
                 invalidate_recovery(c,uid)
