@@ -1486,7 +1486,7 @@ export default function App({
             }}
           >
             {busy ? <LoaderCircle size={16} className="spin" aria-hidden="true" /> : <Archive size={16} aria-hidden="true" />}
-            {t("Encerrar monitoramento")}
+            {t("Encerrar")}
           </Button>
         </div>
       </Modal>

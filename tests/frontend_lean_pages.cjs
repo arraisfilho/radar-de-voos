@@ -93,9 +93,10 @@ const config = {name: 'Fixture', origins: ['THE'], destinations: ['GRU'], outbou
 const hero = (search, ended = false) => renderToStaticMarkup(React.createElement(TripHero, {search: {id: 'trip', active: 1, ends_at: 4e9, config, ...search}, airports: [], routes: [], serverTime: 1, serverNow: 1, updatedAt: 1, connectionError: false, ended, busy: false, onEdit() {}, onAlerts() {}, onToggle() {}, onEnd() {}, onDelete() {}, onRestore() {}}));
 let markup = hero({active: 0});
 assert.match(markup, /<button data-variant="primary">.*?Retomar<\/button>/, 'Paused: Retomar as the visible main action');
-assert.ok(!markup.includes('Retomar monitoramento') && !markup.includes('Pausar monitoramento') && markup.includes('Editar viagem'), 'Editing moves to the menu; no second resume');
+assert.ok(!markup.includes('Retomar monitoramento') && !/>Pausar</.test(markup) && />Editar</.test(markup), 'Editing moves to the menu; no second resume');
 markup = hero({});
-assert.ok(markup.includes('Editar') && markup.includes('Pausar monitoramento') && !/>Retomar</.test(markup));
+assert.ok(markup.includes('Editar') && />Pausar</.test(markup) && !/>Retomar</.test(markup));
+assert.ok(/>Encerrar…</.test(markup) && />Excluir…</.test(markup) && !markup.includes('monitoramento…'), 'One verb per action in the trip menu');
 assert.ok(markup.indexOf('trip-hero-top') < markup.indexOf('trip-hero-meta') && markup.includes('trip-hero-facts') && !markup.includes('info-chip'), 'Route and actions, then one line of plain details');
 // Phones: the cities on one line (airports in the tooltip), the title as the trip selector, "Editar" named for the icon.
 const airportsList = [{code: 'THE', city: 'Teresina', name: 'Senador Petrônio Portella Airport', label: 'Senador Petrônio Portella', country: 'BR', timezone: 'America/Fortaleza'}, {code: 'GRU', city: 'São Paulo', name: 'Guarulhos International Airport', label: 'Guarulhos', country: 'BR', timezone: 'America/Sao_Paulo'}];

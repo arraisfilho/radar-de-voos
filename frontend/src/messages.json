@@ -4547,18 +4547,6 @@
     "en": "Up to {0}",
     "es": "Hasta {0}"
   },
-  "Pausar monitoramento": {
-    "en": "Pause monitoring",
-    "es": "Pausar el seguimiento"
-  },
-  "Encerrar monitoramento…": {
-    "en": "End monitoring…",
-    "es": "Finalizar el seguimiento…"
-  },
-  "Excluir monitoramento…": {
-    "en": "Delete monitoring…",
-    "es": "Eliminar el seguimiento…"
-  },
   "Situação dos avisos": {
     "en": "Notification status",
     "es": "Estado de los avisos"
@@ -6790,5 +6778,13 @@
   "Contato alterado; o aviso será refeito": {
     "en": "Contact changed; the notice will be rebuilt",
     "es": "Contacto modificado; el aviso se rehará"
+  },
+  "Encerrar…": {
+    "en": "End…",
+    "es": "Finalizar…"
+  },
+  "Excluir…": {
+    "en": "Delete…",
+    "es": "Eliminar…"
   }
 }

@@ -1,5 +1,10 @@
 # Alterações
 
+## 0.30.1
+
+### Changed
+- O menu de ações da viagem passou a usar um verbo por ação (Editar, Pausar, Encerrar…, Excluir…), sem repetir "monitoramento", e o botão de confirmação de encerrar passou a dizer "Encerrar".
+
 ## 0.30.0
 
 ### Added
