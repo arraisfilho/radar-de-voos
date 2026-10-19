@@ -153,12 +153,13 @@ export function TripHero({
             summaryLabel={t("Ações da viagem")}
             label={<Ellipsis size={20} aria-hidden="true" />}
           >
+            {/* The menu belongs to this trip, so each action is a single verb. */}
             {!ended && (
               <>
                 {!search.active && (
                   <button type="button" className="menu-item" onClick={onEdit}>
                     <Pencil size={18} aria-hidden="true" />
-                    {t("Editar viagem")}
+                    {t("Editar")}
                   </button>
                 )}
                 <button type="button" className="menu-item" onClick={onAlerts}>
@@ -168,19 +169,19 @@ export function TripHero({
                 {search.active && (
                   <button type="button" className="menu-item" disabled={busy} onClick={onToggle}>
                     <Pause size={18} aria-hidden="true" />
-                    {t("Pausar monitoramento")}
+                    {t("Pausar")}
                   </button>
                 )}
                 <div className="menu-separator" role="separator" />
                 <button type="button" className="menu-item" disabled={busy} onClick={onEnd}>
                   <Archive size={18} aria-hidden="true" />
-                  {t("Encerrar monitoramento…")}
+                  {t("Encerrar…")}
                 </button>
               </>
             )}
             <button type="button" className="menu-item is-destructive" disabled={busy} onClick={onDelete}>
               <Trash2 size={18} aria-hidden="true" />
-              {t("Excluir monitoramento…")}
+              {t("Excluir…")}
             </button>
           </ContextMenu>
         </div>
