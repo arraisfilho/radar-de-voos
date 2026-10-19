@@ -17,8 +17,16 @@ assert.ok(html.includes('href="/viagens/5"'),'Trips are real links that open in 
 selectedId='11';render();effect();tree=render();html=renderToStaticMarkup(tree);assert.ok(html.includes('Trip 12 with'));assert.ok(html.includes('aria-current="page"'));assert.equal(find(tree,n=>n.props?.['aria-label']==='Próximas buscas').props['aria-disabled'],true);
 page=0;selectedId=undefined;html=renderToStaticMarkup(render(searches.slice(0,2)));assert.ok(!html.includes('Páginas das buscas'));assert.ok(html.includes('2/12'));
 const {fittingTrips}=output;
-assert.equal(fittingTrips(5,50,260,10),10,'A tall sidebar shows every trip');assert.equal(fittingTrips(5,50,120,10),7,'Free room adds whole rows');
-assert.equal(fittingTrips(5,50,-120,10),3,'A sidebar that scrolls pages, with at least three trips');assert.equal(fittingTrips(0,0,0,12),5,'Before measuring, five per page');
+assert.equal(fittingTrips(500,50,10),10,'A tall sidebar shows every trip');assert.equal(fittingTrips(370,50,10),7,'Whole rows only');
+assert.equal(fittingTrips(100,50,10),3,'At least three trips per page');assert.equal(fittingTrips(0,0,12),5,'Before measuring, five per page');
+// Production case: one short row and four tall ones. Whichever 3, 4 or 5 rows are visible,
+// the same area for the list gives the same page size, so a resize cannot alternate.
+const {pageSizeFor}=output, rows=[46,64,64,64,64];
+for(let area=150;area<=360;area+=2){
+  const sizes=new Set([3,4,5].map(k=>{const shown=rows.slice(0,k);return pageSizeFor(shown,area-shown.reduce((a,b)=>a+b,0),0,5).size;}));
+  assert.equal(sizes.size,1,`One page size for ${area}px`);
+}
+assert.equal(pageSizeFor([46,64,64],100,0,5).tallest,64,'The tallest visible row is kept');
 console.log('Sidebar: five items per page, full title, pending/status labels, selection, quota and pagination controls passed.');
 page=0;const generated={...searches[0],config:{...searches[0].config,name:'EZE ↔ NAT · 11 de dez.',inbound:{start:'2026-12-18T00:00',end:'2026-12-18T23:59'}}};
 html=renderToStaticMarkup(render([generated]));assert.ok(html.includes('sidebar-trip-dates'));assert.ok(html.includes('11/12'));assert.ok(html.includes('18/12'));assert.ok(html.includes('Volta'));assert.ok(!html.includes('sidebar-secondary-route'));assert.ok(!html.includes('EZE → NAT'));

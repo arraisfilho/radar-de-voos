@@ -9,12 +9,24 @@ const MIN_PAGE = 3;
 const FOOTER_GAP = 28;
 
 /**
- * How many trips fit: the ones shown plus the free space above the sidebar footer, divided
- * by the average row height. A negative free space (the sidebar scrolls) lowers it.
+ * How many trips fit in `room` (the height the trip rows may take), counting every row as tall
+ * as the tallest one seen. A fixed row height keeps the answer independent of which trips are
+ * shown, so a resize settles on one page size instead of alternating between two.
  */
-export function fittingTrips(shown: number, rowHeight: number, freeSpace: number, total: number): number {
-  if (!shown || rowHeight <= 0) return Math.min(total, 5);
-  return Math.min(total, Math.max(MIN_PAGE, shown + Math.floor(freeSpace / rowHeight)));
+export function fittingTrips(room: number, rowHeight: number, total: number): number {
+  if (rowHeight <= 0) return Math.min(total, 5);
+  return Math.min(total, Math.max(MIN_PAGE, Math.floor(room / rowHeight)));
+}
+
+/**
+ * Page size from one measurement: the visible row heights, the free space under the list
+ * (negative when the sidebar scrolls) and the tallest row seen so far. The room is the
+ * visible rows plus the free space, the same whichever trips are shown.
+ */
+export function pageSizeFor(heights: number[], free: number, tallestSeen: number, total: number) {
+  const tallest = Math.max(tallestSeen, ...heights);
+  const room = heights.reduce((sum, height) => sum + height, 0) + free;
+  return { size: fittingTrips(room, tallest, total), tallest };
 }
 export function SidebarSearches({
   searches,
@@ -33,10 +45,14 @@ export function SidebarSearches({
 }) {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(5);
-  const root = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLDivElement>(null),
+    tallestRow = useRef(0);
   const ids = searches.map((s) => s.id).join(",");
   // Measure the room the sidebar leaves for trips; tall windows show them all, short ones page.
+  // Only a sidebar resize or a new list measures again: a page change never does, which
+  // could otherwise loop between two page sizes.
   useLayoutEffect(() => {
+    tallestRow.current = 0;
     const list = root.current,
       sidebar = list?.closest<HTMLElement>(".sidebar"),
       footer = sidebar?.querySelector<HTMLElement>(".sidebar-bottom");
@@ -45,18 +61,18 @@ export function SidebarSearches({
       if (!sidebar.clientHeight) return;
       const rows = [...list.querySelectorAll<HTMLElement>(".sidebar-trip")];
       if (!rows.length) return;
-      const rowHeight = rows.reduce((sum, row) => sum + row.offsetHeight, 0) / rows.length + 2;
+      const heights = rows.map((row) => row.offsetHeight + 2);
       const overflow = sidebar.scrollHeight - sidebar.clientHeight;
       const free = overflow > 0 ? -overflow : footer.offsetTop - list.offsetTop - list.offsetHeight - FOOTER_GAP;
-      const next = fittingTrips(rows.length, rowHeight, free, searches.length);
+      const { size: next, tallest } = pageSizeFor(heights, free, tallestRow.current, searches.length);
+      tallestRow.current = tallest;
       setPageSize((size) => (size === next ? size : next));
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(sidebar);
-    observer.observe(list);
     return () => observer.disconnect();
-  }, [ids, pageSize]);
+  }, [ids]);
   useEffect(() => {
     const index = searches.findIndex((s) => s.id === selectedId);
     if (index >= 0) setPage(Math.floor(index / pageSize));
