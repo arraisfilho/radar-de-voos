@@ -1,6 +1,11 @@
 """Return the free space of the SQLite database to the disk (VACUUM). Stop the application first."""
 import os
 from pathlib import Path
+if __name__=='__main__':
+    # VACUUM builds the new database in a temporary file. SQLite may read this variable as soon as the
+    # sqlite3 module loads, so it is set before any import that loads it (backend.store does); without
+    # it the file goes to /tmp, a 64 MB tmpfs in the Compose files. Same folder as backend.store.DATA_DIR.
+    os.environ.setdefault('SQLITE_TMPDIR',str(Path(os.environ.get('RADAR_DATA_DIR',Path(__file__).resolve().parents[1]/'.data')).resolve()))
 import shutil
 import sqlite3
 import sys
@@ -51,9 +56,6 @@ def compact(path=None,timeout=2):
 
 
 if __name__=='__main__':
-    # VACUUM builds the new database in a temporary file. SQLite reads this variable before the
-    # process's first connection; without it the file goes to /tmp, a 64 MB tmpfs in the Compose files.
-    os.environ.setdefault('SQLITE_TMPDIR',str(DATA_DIR))
     print(WARNING,file=sys.stderr)
     try:before,after=compact()
     except (ValueError,OSError,sqlite3.Error) as exc:raise SystemExit(str(exc))
