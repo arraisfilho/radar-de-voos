@@ -120,8 +120,8 @@ def recent_results(c, row, preview_pool=False):
     for result in latest:
         stale = result["status"] == "error"
         chosen = fallback.get(result["route_key"]) if stale else result
-        data = json.loads(chosen["data"]) if chosen else json.loads(result["data"])
-        failure = json.loads(result["data"]) if stale else {}
+        data = result_cache.decode(chosen["data"] if chosen else result["data"])
+        failure = result_cache.decode(result["data"]) if stale else {}
         error = failure.get("error")
         # Rows written before cancelled queries were skipped may carry kind "cancelled": not a source kind.
         kind = failure.get("kind") if failure.get("kind") in source.KINDS else None

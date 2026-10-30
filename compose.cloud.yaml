@@ -9,6 +9,7 @@ services:
       RADAR_DEPLOYMENT: public
       RADAR_PUBLIC_URL: https://${RADAR_DOMAIN:?Configure RADAR_DOMAIN em deploy/cloud.env}
       RADAR_TRUSTED_PROXY: ${RADAR_TRUSTED_PROXY:-172.30.88.1}
+      RADAR_RAW_RETENTION_DAYS: ${RADAR_RAW_RETENTION_DAYS:-30}
     ports:
       - "${RADAR_PUBLISHED_HOST:-127.0.0.1}:${RADAR_UPSTREAM_PORT:-8765}:8765"
     volumes:

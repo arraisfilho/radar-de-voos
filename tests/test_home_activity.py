@@ -212,7 +212,7 @@ class EvolutionTests(unittest.TestCase):
             self.assertEqual(c.execute('SELECT COUNT(*) FROM snapshots').fetchone()[0],1);self.assertEqual(c.execute('SELECT COUNT(*) FROM alerts').fetchone()[0],1)
             self.assertTrue(c.execute('SELECT 1 FROM cycles WHERE id=?',(cycles[0],)).fetchone());self.assertTrue(c.execute('SELECT 1 FROM cycles WHERE id=?',(cycles[1],)).fetchone())
             self.assertFalse(c.execute('PRAGMA foreign_key_check').fetchall())
-        self.assertEqual(retention.cleanup(now=now+10),{'results':0,'cycles':0})
+        self.assertEqual(retention.cleanup(now=now+10),{'results':0,'cycles':0,'compressed':0})
         with patch.dict('os.environ',{'RADAR_RAW_RETENTION_DAYS':'1'}):
             with self.assertRaises(ValueError):retention.days()
     def test_legacy_deliveries_stay_owner_scoped_and_overview_omits_them(self):
