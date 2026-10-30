@@ -1,6 +1,6 @@
 # Alterações
 
-## [Unreleased]
+## 0.32.1
 
 ### Added
 - Script `scripts/compact.py`, que devolve ao disco o espaço liberado no banco (VACUUM) com a aplicação parada e mostra o tamanho antes e depois; recusa sem alterar nada se outra conexão estiver com o banco aberto ou se faltar espaço livre no volume de dados.
