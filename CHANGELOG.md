@@ -1,6 +1,9 @@
 # Alterações
 
-## [Unreleased]
+## 0.32.2
+
+### Changed
+- O envio pelo WhatsApp passou a esperar até 30 segundos pela resposta do OpenWA, em vez de 12, reduzindo os envios marcados como "Envio requer verificação" quando o serviço está lento.
 
 ### Fixed
 - O guia de implantação passou a indicar que a limpeza das respostas brutas terminou quando `text` e `cursor` de `progress()` chegam a 0, sem esperar `expired` em 0, que volta a subir a cada hora.

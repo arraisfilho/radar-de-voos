@@ -12,6 +12,12 @@ class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):return None
 
 
+# Seconds. A send that outlives its wait becomes 'uncertain' and is not retried, though the
+# message may have gone out; sending gets more room than a session check.
+CHECK_TIMEOUT = 12
+SEND_TIMEOUT = 30
+
+
 class OpenWA:
     id='openwa';name='OpenWA'
     help='Use a URL base, sem /api/docs. O ID da sessão é o identificador exibido no integrador.'
@@ -37,11 +43,11 @@ class OpenWA:
         if len(values.get('session_id',''))>200:raise ValueError('ID de sessão muito longo')
         return {**values,'base_url':base}
 
-    def _request(self,values,method,path,payload=None):
+    def _request(self,values,method,path,payload=None,timeout=CHECK_TIMEOUT):
         if not all(values.get(k) for k in ('base_url','session_id','token')):raise IntegrationError('Configure URL, sessão e token do WhatsApp')
         request=Request(values['base_url']+path,method=method,data=json.dumps(payload).encode() if payload is not None else None,headers={'X-API-Key':values['token'],'Content-Type':'application/json','Accept':'application/json'})
         try:
-            with build_opener(NoRedirect(),ProxyHandler({})).open(request,timeout=12) as response:
+            with build_opener(NoRedirect(),ProxyHandler({})).open(request,timeout=timeout) as response:
                 status=response.status;raw=response.read(1048577)
             if len(raw)>1048576:raise ValueError('large response')
             result=json.loads(raw)
@@ -62,7 +68,7 @@ class OpenWA:
         return {'ready':state=='ready','status':state}
 
     def send(self,values,phone,text):
-        status,data=self._request(values,'POST','/api/sessions/'+quote(values['session_id'],safe='')+'/messages/send-text',{'chatId':phone.lstrip('+')+'@c.us','text':text})
+        status,data=self._request(values,'POST','/api/sessions/'+quote(values['session_id'],safe='')+'/messages/send-text',{'chatId':phone.lstrip('+')+'@c.us','text':text},SEND_TIMEOUT)
         message_id=data.get('messageId')
         if status!=201 or not isinstance(message_id,str) or not message_id or len(message_id)>500 or values['token'] in message_id or any(ord(c)<32 for c in message_id):raise IntegrationError('A API WhatsApp não retornou uma confirmação válida',True)
         return message_id
