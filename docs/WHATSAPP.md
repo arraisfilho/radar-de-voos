@@ -34,7 +34,7 @@ Implemente o contrato de [`base.py`](../backend/integrations/base.py) e registre
 
 A interface usa o catálogo de campos. O canal mantém um integrador ativo; fluxos próprios de OAuth ou QR exigem extensão específica.
 
-O [adaptador OpenWA](../backend/integrations/openwa.py) usa `X-API-Key`, consulta `GET /api/sessions/{id}` e envia texto por `POST /api/sessions/{sessionId}/messages/send-text`. A aceitação exige HTTP 201 com `messageId`. Valide a compatibilidade com a versão do serviço instalado.
+O [adaptador OpenWA](../backend/integrations/openwa.py) usa `X-API-Key`, consulta `GET /api/sessions/{id}` e envia texto por `POST /api/sessions/{sessionId}/messages/send-text`. A aceitação exige HTTP 201 com `messageId`. O envio espera até 30 segundos pela resposta, e a consulta da sessão, até 12; um envio sem resposta nesse prazo fica como "Envio requer verificação" e não é repetido, porque a mensagem pode ter saído. Valide a compatibilidade com a versão do serviço instalado.
 
 
 ## Confirmações de entrega e leitura

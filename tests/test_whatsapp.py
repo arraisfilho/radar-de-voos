@@ -181,7 +181,11 @@ class OpenWAHTTPTests(unittest.TestCase):
     def test_text_endpoint_headers_payload_and_acceptance_id(self):
         opener=MagicMock();opener.open.return_value=self.response(201,{'messageId':'fixture-message','timestamp':1})
         with patch.object(openwa,'build_opener',return_value=opener):self.assertEqual(self.provider.send(self.values,'+12025550123','Fixture text'),'fixture-message')
-        request=opener.open.call_args.args[0];self.assertEqual(request.full_url,'https://example.org/api/sessions/fixture%2Fsession/messages/send-text');self.assertEqual(json.loads(request.data),{'chatId':'12025550123@c.us','text':'Fixture text'});self.assertEqual(request.get_header('X-api-key'),'private-fixture-token');self.assertEqual(opener.open.call_args.kwargs['timeout'],12)
+        request=opener.open.call_args.args[0];self.assertEqual(request.full_url,'https://example.org/api/sessions/fixture%2Fsession/messages/send-text');self.assertEqual(json.loads(request.data),{'chatId':'12025550123@c.us','text':'Fixture text'});self.assertEqual(request.get_header('X-api-key'),'private-fixture-token');self.assertEqual(opener.open.call_args.kwargs['timeout'],30)
+    def test_session_check_keeps_the_shorter_wait(self):
+        opener=MagicMock();opener.open.return_value=self.response(200,{'id':'fixture/session','status':'ready'})
+        with patch.object(openwa,'build_opener',return_value=opener):self.provider.check(self.values)
+        self.assertEqual(opener.open.call_args.args[0].get_method(),'GET');self.assertEqual(opener.open.call_args.kwargs['timeout'],12)
     def test_errors_never_expose_server_response_and_timeouts_are_uncertain(self):
         for exc,uncertain in [(HTTPError('https://example.org',401,'token private-fixture-token',{},io.BytesIO(b'private-fixture-token')),False),(HTTPError('https://example.org',500,'private-fixture-token',{},io.BytesIO()),True),(URLError('private-fixture-token'),True)]:
             with patch.object(openwa,'build_opener') as build:
