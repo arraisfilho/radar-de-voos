@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from .domain import Search, jobs, pending_jobs, eligible, local_instant, monitoring_deadline, ADAPTER_VERSION as SOURCE_VERSION
 from .store import db
-from . import mail,whatsapp,source,health
+from . import mail,whatsapp,source,health,result_cache
 from .notifications import sync_alerts,link,lifetime
 from .query_gate import QueryGate,Stopped
 from .alert_messages import money
@@ -339,7 +339,7 @@ class Monitor:
                 if time.monotonic()>=maintenance_due:
                     try:
                         from .retention import cleanup
-                        cleanup()
+                        cleanup(stop=self.stop_event.is_set)
                         from .deliveries import cleanup as delivery_cleanup
                         delivery_cleanup()
                         from .audit import cleanup as audit_cleanup
@@ -463,7 +463,7 @@ class Monitor:
                     # Skipped routes were never queried: no result row, the previous one stays current.
                     if result["status"] != "skipped":
                         c.execute("INSERT INTO results(cycle_id,search_id,version,direction,route_key,collected,status,data) VALUES(?,?,?,?,?,?,?,?)",
-                                  (cid,sid,version,result["direction"],key,result["collected_at"],result["status"],json.dumps(result)))
+                                  (cid,sid,version,result["direction"],key,result["collected_at"],result["status"],result_cache.encode(result)))
                     c.execute("UPDATE searches SET progress=? WHERE id=? AND version=?", (len(results),sid,version))
         performed = [r for r in results if r["status"] != "skipped"]
         skipped = len(results)-len(performed)

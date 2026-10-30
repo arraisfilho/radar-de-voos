@@ -25,6 +25,7 @@ Edite `deploy/cloud.env`:
 | `RADAR_UPSTREAM_PORT` | Porta da aplicação acessada pelo proxy |
 | `RADAR_PUBLISHED_HOST` | Interface de publicação; padrão restrito ao próprio servidor |
 | `RADAR_TRUSTED_PROXY` | IP exato do proxy visto pela aplicação |
+| `RADAR_RAW_RETENTION_DAYS` | Opcional: dias de respostas brutas da fonte guardados, de 7 a 3650; padrão 30 ([retenção](#logs-e-retenção)) |
 
 Para proxy instalado no mesmo servidor, mantenha os valores de rede do exemplo. Se a rede Docker conflitar com outra rede existente, ajuste subnet, endereço da aplicação e proxy confiável em conjunto. Proxies remotos exigem uma interface privada acessível e restrição da porta na infraestrutura.
 
@@ -163,4 +164,45 @@ O Compose limita logs do container a três arquivos de 10 MB. A aplicação escr
 
 Registros de envio e auditoria têm retenção própria, ajustável em **Administração → Retenção**, com limpeza manual e prévia. Na auditoria, login recusado, tentativas limitadas, recuperação solicitada, login com sucesso, saída, senha aceita na verificação em duas etapas e código recusado nela repetidos com o mesmo IP e conta (na recuperação, também o mesmo canal) em até 10 minutos são agregados em um registro com `count` e `last_seen`; login com sucesso e saída só se agregam com o mesmo navegador e sistema (`user_agent`), para que outro dispositivo no mesmo IP apareça em registro próprio. A limpeza horária aplica a retenção em dias pela última ocorrência e cotas separadas, em que uma categoria não remove registros de outra: 5 mil para login recusado, tentativas limitadas e recuperação solicitada; 20 mil para os demais eventos de conta (login, saída, verificação em duas etapas, cadastro e redefinição de senha); e 20 mil para administração e configuração (eventos `admin_*`, entre eles ativar e desativar a verificação em duas etapas, e criação do primeiro administrador). Alterar a retenção e limpar logs manualmente geram registros de auditoria. Um estado `unhealthy` não reinicia automaticamente o container.
 
+Respostas brutas da fonte (tabela `results`) ficam `RADAR_RAW_RETENTION_DAYS` dias (padrão 30, de 7 a 3650); a última tentativa e a última resposta válida de cada rota e versão dos filtros, e as respostas reaproveitadas por uma versão mais nova dos filtros, ficam sempre. Respostas novas são gravadas compactadas (zlib); versões até a 0.32.0 não as leem, e voltar a uma delas exige restaurar o backup feito antes da atualização. A limpeza horária remove até 10 mil respostas vencidas e compacta até 5 mil gravadas em texto por versões anteriores, das mais novas para as mais antigas, em transações de até 500 linhas; quando faz algo, registra `Retenção de respostas brutas aplicada` com `results`, `cycles` e `compressed`. O espaço liberado é reaproveitado pelo banco, mas o arquivo só diminui com a [compactação](#compactação-do-banco).
+
+Valor em uso, depois de alterar `deploy/cloud.env` e recriar o container com `up -d --wait`:
+
+```sh
+docker compose --env-file deploy/cloud.env -f compose.cloud.yaml exec app \
+  python -c "from backend.retention import days; print(days())"
+```
+
+O que falta para a limpeza horária, com o banco aberto só para leitura:
+
+```sh
+docker compose --env-file deploy/cloud.env -f compose.cloud.yaml exec app \
+  python -c "from backend.retention import progress; print(progress())"
+```
+
+`expired` conta respostas vencidas ainda não removidas e `text` as gravadas sem compactação; `cursor` é o próximo ponto da compactação, `None` antes da primeira limpeza. A limpeza terminou com `{'expired': 0, 'text': 0, 'cursor': 0}`. A contagem de `expired` lê a tabela inteira.
+
 Mantenha uma única instância por volume SQLite. O Compose local usa um volume distinto; dados locais não migram automaticamente para a nuvem.
+
+## Compactação do banco
+
+`scripts/compact.py` executa `PRAGMA wal_checkpoint(TRUNCATE)` e `VACUUM` em `radar.sqlite3` e imprime o tamanho antes e depois. Rode depois que a limpeza horária terminar (veja `progress()` em [Logs e retenção](#logs-e-retenção)), com a aplicação parada. O script recusa sem alterar nada com `Banco em uso` se outra conexão estiver com o banco aberto, ou com `Espaço livre insuficiente` se o volume de dados não tiver cerca de duas vezes o tamanho dos dados do banco: a cópia temporária do `VACUUM` e o WAL ficam no volume de dados, não em `/tmp`. Durante a execução, mantém o banco bloqueado. Com a aplicação ociosa, sem conexão aberta, ele não a detecta.
+
+1. Pare a aplicação e confirme que o serviço `app` não aparece em execução:
+
+   ```sh
+   docker compose --env-file deploy/cloud.env -f compose.cloud.yaml stop app
+   docker compose --env-file deploy/cloud.env -f compose.cloud.yaml ps
+   ```
+
+2. Compacte:
+
+   ```sh
+   docker compose --env-file deploy/cloud.env -f compose.cloud.yaml run --rm app python scripts/compact.py
+   ```
+
+3. Inicie a aplicação, mesmo se a compactação falhar:
+
+   ```sh
+   docker compose --env-file deploy/cloud.env -f compose.cloud.yaml up -d --wait
+   ```

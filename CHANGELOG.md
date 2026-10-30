@@ -1,5 +1,21 @@
 # Alterações
 
+## 0.32.1
+
+### Added
+- Script `scripts/compact.py`, que devolve ao disco o espaço liberado no banco (VACUUM) com a aplicação parada e mostra o tamanho antes e depois; recusa sem alterar nada se outra conexão estiver com o banco aberto ou se faltar espaço livre no volume de dados.
+- Função `backend.retention.progress()`, que mostra quantas respostas brutas vencidas e sem compactação a limpeza horária ainda tem a tratar, com o banco aberto só para leitura.
+- A limpeza horária passou a registrar no log quantas respostas brutas e ciclos removeu e quantas respostas compactou.
+
+### Changed
+- Respostas brutas da fonte passaram a ser gravadas compactadas, ocupando menos espaço no banco; versões até a 0.32.0 não as leem, e voltar a uma delas passou a exigir a restauração do backup.
+- A limpeza horária passou a compactar aos poucos as respostas brutas gravadas por versões anteriores, até 5 mil por hora, das mais novas para as mais antigas.
+- A limpeza horária passou a remover até 10 mil respostas brutas vencidas por hora, antes 2 mil, em transações de até 500 linhas, para que reduzir `RADAR_RAW_RETENTION_DAYS` libere espaço sem bloquear o banco por longos períodos.
+- A retenção passou a manter as respostas brutas reaproveitadas por uma versão mais nova dos filtros.
+
+### Fixed
+- `RADAR_RAW_RETENTION_DAYS` definido em `deploy/cloud.env` passou a chegar à aplicação na implantação com `compose.cloud.yaml`; antes valia sempre o padrão de 30 dias.
+
 ## 0.32.0
 
 ### Added

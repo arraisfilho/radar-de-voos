@@ -1,5 +1,22 @@
 """Reuse immutable source responses across compatible filter revisions."""
+import json
+import zlib
 from .domain import Search
+
+LEVEL = 6
+
+
+def encode(value):
+    """results.data as stored: the source response as JSON, zlib-compressed (BLOB)."""
+    text = value if isinstance(value, str) else json.dumps(value)
+    return zlib.compress(text.encode(), LEVEL)
+
+
+def decode(value):
+    """results.data as a dict: compressed BLOB, or JSON text in rows written before compression."""
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        value = zlib.decompress(value)
+    return json.loads(value)
 
 
 def acquisition(config):

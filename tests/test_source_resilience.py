@@ -18,7 +18,7 @@ from types import SimpleNamespace as NS
 from unittest.mock import patch, MagicMock, call
 import primp
 from fastapi.testclient import TestClient
-from backend import store, mail, source, collector, logs, engine
+from backend import store, mail, source, collector, logs, engine, result_cache
 from backend.domain import Search, Leg
 from backend.engine import Monitor, fetch, next_collection_due
 from backend.query_gate import QueryGate
@@ -433,7 +433,7 @@ class CycleTests(CycleFixture):
             self.assertEqual((row['failures'], row['error'], row['error_kind'], row['state']), (0, None, None, 'scheduled'))
             self.assertAlmostEqual(row['next_due']-row['last_started'], 300, delta=1)
         with store.db() as c:
-            kinds = {json.loads(r[0]).get('kind') for r in c.execute("SELECT data FROM results WHERE status='error'")}
+            kinds = {result_cache.decode(r[0]).get('kind') for r in c.execute("SELECT data FROM results WHERE status='error'")}
         self.assertEqual(kinds, {'network', 'blocked'})
 
     def test_partial_success_keeps_the_normal_cadence(self):
@@ -469,7 +469,7 @@ class CycleTests(CycleFixture):
         data = self.state()
         self.assertEqual((data['state'], data['streak'], data['consecutive_failures'], data['kind']), ('closed', 0, 12, 'no_results'))
         with store.db() as c:
-            errors = {json.loads(r[0])['error'] for r in c.execute("SELECT data FROM results WHERE status='error'")}
+            errors = {result_cache.decode(r[0])['error'] for r in c.execute("SELECT data FROM results WHERE status='error'")}
         self.assertEqual(errors, {collector.MESSAGES['no_results']})
 
     def test_scheduler_starts_nothing_while_paused_or_testing(self):
@@ -550,7 +550,8 @@ class CycleTests(CycleFixture):
         # The second route was never queried: no result row, no "cancelled" kind anywhere.
         self.assertEqual(remote.call_count, 1)
         with store.db() as c:
-            rows = [json.loads(r[0]) for r in c.execute('SELECT data FROM results')]
+            rows = [result_cache.decode(r[0]) for r in c.execute('SELECT data FROM results')]
+            self.assertEqual([r[0] for r in c.execute('SELECT typeof(data) FROM results')], ['blob'])
             cycle = dict(c.execute('SELECT * FROM cycles').fetchone())
         self.assertEqual([r['kind'] for r in rows], ['timeout']); self.assertNotIn('cancelled', json.dumps(rows))
         self.assertEqual((cycle['status'], cycle['successes'], cycle['failures']), ('interrupted', 0, 1))
