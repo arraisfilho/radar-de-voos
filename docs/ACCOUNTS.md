@@ -29,13 +29,27 @@ O padrão é cinco buscas por conta, ajustável pelo administrador de 1 a 100. B
 
 ## Recuperação de acesso
 
-Em **Esqueci minha senha**, informe país e telefone cadastrados. Se houver remetente configurado e e-mail no perfil, o sistema envia um link ao primeiro endereço, válido por 20 minutos. Uma nova solicitação invalida links anteriores.
+Em **Esqueci minha senha**, informe o celular de acesso e escolha onde receber o código: **WhatsApp** (padrão) ou **E-mail**. Na mesma tela, digite o código de 6 números e a nova senha. Trocar o celular ou o canal volta ao primeiro passo.
 
-O assistente `create_admin.py` não redefine senhas existentes. Se houver outro acesso administrativo disponível, use **Administração → Usuários** para redefinir a senha. Sem acesso administrativo e sem recuperação por e-mail, a recuperação depende de intervenção do operador no servidor.
+- O WhatsApp usado é o do perfil (o celular de acesso ou o número alternativo), nunca os números adicionais. O e-mail usado é o primeiro do perfil.
+- A resposta é sempre `{"ok": true}`: telefone sem conta, conta sem o contato escolhido, canal sem integração ou envio configurado e pedidos acima dos limites não recebem código, sem aviso.
+- O código vale 10 minutos e aceita 5 tentativas. Cada tentativa é contada antes da comparação; na quinta, o código deixa de valer. Um novo pedido invalida o código anterior e cancela a mensagem dele ainda não enviada.
+- Por conta, sai no máximo um código por minuto e cinco por hora. Por IP (em IPv6, o prefixo /64), são aceitos cinco pedidos por hora.
+- Cada confirmação conta como tentativa de login: código errado, código vencido e telefone sem conta são falhas no [limite de tentativas](#limite-de-tentativas-de-login). Com a conta ou o IP bloqueado, a confirmação recebe HTTP 429 com `Retry-After` e não gasta tentativa do código; a tela informa os minutos de espera, mantém o código digitado e libera **Criar nova senha** quando a espera termina.
+- A mensagem sai na hora, inclusive no horário silencioso, no idioma da tela (português, inglês ou espanhol), à frente das demais mensagens do canal. Se não sair em 10 minutos, expira. Em **Administração → Envios** aparece com o tipo **Recuperação de acesso**, sem o conteúdo. Quando a mensagem deixa a fila (enviada, com falha, expirada ou cancelada), o texto com o código é apagado do banco.
+- Alterar os e-mails ou o WhatsApp do perfil, ou o celular de acesso pelo administrador, invalida o código aberto.
+- O código é guardado como HMAC-SHA-256 com um segredo do servidor, ligado à conta e ao pedido. O segredo fica em `recovery-private.json` (modo 0600) no diretório de dados, é criado no primeiro código e entra no backup com os demais arquivos privados. Se o arquivo for removido, um novo segredo é criado e os códigos abertos deixam de valer.
+- A nova senha encerra todas as sessões da conta e apaga as falhas de login dela. A [verificação em duas etapas](#verificação-em-duas-etapas) continua ativa e é pedida no próximo login.
+- Links de recuperação enviados por versões anteriores deixam de funcionar; quem abre um deles vê o login.
 
-A redefinição de senha não desativa a [verificação em duas etapas](#verificação-em-duas-etapas).
+| Rota | Corpo | Resultado |
+|---|---|---|
+| `POST /api/auth/recovery` | `country`, `phone`, `channel` (`whatsapp` ou `email`) | Sempre `{"ok": true}` |
+| `POST /api/auth/recovery/confirm` | `country`, `phone`, `code` (6 dígitos), `password` (10 a 200 caracteres) | `{"ok": true}`; HTTP 422 `Código inválido ou vencido. Peça um novo.`; HTTP 429 durante um bloqueio |
 
-Não envie senhas ou links de recuperação em issues públicas.
+O assistente `create_admin.py` não redefine senhas existentes. Se houver outro acesso administrativo disponível, use **Administração → Usuários** para redefinir a senha. Sem acesso administrativo e sem WhatsApp ou e-mail na conta, a recuperação depende de intervenção do operador no servidor.
+
+Não envie senhas ou códigos de recuperação em issues públicas.
 
 ## Limite de tentativas de login
 
@@ -43,11 +57,11 @@ Não envie senhas ou links de recuperação em issues públicas.
 - Por conta, de qualquer IP: a 5ª falha em 15 minutos bloqueia a conta por 1 minuto. Cada falha seguinte da mesma sequência bloqueia por 2, 4, 8 e depois 15 minutos, contados da última falha. A sequência recomeça após uma hora sem falhas.
 - Telefones sem cadastro são contados da mesma forma e recebem respostas idênticas.
 - Um login com sucesso zera somente os contadores daquela conta. Com a verificação em duas etapas ativa, só o login completo (senha e código) zera; a senha correta sozinha não apaga falhas anteriores e ocupa uma vaga do limite por IP.
-- A redefinição de senha pelo link de recuperação ou pelo administrador também apaga as falhas registradas da conta e libera o bloqueio na hora. Como no login com sucesso, essas falhas deixam de contar também no limite por IP.
+- A redefinição de senha pelo código de recuperação ou pelo administrador também apaga as falhas registradas da conta e libera o bloqueio na hora. Como no login com sucesso, essas falhas deixam de contar também no limite por IP. A confirmação do código, como o login, espera o bloqueio terminar.
 
 O bloqueio responde HTTP 429 com o cabeçalho `Retry-After`, em segundos. A tentativa é reservada como falha antes da verificação da senha; tentativas simultâneas não ultrapassam os limites.
 
-Como o bloqueio da conta vale para qualquer IP, quem conhece um telefone cadastrado consegue mantê-lo bloqueado com cerca de quatro senhas erradas por hora: cada falha renova a espera de até 15 minutos. As falhas expiram em 24 horas; quando expiram as cinco que abriram a sequência, o bloqueio termina, a menos que ocorram outras cinco falhas em 15 minutos, o que recomeça a sequência. Nesse caso, use a recuperação por e-mail ou peça a redefinição ao administrador.
+Como o bloqueio da conta vale para qualquer IP, quem conhece um telefone cadastrado consegue mantê-lo bloqueado com cerca de quatro senhas erradas por hora: cada falha renova a espera de até 15 minutos. As falhas expiram em 24 horas; quando expiram as cinco que abriram a sequência, o bloqueio termina, a menos que ocorram outras cinco falhas em 15 minutos, o que recomeça a sequência. Nesse caso, a recuperação por código também espera cada bloqueio terminar; peça a redefinição ao administrador.
 
 As falhas são guardadas por 24 horas com o IP (em IPv6, o prefixo /64) e uma chave da conta: HMAC-SHA-256 do telefone normalizado com um segredo do servidor, nunca o número. O segredo fica em `login-limit-private.json` (modo 0600) no diretório de dados, é criado na primeira tentativa de login e entra no backup com os demais arquivos privados. Se o arquivo for removido, um novo segredo é criado e os contadores existentes deixam de valer. Contadores gravados por versões anteriores, com SHA-256 sem segredo, também deixam de contar e expiram em 24 horas.
 
@@ -75,7 +89,7 @@ Limites:
 - Cada senha correta ocupa uma das 10 vagas do limite por IP por 15 minutos, sem contar para o bloqueio da conta. Assim, abrir etapas e registrar senhas aceitas também tem limite por endereço.
 - Códigos do aplicativo errados têm também um teto de 10 por conta em 24 horas. Atingido o teto, o código do aplicativo recebe HTTP 429 com `Retry-After` até a falha mais antiga completar 24 horas; códigos de recuperação continuam aceitos. Nem um login completo nem a redefinição de senha liberam o teto antes disso; desativar e ativar de novo libera. Falhas que não são suas indicam que a senha vazou: troque a senha.
 - **Ativar** e **Desativar** conferem a senha com os mesmos limites do login: uma senha errada conta como falha.
-- A redefinição de senha, pelo link de recuperação ou pelo administrador, encerra as etapas abertas com a senha anterior. A verificação continua ativa.
+- A redefinição de senha, pelo código de recuperação ou pelo administrador, encerra as etapas abertas com a senha anterior. A verificação continua ativa.
 
 **Desativar** pede a senha atual e apaga o valor aleatório da ativação, os códigos de recuperação, as etapas abertas e o teto de códigos errados.
 

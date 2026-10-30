@@ -1,5 +1,24 @@
 # Alterações
 
+## 0.32.0
+
+### Added
+- "Esqueci minha senha" passou a enviar um código de 6 números pelo WhatsApp ou por e-mail, à escolha, e a nova senha passou a ser criada na mesma tela, com o código.
+- O botão "Reenviar código" passou a ficar disponível após 60 s, com a contagem na tela.
+- A auditoria passou a mostrar o canal (WhatsApp ou e-mail) de cada recuperação solicitada.
+- Com a conta bloqueada por tentativas erradas, a tela de recuperação passou a informar os minutos de espera e a manter o código digitado até liberar "Criar nova senha".
+
+### Changed
+- O código de recuperação passou a valer 10 minutos e 5 tentativas; cada conta recebe no máximo um código por minuto e cinco por hora, e um novo pedido invalida o anterior.
+- Códigos errados na recuperação passaram a contar como falhas de login, e a confirmação passou a esperar o fim de um bloqueio da conta.
+- Mensagens de recuperação não enviadas em 10 minutos passaram a expirar, e as do WhatsApp saem mesmo no horário silencioso.
+- Mensagens de recuperação passaram à frente das demais na fila de envio, e o texto com o código passou a ser apagado do registro de envios quando a mensagem sai da fila.
+- O limite de pedidos de recuperação por IP passou a contar endereços IPv6 pelo prefixo /64, como o login.
+- Depois da nova senha, a tela passou a voltar ao login com o aviso "Senha criada. Entre com a nova senha.".
+
+### Removed
+- O link de recuperação por e-mail; links enviados antes desta versão deixaram de funcionar e abrem o login.
+
 ## 0.31.0
 
 ### Added

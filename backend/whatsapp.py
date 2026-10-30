@@ -11,7 +11,7 @@ from pydantic import BaseModel,Field
 from . import store,accounts
 from .integrations import WHATSAPP_PROVIDERS,catalog
 from .integrations.base import IntegrationError
-from .notifications import sync_alerts,link
+from .notifications import sync_alerts,link,lifetime
 
 LOCK=threading.RLock()
 logger=logging.getLogger('radar.whatsapp')
@@ -120,7 +120,8 @@ def send_one(stop_event=None):
             c.execute('BEGIN IMMEDIATE')
             # Monitor.stop requested while waiting for LOCK or the write lock: nothing new is claimed.
             if stop_event is not None and stop_event.is_set():return
-            row=c.execute("SELECT * FROM outbox WHERE channel='whatsapp' AND status='pending' AND next_due<=? ORDER BY created,id LIMIT 1",(time.time(),)).fetchone()
+            # Recovery codes go ahead of the queue: they expire in minutes.
+            row=c.execute("SELECT * FROM outbox WHERE channel='whatsapp' AND status='pending' AND next_due<=? ORDER BY kind='recovery' DESC,created,id LIMIT 1",(time.time(),)).fetchone()
             if not row:return
             row=dict(row);status=None
             if not available(config) or row['provider']!=config['provider'] or row['transport_ref']!=reference(config):status='cancelled'
@@ -128,8 +129,8 @@ def send_one(stop_event=None):
                 search=c.execute('SELECT * FROM searches WHERE id=?',(row['search_id'],)).fetchone()
                 if not search or not search['active'] or search['archived'] or search['version']!=row['version']:status='cancelled'
                 elif json.loads(row['recipients'] or '[]')!=[p for p in json.loads(row['recipients'] or '[]') if p in recipients(c,row['search_id'])]:status='cancelled'
-            # A message held by quiet hours counts its 30 minutes from their end (next_due).
-            if time.time()-max(row['created'],row['next_due'] or 0)>1800:status='expired'
+            # A message held by quiet hours counts its 30 minutes from their end (next_due); a recovery code, 10.
+            if time.time()-max(row['created'],row['next_due'] or 0)>lifetime(row):status='expired'
             if status:
                 c.execute('UPDATE outbox SET status=? WHERE id=?',(status,row['id']));sync_alerts(c,json.loads(row['alert_ids']));return
             # Quiet hours hold the message, still pending, until they end; the expiry above still applies then.

@@ -5,7 +5,7 @@ import time
 from typing import Literal
 from pydantic import Field,BaseModel,model_validator
 from fastapi import HTTPException
-from . import accounts,audit
+from . import accounts,audit,recovery
 from .store import db
 
 
@@ -86,11 +86,6 @@ def create(request,actor,data):
     return result
 
 
-def invalidate_recovery(c,uid):
-    c.execute('UPDATE password_resets SET used=1 WHERE user_id=?',(uid,))
-    c.execute("UPDATE outbox SET status='cancelled' WHERE status='pending' AND id IN (SELECT outbox_id FROM password_resets WHERE user_id=?)",(uid,))
-
-
 def update(request,actor,uid,data):
     try:
         with db() as c:
@@ -104,7 +99,7 @@ def update(request,actor,uid,data):
             accounts.contacts_changed(c,uid,previous)
             if previous['phone']!=data.phone:
                 c.execute('DELETE FROM sessions WHERE user_id=?',(uid,))
-                invalidate_recovery(c,uid)
+                recovery.invalidate(c,uid)
             result=accounts.public_user(get(uid,c))
     except sqlite3.IntegrityError:raise HTTPException(409,'Este telefone já está cadastrado')
     audit.record(request,'admin_account_updated',uid,actor['id'])
@@ -120,6 +115,6 @@ def password(request,actor,uid,data):
         # The new password works at once: the account's login lock is lifted.
         accounts.clear_login_failures(c,target['phone'])
         c.execute('DELETE FROM sessions WHERE user_id=?',(uid,))
-        invalidate_recovery(c,uid)
+        recovery.invalidate(c,uid)
     audit.record(request,'admin_password_reset',uid,actor['id'])
     return {'ok':True,'sessions_revoked':True}

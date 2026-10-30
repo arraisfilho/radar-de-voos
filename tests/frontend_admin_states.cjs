@@ -29,6 +29,7 @@ assert.equal(text(auditDetails('admin_smtp_saved',{changed:['host','password'],e
 assert.equal(text(auditDetails('admin_retention_changed',{after:30,before:90,scope:'access'})),'Registros: Auditoria de acessos | Antes: 90 dias | Depois: 30 dias');
 assert.ok(text(auditDetails('admin_logs_cleaned',{before:1792216162,has_more:false,removed:120,scope:'deliveries'})).includes('Registros removidos: 120'));
 assert.ok(text(auditDetails('admin_whatsapp_removed',{cancelled:2,existed:true,provider:'openwa',receipts_removed:true})).includes('Mensagens pendentes canceladas: 2'));
+assert.equal(text(auditDetails('recovery_requested',{channel:'whatsapp'})),'Canal: WhatsApp');assert.equal(text(auditDetails('recovery_requested',{channel:'email'})),'Canal: E-mail');
 assert.equal(auditDetails('login_failed',null).length,0);
 console.log('Audit: labels for the new events and readable details without values passed.');
 

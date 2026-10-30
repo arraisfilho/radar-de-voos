@@ -464,11 +464,14 @@ def contact_points(row):
 
 
 def contacts_changed(c,user_id,before):
-    """Pending health notices of an account whose e-mails or WhatsApp number changed are cancelled; the next check rebuilds them."""
+    """When an account's e-mails or WhatsApp number change, its pending health notices are cancelled (the
+    next check rebuilds them) and so are its open recovery codes, sent to the former contacts."""
     after=c.execute('SELECT * FROM accounts WHERE id=?',(user_id,)).fetchone()
     if before and after and contact_points(before)!=contact_points(after):
         from .incidents import cancel_for
+        from .recovery import invalidate
         cancel_for(c,user_id)
+        invalidate(c,user_id)
 
 
 def update_contacts_in(c,user_id,data):
@@ -476,8 +479,6 @@ def update_contacts_in(c,user_id,data):
     before = c.execute("SELECT * FROM accounts WHERE id=?",(user_id,)).fetchone()
     previous = c.execute("SELECT emails FROM accounts WHERE id=?",(user_id,)).fetchone()
     if previous and json.loads(previous["emails"]) != data.emails:
-        c.execute("UPDATE outbox SET status='cancelled' WHERE id IN (SELECT outbox_id FROM password_resets WHERE user_id=?) AND status='pending'",(user_id,))
-        c.execute("UPDATE password_resets SET used=1 WHERE user_id=?",(user_id,))
         pending = c.execute("SELECT id,alert_ids FROM outbox WHERE channel='email' AND status='pending' AND search_id IN (SELECT id FROM searches WHERE owner_id=?)",(user_id,)).fetchall()
         for row in pending:
             c.execute("UPDATE outbox SET status='cancelled' WHERE id=?",(row["id"],))

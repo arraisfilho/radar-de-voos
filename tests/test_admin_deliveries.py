@@ -66,7 +66,7 @@ class AdminDeliveryTests(unittest.TestCase):
         detail=self.admin.get('/api/admin/deliveries/content').json();self.assertEqual(detail['body'],'<script>fixture</script>\nFare fell');self.assertFalse(detail['content_protected']);self.assertEqual(detail['account_name'],'Other fixture')
         self.assertEqual(self.admin.get('/api/admin/deliveries/missing').status_code,404)
     def test_recovery_contents_are_protected_even_for_legacy_records(self):
-        for oid,kind,body in [('recovery','recovery','Secret recovery link'),('legacy','legacy','https://example.org/#reset=fixture-secret')]:
+        for oid,kind,body in [('recovery','recovery','Radar de Voos: seu código para criar uma nova senha é fixture-secret.'),('legacy','legacy','https://example.org/#reset=fixture-secret')]:
             self.insert(oid,kind=kind,body=body)
             detail=self.admin.get('/api/admin/deliveries/'+oid).json();self.assertTrue(detail['content_protected']);self.assertIsNone(detail['body']);self.assertNotIn('fixture-secret',json.dumps(detail))
     def test_search_ownership_is_recorded_on_enqueue(self):

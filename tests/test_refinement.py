@@ -1,6 +1,5 @@
 """Refinement regressions: no provider requests or messages leave these fixtures."""
 import test_isolation  # noqa: F401 - first: temporary data, no seed, idle workers
-import hashlib
 import importlib
 import json
 import tempfile
@@ -33,50 +32,6 @@ class RefinementTests(unittest.TestCase):
         config=Search(origins=['THE'],destinations=['GRU'],outbound=Leg(start='2090-11-05T00:00',end='2090-11-05T23:59')).model_dump()
         r=self.client.post('/api/searches',json=config,headers=self.headers);self.assertEqual(r.status_code,200,r.text)
         return r.json()['id'],config
-    def request_recovery(self,**extra):
-        with patch.object(mail,'available',return_value=True):
-            r=self.client.post('/api/auth/recovery',json={'country':'US','phone':'6502530000'}|extra,headers=self.headers)
-        self.assertEqual(r.json(),{'ok':True})
-        with store.db() as c:return c.execute('SELECT * FROM outbox ORDER BY created DESC LIMIT 1').fetchone()
-    def test_recovery_private_one_use_and_revokes_sessions(self):
-        row=self.request_recovery();self.assertEqual(json.loads(row['recipients']),['first@example.org'])
-        token=row['body'].split('#reset=')[1]
-        with store.db() as c:
-            saved=c.execute('SELECT * FROM password_resets').fetchone();self.assertEqual(saved['digest'],hashlib.sha256(token.encode()).hexdigest());self.assertNotEqual(saved['digest'],token)
-        payload={'token':token,'password':'new-fixture-password'}
-        r=self.client.post('/api/auth/recovery/confirm',json=payload,headers=self.headers);self.assertEqual(r.status_code,200,r.text)
-        self.assertIsNone(self.client.get('/api/auth/session').json()['user'])
-        self.assertEqual(self.client.post('/api/auth/recovery/confirm',json=payload,headers=self.headers).status_code,422)
-        r=self.client.post('/api/auth/login',json={'country':'US','phone':'6502530000','password':payload['password']},headers=self.headers);self.assertEqual(r.status_code,200,r.text)
-    def test_recovery_unknown_and_rate_limit_do_not_reveal_accounts(self):
-        self.assertIsNone(self.request_recovery(phone='2025550123'))
-        for _ in range(6):self.request_recovery()
-        with store.db() as c:
-            self.assertEqual(c.execute('SELECT COUNT(*) FROM password_resets').fetchone()[0],4)
-            self.assertEqual(c.execute("SELECT COUNT(*) FROM outbox WHERE status='pending'").fetchone()[0],1)
-    def test_recovery_uses_canonical_origin_not_host_header(self):
-        with patch.dict('os.environ',{'RADAR_LAN_CIDR':'192.168.3.0/24'}),patch.object(mail,'available',return_value=True):
-            hostile=TestClient(self.module.app,base_url='http://192.168.3.99:8765',client=('192.168.3.50',4444))
-            try:
-                r=hostile.post('/api/auth/recovery',json={'country':'US','phone':'6502530000'},headers=self.headers)
-                self.assertEqual(r.status_code,200,r.text)
-            finally:hostile.close()
-        with store.db() as c:body=c.execute('SELECT body FROM outbox').fetchone()[0]
-        self.assertIn('http://127.0.0.1:8765/#reset=',body);self.assertNotIn('192.168.3.99',body)
-    def test_security_recovery_email_bypasses_quiet_hours(self):
-        self.client.put('/api/profile',json={**self.user,'quiet_hours':True},headers=self.headers)
-        row=self.request_recovery()
-        with patch.object(mail,'delivery_settings',return_value={'enabled':True}),patch('backend.accounts.search_is_quiet',return_value=True),patch.object(mail,'transmit') as send:
-            Monitor().send_one();send.assert_called_once()
-        with store.db() as c:self.assertEqual(c.execute('SELECT status FROM outbox WHERE id=?',(row['id'],)).fetchone()[0],'sent')
-    def test_recovery_expiry_and_contact_change_cancel_link(self):
-        row=self.request_recovery();token=row['body'].split('#reset=')[1]
-        with store.db() as c:c.execute('UPDATE password_resets SET expires=?',(time.time()-1,))
-        self.assertEqual(self.client.post('/api/auth/recovery/confirm',json={'token':token,'password':'new-password-fixture'},headers=self.headers).status_code,422)
-        row=self.request_recovery();token=row['body'].split('#reset=')[1]
-        r=self.client.put('/api/profile',json={**self.user,'emails':['new@example.org']},headers=self.headers);self.assertEqual(r.status_code,200,r.text)
-        self.assertEqual(self.client.post('/api/auth/recovery/confirm',json={'token':token,'password':'new-password-fixture'},headers=self.headers).status_code,422)
-        with store.db() as c:self.assertEqual(c.execute('SELECT status FROM outbox WHERE id=?',(row['id'],)).fetchone()[0],'cancelled')
     def test_fixed_interval_refresh_blocked_and_pause_resume_no_flood(self):
         sid,config=self.search();config['interval']=60
         self.assertEqual(self.client.put('/api/searches/'+sid,json=config,headers=self.headers).status_code,422)

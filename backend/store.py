@@ -129,6 +129,16 @@ def setup(seed=True):
                 c.execute('ALTER TABLE accounts ADD COLUMN '+name+' '+definition)
         c.execute('CREATE TABLE IF NOT EXISTS recovery_attempts(ip TEXT NOT NULL,created REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS password_resets(digest TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES accounts(id),created REAL NOT NULL,expires REAL NOT NULL,used INTEGER NOT NULL DEFAULT 0,outbox_id TEXT NOT NULL)')
+        # Recovery codes (recovery.py): the channel each one went by and the wrong attempts it took.
+        for name,definition in [('channel',"TEXT NOT NULL DEFAULT 'email'"),('attempts','INTEGER NOT NULL DEFAULT 0')]:
+            if name not in {r[1] for r in c.execute('PRAGMA table_info(password_resets)')}:
+                c.execute('ALTER TABLE password_resets ADD COLUMN '+name+' '+definition)
+        c.execute('CREATE INDEX IF NOT EXISTS password_resets_user ON password_resets(user_id,created)')
+        if not c.execute("SELECT 1 FROM metadata WHERE key='recovery_codes_v1'").fetchone():
+            # Links of the former e-mail recovery no longer work: open ones end and unsent ones are cancelled.
+            c.execute("UPDATE outbox SET status='cancelled' WHERE status='pending' AND id IN (SELECT outbox_id FROM password_resets WHERE used=0)")
+            c.execute('UPDATE password_resets SET used=1')
+            c.execute("INSERT OR IGNORE INTO metadata VALUES('recovery_codes_v1','1')")
         if "telegram_username" not in {r[1] for r in c.execute("PRAGMA table_info(accounts)")}:
             c.execute("ALTER TABLE accounts ADD COLUMN telegram_username TEXT NOT NULL DEFAULT ''")
         if "owner_id" not in {r[1] for r in c.execute("PRAGMA table_info(searches)")}:

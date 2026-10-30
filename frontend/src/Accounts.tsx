@@ -78,10 +78,11 @@ function EntryPlaceholder() {
 export function AuthGate() {
   const language = useLanguage(),
     ready = useLanguageReady();
-  const [recovery, setRecovery] = useState(() => location.hash.startsWith("#reset="));
-  const [resetToken] = useState(() => new URLSearchParams(location.hash.slice(1)).get("reset") || "");
+  const [recovery, setRecovery] = useState(false);
   const [session, setSession] = useState<Session | null>(null),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    // Shown on the login after a new password; kept untranslated, as the error.
+    [notice, setNotice] = useState("");
   const client = useQueryClient();
   // The sign-in form appears only once we know there is no session. Errors stay
   // untranslated until shown, so a catalog that arrives later still applies.
@@ -96,6 +97,10 @@ export function AuthGate() {
       .catch(() => setError("Não foi possível conectar ao radar."));
   }
   useEffect(loadSession, []);
+  // Links of the former e-mail recovery (#reset=…) no longer work: the login shows, without the hash.
+  useEffect(() => {
+    if (location.hash.startsWith("#reset=")) history.replaceState(null, "", location.pathname + location.search);
+  }, []);
   useEffect(() => {
     if (!session?.user) return;
     let active = true;
@@ -145,10 +150,10 @@ export function AuthGate() {
     return (
       <Suspense fallback={<EntryStatus />}>
         <RecoveryForm
-          token={resetToken}
-          onBack={() => {
-            if (resetToken) location.replace("/");
-            else setRecovery(false);
+          onBack={() => setRecovery(false)}
+          onDone={() => {
+            setNotice("Senha criada. Entre com a nova senha.");
+            setRecovery(false);
           }}
         />
       </Suspense>
@@ -163,7 +168,18 @@ export function AuthGate() {
   if (!session) return <EntryStatus error={error && t(error)} onRetry={loadSession} />;
   return (
     <Suspense fallback={<EntryStatus />}>
-      <SignIn session={session} onSignedIn={setSession} onRecover={() => setRecovery(true)} />
+      <SignIn
+        session={session}
+        notice={notice && t(notice)}
+        onSignedIn={(next) => {
+          setNotice("");
+          setSession(next);
+        }}
+        onRecover={() => {
+          setNotice("");
+          setRecovery(true);
+        }}
+      />
     </Suspense>
   );
 }

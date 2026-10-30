@@ -56,11 +56,11 @@ def record(request,event,user_id=None,actor_id=None,details=None,c=None):
     now=time.time()
     payload=json.dumps(details,sort_keys=True,separators=(',',':')) if details is not None else None
     if event in AGGREGATED:
-        # One row per event, address and account (and user agent, for sessions) while repeats
-        # keep arriving within the window.
+        # One row per event, address, account and details (the recovery channel), and user agent for
+        # sessions, while repeats keep arriving within the window.
         device=' AND user_agent=?' if event in SESSION else ''
-        row=c.execute('SELECT id FROM access_audit WHERE event=? AND ip=? AND user_id IS ? AND COALESCE(last_seen,created)>=?'+device+' ORDER BY id DESC LIMIT 1',
-                      (event,address,user_id,now-AGGREGATE_SECONDS)+((agent,) if device else ())).fetchone()
+        row=c.execute('SELECT id FROM access_audit WHERE event=? AND ip=? AND user_id IS ? AND details IS ? AND COALESCE(last_seen,created)>=?'+device+' ORDER BY id DESC LIMIT 1',
+                      (event,address,user_id,payload,now-AGGREGATE_SECONDS)+((agent,) if device else ())).fetchone()
         if row:
             c.execute('UPDATE access_audit SET count=count+1,last_seen=? WHERE id=?',(now,row[0]))
             return

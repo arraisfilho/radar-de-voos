@@ -2571,7 +2571,9 @@ tbody tr:last-child > td {
 }
 .auth-links {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  gap: 4px 8px;
   margin-top: 12px;
 }
 .auth-switch {
@@ -2764,9 +2766,81 @@ tbody tr:last-child > td {
 .recovery-input {
   font-family: var(--font-mono);
 }
+/* ---------- Password recovery (RecoveryForm.tsx) ------------------------------ */
+/* Two cards for the channel of the code. The radio stays in the page, unseen, for
+   the keyboard and screen readers; its card shows the choice and the focus. */
+.channel-choice {
+  display: grid;
+  min-width: 0;
+}
+.channel-choice > legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.channel-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.channel-option {
+  position: relative;
+  min-width: 0;
+  cursor: pointer;
+}
+.channel-option > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.channel-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--touch-size);
+  padding: 0 12px;
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-md);
+  background: var(--field-bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 500;
+  transition: border-color var(--dur-fast) var(--ease-standard), background-color var(--dur-fast) var(--ease-standard);
+}
+.channel-card > svg {
+  flex-shrink: 0;
+}
+.channel-option > input:checked + .channel-card {
+  border-color: var(--primary);
+  background: var(--surface-tint);
+  color: var(--primary);
+  font-weight: 600;
+}
+.channel-option > input:focus-visible + .channel-card {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+/* Where the code went (recovery) or that the new password is set (login). */
+.auth-notice {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-tint);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 18px;
+}
 /* The sign-in alert before any message (SignIn.tsx): it stays in the page, so a
-   message is announced when it arrives, and takes no space, like .notice.is-empty. */
-.form-error.is-empty {
+   message is announced when it arrives, and takes no space, like .notice.is-empty.
+   The recovery notice before a code is sent does the same. */
+.form-error.is-empty,
+.auth-notice.is-empty {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -2907,6 +2981,10 @@ tbody tr:last-child > td {
   .app-icon {
     border: 1px solid CanvasText;
   }
+  .channel-card {
+    border-color: CanvasText;
+  }
+  .channel-option > input:checked + .channel-card,
   .segmented > [aria-pressed="true"],
   .segmented > [aria-selected="true"],
   .segmented > [aria-current="page"],

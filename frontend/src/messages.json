@@ -1999,29 +1999,85 @@
     "en": "Recover access",
     "es": "Recuperar acceso"
   },
-  "Senha atualizada. Entre novamente em seus dispositivos.": {
-    "en": "Password updated. Sign in again on your devices.",
-    "es": "Contraseña actualizada. Inicia sesión de nuevo en tus dispositivos."
+  "Enviamos um código para o WhatsApp ou o e-mail da sua conta.": {
+    "en": "We send a code to the WhatsApp or email on your account.",
+    "es": "Enviamos un código al WhatsApp o al correo de tu cuenta."
   },
-  "As senhas não coincidem": {
-    "en": "Passwords do not match",
-    "es": "Las contraseñas no coinciden"
+  "Receber o código por": {
+    "en": "Get the code by",
+    "es": "Recibir el código por"
+  },
+  "Enviar código": {
+    "en": "Send code",
+    "es": "Enviar código"
+  },
+  "Digite o código que chegou no seu WhatsApp.": {
+    "en": "Enter the code that arrived on your WhatsApp.",
+    "es": "Introduce el código que llegó a tu WhatsApp."
+  },
+  "Digite o código que chegou no seu e-mail.": {
+    "en": "Enter the code that arrived in your email.",
+    "es": "Introduce el código que llegó a tu correo."
+  },
+  "Se a conta existir e tiver WhatsApp cadastrado, o código chega em instantes.": {
+    "en": "If the account exists and has a WhatsApp number, the code arrives in a moment.",
+    "es": "Si la cuenta existe y tiene WhatsApp registrado, el código llega en unos instantes."
+  },
+  "Se a conta existir e tiver e-mail cadastrado, o código chega em instantes.": {
+    "en": "If the account exists and has an email, the code arrives in a moment.",
+    "es": "Si la cuenta existe y tiene correo registrado, el código llega en unos instantes."
+  },
+  "Código recebido no WhatsApp": {
+    "en": "Code received on WhatsApp",
+    "es": "Código recibido en WhatsApp"
+  },
+  "Código recebido no e-mail": {
+    "en": "Code received by email",
+    "es": "Código recibido por correo"
+  },
+  "Pelo menos 10 caracteres.": {
+    "en": "At least 10 characters.",
+    "es": "Al menos 10 caracteres."
+  },
+  "Criar nova senha": {
+    "en": "Create new password",
+    "es": "Crear nueva contraseña"
+  },
+  "Acesso bloqueado temporariamente por tentativas erradas. Tente de novo em {0} min ou peça ao administrador para redefinir a senha.": {
+    "en": "Access temporarily blocked after wrong attempts. Try again in {0} min or ask the administrator to reset the password.",
+    "es": "Acceso bloqueado temporalmente por intentos fallidos. Vuelve a intentarlo en {0} min o pide al administrador que restablezca la contraseña."
+  },
+  "Criar nova senha em {0}": {
+    "en": "Create new password in {0}",
+    "es": "Crear nueva contraseña en {0}"
+  },
+  "Reenviar código": {
+    "en": "Resend code",
+    "es": "Reenviar código"
+  },
+  "Reenviar em {0} s": {
+    "en": "Resend in {0} s",
+    "es": "Reenviar en {0} s"
+  },
+  "Sem WhatsApp ou e-mail na conta? Peça ao administrador para redefinir a senha.": {
+    "en": "No WhatsApp or email on the account? Ask the administrator to reset the password.",
+    "es": "¿Sin WhatsApp ni correo en la cuenta? Pide al administrador que restablezca la contraseña."
+  },
+  "Senha criada. Entre com a nova senha.": {
+    "en": "Password created. Sign in with the new password.",
+    "es": "Contraseña creada. Entra con la nueva contraseña."
+  },
+  "Código inválido ou vencido. Peça um novo.": {
+    "en": "Invalid or expired code. Request a new one.",
+    "es": "Código inválido o vencido. Pide uno nuevo."
+  },
+  "O código para criar uma nova senha também pode chegar por e-mail.": {
+    "en": "The code to create a new password can also arrive by email.",
+    "es": "El código para crear una nueva contraseña también puede llegar por correo."
   },
   "Nova senha": {
     "en": "New password",
     "es": "Nueva contraseña"
-  },
-  "Confirmar senha": {
-    "en": "Confirm password",
-    "es": "Confirmar contraseña"
-  },
-  "Salvar nova senha": {
-    "en": "Save new password",
-    "es": "Guardar nueva contraseña"
-  },
-  "Enviar link de recuperação": {
-    "en": "Send recovery link",
-    "es": "Enviar enlace de recuperación"
   },
   "Voltar ao login": {
     "en": "Back to sign in",
@@ -2058,10 +2114,6 @@
   "Silenciado neste horário": {
     "en": "Muted during quiet hours",
     "es": "Silenciado durante este horario"
-  },
-  "O link de recuperação expirou ou já foi usado": {
-    "en": "The recovery link expired or was already used",
-    "es": "El enlace de recuperación caducó o ya se utilizó"
   },
   "Fuso horário inválido": {
     "en": "Invalid time zone",
@@ -5687,21 +5739,9 @@
     "en": "Use this device's time zone ({0})",
     "es": "Usar la zona horaria de este dispositivo ({0})"
   },
-  "Enviaremos o link ao primeiro e-mail do seu perfil. Sem e-mail, peça ao administrador para redefinir a senha.": {
-    "en": "We'll send the link to the first email in your profile. Without an email, ask the administrator to reset your password.",
-    "es": "Enviaremos el enlace al primer correo de tu perfil. Sin correo, pide al administrador que restablezca tu contraseña."
-  },
-  "Se a conta tiver e-mail e o envio estiver ativo, você receberá um link válido por 20 minutos.": {
-    "en": "If the account has an email and sending is on, you'll get a link valid for 20 minutes.",
-    "es": "Si la cuenta tiene correo y el envío está activo, recibirás un enlace válido por 20 minutos."
-  },
   "Adicionar e-mail (opcional)": {
     "en": "Add email (optional)",
     "es": "Añadir correo (opcional)"
-  },
-  "Sem e-mail, só o administrador pode redefinir sua senha.": {
-    "en": "Without an email, only the administrator can reset your password.",
-    "es": "Sin correo, solo el administrador puede restablecer tu contraseña."
   },
   "As variações aparecem depois das coletas.": {
     "en": "Changes appear after the price checks.",
