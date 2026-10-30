@@ -18,7 +18,7 @@ from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 from fastapi import Response
 from fastapi.testclient import TestClient
-from backend import store,mail,accounts,two_factor
+from backend import store,mail,accounts,recovery,two_factor
 
 PASSWORD='fixture-password-only'
 
@@ -292,12 +292,11 @@ class TwoFactorTests(unittest.TestCase):
     def test_a_password_reset_closes_open_second_steps_and_keeps_the_code_budget(self):
         _,secret,_=self.enable();self.now+=two_factor.PERIOD
         pending=self.client('127.0.0.9');self.login(pending)
-        token='fixture-recovery-token-'+'x'*20
         with store.db() as c:
             c.execute('INSERT INTO two_factor_failures(user_id,created) VALUES(?,?)',(self.admin['id'],self.now))
-            c.execute("INSERT INTO password_resets(digest,user_id,created,expires,used,outbox_id) VALUES(?,?,?,?,0,'fixture')",
-                      (hashlib.sha256(token.encode()).hexdigest(),self.admin['id'],time.time(),time.time()+1200))
-        reset=self.client().post('/api/auth/recovery/confirm',json={'token':token,'password':'recovered-fixture-password'},headers=self.headers)
+            c.execute("INSERT INTO password_resets(digest,user_id,created,expires,used,outbox_id,channel) VALUES(?,?,?,?,0,'fixture','email')",
+                      (recovery.digest(self.admin['id'],'fixture','123456'),self.admin['id'],time.time(),time.time()+900))
+        reset=self.client().post('/api/auth/recovery/confirm',json={'country':'US','phone':'6502530000','code':'123456','password':'recovered-fixture-password'},headers=self.headers)
         self.assertEqual(reset.status_code,200,reset.text)
         self.assertEqual(self.second(pending,code=self.code(secret)).status_code,410)
         self.assertEqual(self.count('two_factor_failures'),1)

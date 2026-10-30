@@ -188,7 +188,8 @@ def contacts(admin):
 
 
 def queue(c, admin, channel, recipients, subject, body, due, now, kind, config):
-    """One pending outbox row for an administrator, for the existing senders; config is whatsapp.settings()."""
+    """One pending outbox row for an account (health notices, recovery codes), for the existing senders;
+    config is whatsapp.settings()."""
     oid = uuid.uuid4().hex
     if channel == 'whatsapp':
         c.execute("INSERT INTO outbox(id,created,alert_ids,subject,body,status,next_due,recipients,owner_id,channel,provider,transport_ref,kind) VALUES(?,?,'[]',?,?,'pending',?,?,?,'whatsapp',?,?,?)",

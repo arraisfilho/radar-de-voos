@@ -17,7 +17,7 @@ from pathlib import Path
 from .domain import Search, jobs, pending_jobs, eligible, local_instant, monitoring_deadline, ADAPTER_VERSION as SOURCE_VERSION
 from .store import db
 from . import mail,whatsapp,source,health
-from .notifications import sync_alerts,link
+from .notifications import sync_alerts,link,lifetime
 from .query_gate import QueryGate,Stopped
 from .alert_messages import money
 
@@ -528,7 +528,8 @@ class Monitor:
             # Stop requested while waiting for the write lock: nothing new is claimed.
             if self.stop_event.is_set():
                 return
-            row = c.execute("SELECT * FROM outbox WHERE channel='email' AND status='pending' AND next_due<=? ORDER BY created LIMIT 1", (time.time(),)).fetchone()
+            # Recovery codes go ahead of the queue: they expire in minutes.
+            row = c.execute("SELECT * FROM outbox WHERE channel='email' AND status='pending' AND next_due<=? ORDER BY kind='recovery' DESC,created,id LIMIT 1", (time.time(),)).fetchone()
             if not row:
                 return
             row = dict(row)
@@ -538,9 +539,9 @@ class Monitor:
                     c.execute("UPDATE outbox SET status='cancelled' WHERE id=?", (row["id"],))
                     sync_alerts(c,json.loads(row['alert_ids']))
                     return
-            # A delayed old fare should not be sent as a current opportunity. A message held by quiet
-            # hours counts from their end (next_due); its text says when the price was seen.
-            if time.time()-max(row["created"], row["next_due"] or 0) > 1800:
+            # A delayed old fare should not be sent as a current opportunity, nor a code past its life. A
+            # message held by quiet hours counts from their end (next_due); its text says when the price was seen.
+            if time.time()-max(row["created"], row["next_due"] or 0) > lifetime(row):
                 c.execute("UPDATE outbox SET status='expired' WHERE id=?", (row["id"],))
                 sync_alerts(c,json.loads(row['alert_ids']))
                 return

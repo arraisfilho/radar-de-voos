@@ -98,7 +98,7 @@ class ManualAccountTests(unittest.TestCase):
     def test_password_reset_revokes_sessions_and_recovery_and_never_returns_password(self):
         with store.db() as c:
             c.execute("INSERT INTO outbox(id,created,alert_ids,subject,body,status,next_due,owner_id,kind) VALUES('recovery',?,'[]','Reset','protected','pending',?,?,'recovery')",(time.time(),time.time(),self.uid))
-            c.execute("INSERT INTO password_resets VALUES('fixture',?,?,?,0,'recovery')",(self.uid,time.time(),time.time()+1200))
+            c.execute("INSERT INTO password_resets(digest,user_id,created,expires,used,outbox_id) VALUES('fixture',?,?,?,0,'recovery')",(self.uid,time.time(),time.time()+900))
         secret='new-fixture-password'
         r=self.admin.put('/api/admin/users/'+self.uid+'/password',json={'password':secret},headers=self.headers);self.assertEqual(r.status_code,200);self.assertNotIn(secret,r.text)
         self.assertIsNone(self.user.get('/api/auth/session').json()['user']);self.assertIsNotNone(self.admin.get('/api/auth/session').json()['user'])

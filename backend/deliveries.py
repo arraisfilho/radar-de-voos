@@ -1,4 +1,4 @@
-"""Administrative transport log. Never exposes credentials or recovery links."""
+"""Administrative transport log. Never exposes credentials, recovery codes or recovery links."""
 import hashlib
 import hmac
 import json
@@ -58,7 +58,14 @@ def setup(c):
         WHEN NEW.completed IS NULL AND NEW.status IN ('sent','failed','uncertain','cancelled','expired','quiet','waiting_contact','waiting_service') BEGIN
         UPDATE outbox SET completed=COALESCE(NEW.sent,NEW.created) WHERE id=NEW.id;
       END;
+      CREATE TRIGGER IF NOT EXISTS recovery_body_cleared AFTER UPDATE OF status ON outbox
+        WHEN NEW.kind='recovery' AND NEW.status NOT IN ('pending','sending') AND NEW.body<>'' BEGIN
+        UPDATE outbox SET body='' WHERE id=NEW.id;
+      END;
     """)
+    # A recovery message keeps its code only while it may still be sent; the trigger above empties it
+    # whatever ends it (sent, failed, expired, cancelled), and this catches rows that ended before it.
+    c.execute("UPDATE outbox SET body='' WHERE kind='recovery' AND status NOT IN ('pending','sending') AND body<>''")
 
 
 def clauses(filters):
@@ -108,7 +115,8 @@ def detail(delivery_id):
         row=c.execute('SELECT o.*,a.name account_name,a.phone login,a.timezone owner_timezone FROM outbox o LEFT JOIN accounts a ON a.id=o.owner_id WHERE o.id=?',(delivery_id,)).fetchone()
     if not row:raise HTTPException(404,'Registro de envio não encontrado')
     item=public(row)
-    # Old reset requests may no longer have a corresponding password_resets row.
+    # Recovery codes (either channel) by kind; links of the former recovery by their text, as rows
+    # queued before the kind existed may lack it.
     protected=item['kind']=='recovery' or '#reset=' in item['body']
     item['body']=None if protected else item['body']
     item['content_protected']=protected

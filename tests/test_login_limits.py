@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 from fastapi import HTTPException, Response
 from fastapi.testclient import TestClient
-from backend import store,mail,accounts
+from backend import store,mail,accounts,recovery
 
 
 class LoginLimitTests(unittest.TestCase):
@@ -131,13 +131,18 @@ class LoginLimitTests(unittest.TestCase):
     def test_recovery_and_admin_password_reset_lift_the_account_lock(self):
         accounts.register(accounts.Registration(name='Admin fixture',country='GB',phone='02079460018',password='fixture-password-only'),Response(),admin=True)
         with store.db() as c:uid=c.execute("SELECT id FROM accounts WHERE phone='+12025550123'").fetchone()[0]
-        # Recovery link: proven ownership of the e-mail lifts the lock at once.
+        # Recovery code: a try counts as a login, so it waits for the lock like a password does; once
+        # the wait is over, the right code (ownership of the WhatsApp number or e-mail) erases the series.
         self.lock('2025550123',30)
-        token='fixture-recovery-token-'+'x'*20
-        with store.db() as c:c.execute("INSERT INTO password_resets(digest,user_id,created,expires,used,outbox_id) VALUES(?,?,?,?,0,'fixture')",(hashlib.sha256(token.encode()).hexdigest(),uid,time.time(),time.time()+1200))
-        confirmed=self.client('127.0.0.40').post('/api/auth/recovery/confirm',json={'token':token,'password':'recovered-fixture-password'},headers=self.headers)
+        with store.db() as c:c.execute("INSERT INTO password_resets(digest,user_id,created,expires,used,outbox_id,channel) VALUES(?,?,?,?,0,'fixture','whatsapp')",(recovery.digest(uid,'fixture','123456'),uid,time.time(),time.time()+600))
+        confirm=lambda address:self.client(address).post('/api/auth/recovery/confirm',json={'country':'US','phone':'2025550123','code':'123456','password':'recovered-fixture-password'},headers=self.headers)
+        self.assertEqual(confirm('127.0.0.40').status_code,429)
+        with store.db() as c:
+            self.assertEqual(c.execute('SELECT attempts FROM password_resets').fetchone()[0],0,'No try is spent while locked')
+            c.execute('UPDATE login_attempts SET created=created-61')
+        confirmed=confirm('127.0.0.41')
         self.assertEqual(confirmed.status_code,200,confirmed.text);self.assertEqual(self.rows('2025550123'),0)
-        self.assertEqual(self.login(self.client('127.0.0.41'),'2025550123','recovered-fixture-password').status_code,200)
+        self.assertEqual(self.login(self.client('127.0.0.42'),'2025550123','recovered-fixture-password').status_code,200)
         # Administrator reset: same effect, and only for that account.
         self.lock('2025550123',50);self.lock('2025550144',60)
         administrator=self.client('127.0.0.70')

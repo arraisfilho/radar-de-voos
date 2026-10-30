@@ -11,6 +11,12 @@ ALERT_STATES = ('queued', 'sent', 'partial', 'uncertain', 'failed', 'waiting_con
                 'in_app', 'cancelled', 'expired', 'quiet')
 
 
+def lifetime(row):
+    """Seconds a pending delivery stays sendable once due: an older fare is no longer news, and a
+    recovery code dies in 10 minutes (recovery.CODE_SECONDS)."""
+    return 600 if row.get('kind') == 'recovery' else 1800
+
+
 def setup(c):
     c.executescript("""
       CREATE TABLE IF NOT EXISTS notification_deliveries(

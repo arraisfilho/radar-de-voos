@@ -22,13 +22,16 @@ type TwoFactorChallenge = { two_factor_required: true; expires_in: number };
  * Sign-in, sign-up and the first administrator. Loaded on demand, so signed-in
  * visits never download the phone number library at startup. An account with
  * two-step verification gets a code step after the password, in the same card.
+ * `notice` (a new password was set) shows above the login fields.
  */
 export function SignIn({
   session,
+  notice,
   onSignedIn,
   onRecover,
 }: {
   session: Session;
+  notice?: string;
   onSignedIn: (session: Session) => void;
   onRecover: () => void;
 }) {
@@ -226,6 +229,11 @@ export function SignIn({
             )
           ) : (
             <>
+              {mode === "login" && notice && (
+                <p className="auth-notice" role="status">
+                  {notice}
+                </p>
+              )}
               {mode !== "login" && (
                 <label>
                   {t("Seu nome")}
@@ -263,7 +271,7 @@ export function SignIn({
               {mode !== "login" && (
                 <details className="optional-contacts">
                   <summary>{t("Adicionar e-mail (opcional)")}</summary>
-                  <p className="help">{t("Sem e-mail, só o administrador pode redefinir sua senha.")}</p>
+                  <p className="help">{t("O código para criar uma nova senha também pode chegar por e-mail.")}</p>
                   <EmailFields compact values={emails} onChange={setEmails} />
                 </details>
               )}

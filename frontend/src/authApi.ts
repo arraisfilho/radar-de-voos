@@ -8,11 +8,14 @@ export type Session = {
   registration_open?: boolean;
 };
 
-/** Error of an account request: the translated message and the HTTP status. */
-export type ApiError = Error & { status?: number };
+/** Error of an account request: the translated message, the HTTP status and, on 429, the seconds to wait. */
+export type ApiError = Error & { status?: number; retryAfter?: number };
 
 /** HTTP status of a failed account request, when the server answered. */
 export const errorStatus = (error: unknown) => (error as ApiError | null)?.status;
+
+/** Seconds of the Retry-After header of a failed account request (429), when the server sent it. */
+export const retryAfter = (error: unknown) => (error as ApiError | null)?.retryAfter;
 
 /** Account requests outside the dashboard; errors come back translated, with their status. */
 export async function api(path: string, token: string, body: unknown, method = "POST") {
@@ -37,7 +40,7 @@ export async function api(path: string, token: string, body: unknown, method = "
               : t("Não foi possível concluir a ação"),
         ),
       ),
-      { status: r.status },
+      { status: r.status, retryAfter: Number(r.headers?.get("retry-after")) || undefined },
     );
   return data;
 }

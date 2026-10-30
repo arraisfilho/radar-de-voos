@@ -123,6 +123,7 @@ function fieldLabels(): Record<string, string> {
 
 /** Reading order of the known detail fields (the server sends them sorted by name). */
 const DETAIL_ORDER = [
+  "channel",
   "code",
   "scope",
   "provider",
@@ -177,6 +178,9 @@ export function auditDetails(event: string, details: Details | null | undefined)
         break;
       case "scope":
         rows.push([t("Registros"), scopeLabel(value)]);
+        break;
+      case "channel":
+        rows.push([t("Canal"), value === "whatsapp" ? "WhatsApp" : value === "email" ? t("E-mail") : String(value)]);
         break;
       case "code":
         rows.push([t("Incidente"), healthCodeLabel(String(value))]);
