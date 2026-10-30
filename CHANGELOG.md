@@ -1,6 +1,6 @@
 # Alterações
 
-## [Unreleased]
+## 0.32.0
 
 ### Added
 - "Esqueci minha senha" passou a enviar um código de 6 números pelo WhatsApp ou por e-mail, à escolha, e a nova senha passou a ser criada na mesma tela, com o código.
