@@ -114,7 +114,7 @@ Se `git pull` informar que a pasta não é um repositório, use uma cópia obtid
 `stop app`, `restart app` e o `up` que recria um container em execução enviam SIGTERM à aplicação e, se ela não terminar em 45 s (`stop_grace_period`), SIGKILL. A aplicação para de aceitar conexões, espera até 10 s as requisições em curso e depois até 30 s o coletor e os remetentes:
 
 - Coleta: nenhum ciclo ou consulta começa. Consultas já enviadas têm até 25 s dessa espera para responder; as que não responderem são encerradas. Consultas encerradas ou não iniciadas não registram falha nem contam no disjuntor ou no recuo: a rota mantém o último resultado e o ciclo fica `interrupted`. Ao reiniciar, o próximo ciclo de cada busca ativa fica no mais tarde entre agora, cinco minutos após o último início e o horário agendado.
-- Envios: e-mail e WhatsApp não pegam itens novos da fila, e o envio em curso termina, mas um envio pelo WhatsApp espera até 30 s pelo OpenWA e pode passar do prazo. Nesse caso, do prazo, o item fica `sending` e vira `uncertain` ao reiniciar, sem reenvio automático.
+- Envios: e-mail e WhatsApp não pegam itens novos da fila, e o envio em curso termina, mas um envio pelo WhatsApp espera até 30 s pelo OpenWA e pode passar do prazo. Nesse caso, o item fica `sending` e vira `uncertain` ao reiniciar, sem reenvio automático.
 
 As esperas somam até 40 s. Não reduza o `stop_grace_period` de `compose.cloud.yaml` e `compose.yaml` nem passe a esses comandos `--timeout` abaixo de 45: com SIGKILL antes do fim, consultas em andamento se perdem sem registrar falha, e o reinício marca o ciclo como `interrupted` e os envios em curso como `uncertain`.
 
