@@ -180,7 +180,7 @@ docker compose --env-file deploy/cloud.env -f compose.cloud.yaml exec app \
   python -c "from backend.retention import progress; print(progress())"
 ```
 
-`expired` conta respostas vencidas ainda não removidas e `text` as gravadas sem compactação; `cursor` é o próximo ponto da compactação, `None` antes da primeira limpeza. A limpeza terminou com `{'expired': 0, 'text': 0, 'cursor': 0}`. A contagem de `expired` lê a tabela inteira.
+`expired` conta respostas vencidas ainda não removidas e `text` as gravadas sem compactação; `cursor` é o próximo ponto da compactação, `None` antes da primeira limpeza. A limpeza terminou quando `text` e `cursor` chegam a 0. `expired` não fica em 0: a cada hora outras respostas passam do prazo e saem na limpeza seguinte, então basta que fique baixo, na ordem de centenas. A contagem de `expired` lê a tabela inteira.
 
 Mantenha uma única instância por volume SQLite. O Compose local usa um volume distinto; dados locais não migram automaticamente para a nuvem.
 
