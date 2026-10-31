@@ -1,5 +1,11 @@
 # Alterações
 
+## 0.32.7
+
+### Changed
+- Viagens com crianças ou bebês passaram a receber preço estimado: crianças e bebês com assento são consultados como adultos, e bebês de colo não entram no preço. A consulta usada na 0.32.6 é recusada pelo Google a partir do servidor.
+- A viagem, o histórico, os cartões da página inicial, a central de alertas, o formulário e os alertas por e-mail e WhatsApp passaram a indicar quando o preço é estimado.
+
 ## 0.32.6
 
 ### Added
