@@ -684,7 +684,9 @@
   .trip-hero-route {
     position: relative;
     display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr);
+    /* The codes take their width up to the space left by the actions: Safari sizes an auto
+       column from the codes' minimum, which cut "GRU" to "G…". */
+    grid-template-columns: minmax(0, max-content) auto minmax(0, 1fr);
     align-items: center;
     flex: 1;
   }
@@ -693,13 +695,14 @@
     min-width: 0;
   }
   .trip-hero-codes {
-    display: inline-flex;
+    display: flex;
     white-space: nowrap;
   }
   .trip-hero-codes > .route-path {
     flex: 0 0 36px;
   }
   .trip-hero-codes > .route-code {
+    min-width: min(3.4ch, 100%);
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -1038,10 +1041,20 @@
     padding: 14px 16px;
     gap: 12px;
   }
-  /* Ida, Volta and Soma side by side; the first flight below repeats the date, airline and route. */
+  /* Ida and Volta side by side, the Soma on its own line below them; the first flight below
+     repeats the date, airline and route. */
   .trip-prices {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 8px;
+  }
+  .trip-prices > .metric-total {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--separator);
   }
   .metric-value {
     font-size: 17px;
@@ -1052,6 +1065,7 @@
   }
   .metric-total > .metric-detail {
     display: block;
+    grid-column: 1 / -1;
     font-size: 12px;
     line-height: 16px;
   }
@@ -1068,11 +1082,6 @@
     overflow: hidden;
     clip: rect(0 0 0 0);
     white-space: nowrap;
-  }
-}
-@media (max-width: 359px) {
-  .trip-prices {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (pointer: coarse) {
@@ -1128,7 +1137,8 @@
   gap: 8px 16px;
 }
 .results-head > div {
-  flex: 1 1 0;
+  /* A real basis: Safari gives a zero basis no width, and the count line stacks one letter per line. */
+  flex: 1 1 12rem;
   min-width: 0;
 }
 .results-head p {
@@ -1278,6 +1288,15 @@
   }
   .results-legs > button {
     flex-basis: 0;
+  }
+}
+/* 320 px screens: "Volta · 23/11 – 24/11" no longer fits beside the outbound at full size. */
+@media (max-width: 359px) {
+  .results-legs > button {
+    min-width: 0;
+    padding-right: 4px;
+    padding-left: 4px;
+    font-size: 12px;
   }
 }
 
