@@ -1,5 +1,10 @@
 # Alterações
 
+## 0.32.4
+
+### Fixed
+- No iPhone, tocar em uma opção de um menu de ações, como "Editar" e "Redefinir senha" na lista de usuários, passou a executar a opção, em vez de só fechar o menu.
+
 ## 0.32.3
 
 ### Fixed

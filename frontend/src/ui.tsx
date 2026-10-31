@@ -54,7 +54,12 @@ export function ContextMenu({
   useEffect(() => {
     const dismiss = (event: Event) => {
       const details = ref.current;
-      if (details?.open && event.target instanceof Node && !details.contains(event.target)) details.open = false;
+      if (!details?.open || !(event.target instanceof Node) || details.contains(event.target)) return;
+      // Safari does not focus a tapped button: the focus goes to the nearest focusable
+      // ancestor (a panel or <main> with a tabindex) before the click, which would close the
+      // menu under the finger. Focus landing on an ancestor is not leaving the menu.
+      if (event.type === "focusin" && event.target.contains(details)) return;
+      details.open = false;
     };
     document.addEventListener("pointerdown", dismiss);
     document.addEventListener("focusin", dismiss);
