@@ -420,6 +420,12 @@
   padding-top: 6px;
   padding-bottom: 6px;
 }
+.counter-hint {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
 .counter {
   display: flex;
   flex-shrink: 0;

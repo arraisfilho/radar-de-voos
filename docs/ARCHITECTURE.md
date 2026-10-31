@@ -17,6 +17,8 @@ A API serve o frontend no mesmo domínio. O proxy externo termina HTTPS. Uma ins
 
 O agendador gera combinações de trecho, aeroporto e data. A coleta tem concorrência limitada, timeout e cadência de cinco minutos, sujeita à fila. Atualizar a interface não dispara consultas à fonte.
 
+Cada consulta é um trecho só de ida. Grupos só de adultos são lidos da página de resultados do Google Voos (bloco `ds:1`, via `fast-flights`). Com crianças ou bebês, essa página traz um único itinerário sem preço; a coleta faz então a chamada de resultados que a própria página faz (`GetShoppingResults`) e usa a última resposta da sequência, com a mesma estrutura do bloco da página. Uma falha dessa chamada nunca é `format`: uma mudança só nela não pausa as consultas de grupos só de adultos. Nos dois casos o preço é o total do grupo. O link para o Google Voos (`search_url`) é o `tfs` do `fast-flights` com os códigos de bebê no colo e com assento trocados, porque a versão 3.1.0 da biblioteca os grava invertidos.
+
 Filtros são aplicados no servidor antes de calcular preços e alertas. A prévia no navegador reutiliza resultados disponíveis. Alterar filtros cria uma versão; respostas compatíveis podem ser reaproveitadas sem inventar uma nova coleta ou alerta. Dados de aquisição incompatíveis exigem nova consulta.
 
 Uma falha conserva a última resposta válida para exibição como desatualizada. A direção incompleta não gera comparação de preço. O parser distingue resposta vazia de falha, mas depende de um formato externo sujeito a mudanças.
@@ -27,8 +29,8 @@ Cada falha de consulta recebe um `kind`, gravado com o erro na resposta da rota 
 |---|---|
 | `rate_limited` | HTTP 429 |
 | `blocked` | HTTP 403, página de consentimento, captcha ou aviso de tráfego incomum |
-| `format` | Estrutura de topo da resposta fora do esperado: marcador de dados ausente, JSON inválido, grupos de voos ausentes ou malformados, ou bloco de companhias (posição 7) inválido |
-| `no_results` | Página sem bloco de voos, status de erro da fonte para aquela consulta (`errorHasStatus`) ou nenhum itinerário legível e válido |
+| `format` | Estrutura de topo do bloco de voos da página fora do esperado: marcador de dados ausente, JSON inválido, grupos de voos ausentes ou malformados, ou bloco de companhias (posição 7) inválido |
+| `no_results` | Página sem bloco de voos ou com status de erro da fonte para aquela consulta (`errorHasStatus`); chamada de resultados sem resposta de dados (por exemplo, o erro da fonte para aquela consulta), interrompida ou com dados fora da estrutura esperada; ou nenhum itinerário legível e válido |
 | `timeout`, `network`, `server`, `unknown` | Tempo esgotado, conexão, HTTP 5xx e demais falhas |
 
 Os itinerários são lidos um a um: um item malformado é pulado e contado em `skipped` (`malformed_itinerary`), sem descartar os demais.
