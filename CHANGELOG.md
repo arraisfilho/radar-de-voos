@@ -1,5 +1,14 @@
 # Alterações
 
+## 0.32.6
+
+### Added
+- O formulário da viagem passou a mostrar as faixas de idade: crianças de 2 a 11 anos e bebês menores de 2 anos.
+
+### Fixed
+- Viagens com crianças ou bebês passaram a receber preços; antes, toda consulta falhava como "Resposta sem voos".
+- O link para o Google Voos deixou de trocar bebê de colo por bebê com assento, e vice-versa.
+
 ## 0.32.5
 
 ### Fixed

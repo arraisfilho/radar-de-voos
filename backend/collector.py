@@ -11,10 +11,15 @@ from fast_flights import FlightQuery, Passengers, Query, create_query, fetch_fli
 from fast_flights.integrations import FetchIntegration
 # No public parser accepts the adapted groups below; pinned with ADAPTER_VERSION.
 from fast_flights.parser import parse_js
+from fast_flights.pb.flights_pb2 import Passenger
 from selectolax.lexbor import LexborHTMLParser
 from .domain import local_instant, ADAPTER_VERSION
 
 SOURCE_URL = "https://www.google.com/travel/flights"
+# The call the results page makes for its flights; the page itself carries them only for adults.
+RESULTS_URL = "https://www.google.com/_/FlightsFrontendUi/data/travel.frontend.flights.FlightsFrontendService/GetShoppingResults"
+CABINS = {"economy": 1, "premium-economy": 2, "business": 3, "first": 4}
+COMPACT = (",", ":")
 # Safe, fixed texts per failure kind; raw provider/library messages are never returned.
 MESSAGES = {
     "rate_limited": "A fonte limitou temporariamente as consultas",
@@ -47,18 +52,50 @@ def blocked_page(html):
     return any(marker in text for marker in BLOCK_MARKERS)
 
 
+def browser():
+    return primp.Client(impersonate="chrome_145", impersonate_os="macos", referer=True, cookie_store=True, timeout=30)
+
+
+def checked(response):
+    """Body of a 200 answer; other statuses and consent or "sorry" redirects are failures."""
+    if response.status_code != 200:
+        raise SourceError(status_kind(response.status_code))
+    final = urlsplit(str(response.url))
+    if (final.hostname or "").startswith("consent.") or final.path.startswith("/sorry"):
+        raise SourceError("blocked")
+    return response.text
+
+
 class CheckedFetch(FetchIntegration):
     """fast-flights' default browser request, keeping the HTTP status it discards."""
 
     def fetch_html(self, q):
-        client = primp.Client(impersonate="chrome_145", impersonate_os="macos", referer=True, cookie_store=True, timeout=30)
-        response = client.get(SOURCE_URL, params=q.params() if isinstance(q, Query) else {"q": q})
-        if response.status_code != 200:
-            raise SourceError(status_kind(response.status_code))
-        final = urlsplit(str(response.url))
-        if (final.hostname or "").startswith("consent.") or final.path.startswith("/sorry"):
-            raise SourceError("blocked")
-        return response.text
+        return checked(browser().get(SOURCE_URL, params=q.params() if isinstance(q, Query) else {"q": q}))
+
+
+class LinkPassengers(Passengers):
+    """fast-flights 3.1.0 encodes an infant in seat as 3 and on lap as 4, but Google reads 3 as
+    on lap and 4 as in seat: the link's tfs gets the codes swapped."""
+
+    def pb(self):
+        swap = {Passenger.INFANT_IN_SEAT: Passenger.INFANT_ON_LAP, Passenger.INFANT_ON_LAP: Passenger.INFANT_IN_SEAT}
+        return [swap.get(code, code) for code in super().pb()]
+
+
+def results_request(options):
+    """f.req of the results call, one-way; passengers as [adults, children, on lap, in seat]."""
+    party = [options["adults"], options.get("children", 0), options.get("infants_on_lap", 0), options.get("infants_in_seat", 0)]
+    bags = options.get("checked_bags", 0)
+    leg = [[[[options["origin"], 0]]], [[[options["destination"], 0]]], None, 0, None, None, options["date"], *[None]*7, 3]
+    search = [None, None, 2, None, [], CABINS[options["cabin"]], party, None, None, None, [0, bags] if bags else None, None, None, [leg], None, None, None, 1]
+    return json.dumps([None, json.dumps([[], search, 0, 0, 0, 1], separators=COMPACT)], separators=COMPACT)
+
+
+def fetch_results(query, options):
+    # Region and the other fields as the results page sends them.
+    headers = {"x-same-domain": "1", "x-goog-ext-259736195-jspb": json.dumps([query.language, "BR", query.currency, 1, None, [180], None, None, 7, []], separators=COMPACT)}
+    response = browser().post(RESULTS_URL, params={"hl": query.language, "rt": "c"}, data={"f.req": results_request(options)}, headers=headers)
+    return checked(response)
 
 
 def classify(exc):
@@ -72,8 +109,8 @@ def classify(exc):
     elif isinstance(exc, (primp.RequestError, ConnectionError, OSError)):
         kind = "network"
     else:
-        # "format" (source-wide) is raised only by top_level() as a SourceError; any other
-        # error concerns this query alone.
+        # "format" (source-wide) is raised only by the structure checks below as a SourceError;
+        # any other error concerns this query alone.
         kind = "unknown"
     return kind, MESSAGES[kind]
 
@@ -83,16 +120,63 @@ EMPTY_METADATA = [None, [[], []]]
 ITEM_ERRORS = (KeyError, IndexError, TypeError, ValueError, AttributeError)
 
 
-def top_level(text):
-    """Raw itineraries of groups 2 and 3, and airline codes, from the embedded script.
-
-    Only this structure is a format change ("format", source-wide): the data marker, its
-    JSON, the group containers and, when there are itineraries, block 7 (alliances, airlines).
-    """
+def page_data(html):
+    """Flights data embedded in the results page (script ds:1)."""
+    script = LexborHTMLParser(html).css_first(r"script.ds\:1")
+    # A missing flights block or an error status concerns this query only: the search backs
+    # off, the global breaker is reserved for structural failures ("format").
+    if script is None:
+        if isinstance(html, str) and blocked_page(html):
+            raise SourceError("blocked")
+        raise SourceError("no_results")
+    text = script.text()
+    if ERROR_STATUS.search(text):
+        raise SourceError("no_results")
     try:
-        data = json.loads(text.split("data:", 1)[1].rsplit(",", 1)[0])
+        return json.loads(text.split("data:", 1)[1].rsplit(",", 1)[0])
     except (IndexError, ValueError):
         raise SourceError("format") from None
+
+
+CHUNK_LENGTH = re.compile(r"\s*\d+\s*")
+
+
+def results_groups(text):
+    """top_level() of the last payload of the chunked results answer: a ")]}'" line, then
+    length and JSON array pairs.
+
+    The first payload is partial (no prices, no airline list); the last one holds the results.
+    Any failure here concerns this query only ("no_results"), never "format": an answer without
+    payload (an ErrorResponse for a past or far date, or any other body), a truncated answer
+    whose last payload is the partial one, or a payload outside the top-level structure. A
+    change in this call alone must not pause the page queries of adults-only parties.
+    """
+    decoder, payloads = json.JSONDecoder(), []
+    position = text.find("\n")
+    # The lengths are not trusted: each chunk is read to the end of its JSON array.
+    while position >= 0 and (length := CHUNK_LENGTH.match(text, position)) and length.end() < len(text):
+        try:
+            chunk, position = decoder.raw_decode(text, length.end())
+        except ValueError:
+            break
+        for entry in chunk if isinstance(chunk, list) else []:
+            if isinstance(entry, list) and len(entry) > 2 and entry[0] == "wrb.fr" and entry[2]:
+                payloads.append(entry[2])
+    if not payloads:
+        raise SourceError("blocked" if blocked_page(text) else "no_results")
+    try:
+        return top_level(json.loads(payloads[-1]))
+    except (TypeError, ValueError):  # SourceError("format") included
+        raise SourceError("no_results") from None
+
+
+def top_level(data):
+    """Raw itineraries of groups 2 and 3, and airline codes, from the flights data.
+
+    Only this structure is a format change ("format", source-wide): with the page data's JSON
+    (page_data), the group containers and, when there are itineraries, block 7 (alliances,
+    airlines). The results call turns it into "no_results" (results_groups).
+    """
     groups = {}
     for index in (2, 3):
         if not isinstance(data, list) or len(data) <= index:
@@ -125,22 +209,16 @@ def stamp(value):
 
 def collect(options):
     origin, destination, date = options["origin"], options["destination"], options["date"]
+    party = LinkPassengers(adults=options["adults"],children=options.get("children",0),infants_in_seat=options.get("infants_in_seat",0),infants_on_lap=options.get("infants_on_lap",0))
     query = create_query(flights=[FlightQuery(date=date, from_airport=origin, to_airport=destination)],
-                         seat=options["cabin"], trip="one-way", passengers=Passengers(adults=options["adults"],children=options.get("children",0),infants_in_seat=options.get("infants_in_seat",0),infants_on_lap=options.get("infants_on_lap",0)),
+                         seat=options["cabin"], trip="one-way", passengers=party,
                          language={"pt":"pt-BR","en":"en-US","es":"es"}.get(options.get("language","pt"),"en-US"), currency=options.get("currency", "BRL"), checked_bags=options.get("checked_bags", 0))
     start = time.monotonic()
-    html = fetch_flights_html(query, fetch_integration=CheckedFetch())
-    script = LexborHTMLParser(html).css_first(r"script.ds\:1")
-    # A missing flights block or an error status concerns this query only: the search backs
-    # off, the global breaker is reserved for structural failures ("format").
-    if script is None:
-        if isinstance(html, str) and blocked_page(html):
-            raise SourceError("blocked")
-        raise SourceError("no_results")
-    text = script.text()
-    if ERROR_STATUS.search(text):
-        raise SourceError("no_results")
-    groups, airline_codes = top_level(text)
+    # With children or infants the page holds one itinerary without price: the results call instead.
+    if party.children or party.infants_in_seat or party.infants_on_lap:
+        groups, airline_codes = results_groups(fetch_results(query, options))
+    else:
+        groups, airline_codes = top_level(page_data(fetch_flights_html(query, fetch_integration=CheckedFetch())))
     items, flights, skipped = [], {}, {}
     for raw in groups[2]+groups[3]:
         try:

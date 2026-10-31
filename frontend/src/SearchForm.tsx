@@ -397,9 +397,10 @@ function FieldError({ id, children }: { id?: string; children: ReactNode }) {
   );
 }
 
-/** − n + stepper in a list row, labelled for assistive technology. */
+/** − n + stepper in a list row, labelled for assistive technology; the hint (an age range) describes it. */
 function Counter({
   label,
+  hint,
   value,
   canDecrease,
   canIncrease,
@@ -408,6 +409,7 @@ function Counter({
   onChange,
 }: {
   label: string;
+  hint?: string;
   value: number;
   canDecrease: boolean;
   canIncrease: boolean;
@@ -419,10 +421,15 @@ function Counter({
   // aria-disabled keeps the focus on a button that reaches its limit.
   return (
     <div className="list-row counter-row">
-      <span className="list-row-label" id={id}>
-        {label}
+      <span className="list-row-label">
+        <span id={id}>{label}</span>
+        {hint && (
+          <span className="counter-hint" id={id + "-hint"}>
+            {hint}
+          </span>
+        )}
       </span>
-      <div className="counter" role="group" aria-labelledby={id}>
+      <div className="counter" role="group" aria-labelledby={id} aria-describedby={hint ? id + "-hint" : undefined}>
         <output className="counter-value">{value}</output>
         <span className="counter-buttons">
           <button
@@ -1259,9 +1266,10 @@ export function SearchForm({
   const partyValue = (key: PartyKey) => config[key] || 0;
   const allowed = (key: PartyKey, n: number) =>
     n >= (key === "adults" ? 1 : 0) && validParty({ ...config, [key]: n });
-  const counter = (key: PartyKey, label: string, decrease: string, increase: string) => (
+  const counter = (key: PartyKey, label: string, decrease: string, increase: string, hint?: string) => (
     <Counter
       label={label}
+      hint={hint}
       value={partyValue(key)}
       canDecrease={allowed(key, partyValue(key) - 1)}
       canIncrease={allowed(key, partyValue(key) + 1)}
@@ -1437,7 +1445,7 @@ export function SearchForm({
             </div>
             <div className={clsx("list-group", partyError && "is-invalid")}>
               {counter("adults", t("Adultos"), t("Diminuir adultos"), t("Aumentar adultos"))}
-              {counter("children", t("Crianças"), t("Diminuir crianças"), t("Aumentar crianças"))}
+              {counter("children", t("Crianças"), t("Diminuir crianças"), t("Aumentar crianças"), t("2 a 11 anos"))}
               <details className="infant-options" open={infants > 0}>
                 <summary className="list-row">
                   <span className="list-row-label">{t("Bebês (opcional)")}</span>
@@ -1448,12 +1456,14 @@ export function SearchForm({
                   t("Bebês com assento"),
                   t("Diminuir bebês com assento"),
                   t("Aumentar bebês com assento"),
+                  t("Menores de 2 anos"),
                 )}
                 {counter(
                   "infants_on_lap",
                   t("Bebês no colo"),
                   t("Diminuir bebês no colo"),
                   t("Aumentar bebês no colo"),
+                  t("Menores de 2 anos"),
                 )}
               </details>
             </div>
