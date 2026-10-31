@@ -216,6 +216,11 @@ class StoredResultsTests(unittest.TestCase):
         self.assertIn('      RADAR_RAW_RETENTION_DAYS: ${RADAR_RAW_RETENTION_DAYS:-30}\n', environment)
         self.assertIn('\n# RADAR_RAW_RETENTION_DAYS=7\n', (ROOT/'deploy'/'cloud.env.example').read_text())
 
+    def test_image_puts_sqlite_temporary_files_on_the_data_volume(self):
+        dockerfile = (ROOT/'Dockerfile').read_text()
+        self.assertIn('RADAR_DATA_DIR=/data', dockerfile)
+        self.assertIn('\nENV SQLITE_TMPDIR=/data\n', dockerfile)
+
     def test_cleanup_leaves_compressed_rows_untouched(self):
         with store.db() as c:
             rid = self.insert(c, 'route', time.time(), response(), compressed=True)

@@ -31,6 +31,7 @@ Acesse `http://localhost:8765`. Pare uma aplicação já em execução antes do 
 | Variável | Uso |
 |---|---|
 | `RADAR_DATA_DIR` | Diretório privado; padrão `.data/` |
+| `SQLITE_TMPDIR` | Pasta dos arquivos temporários do SQLite; a imagem Docker usa `/data`, porque o `/tmp` do contêiner tem 64 MB |
 | `RADAR_HOST`, `RADAR_PORT` | Interface e porta do processo local |
 | `RADAR_LAN_CIDR` | Sub-rede privada autorizada para teste em outros dispositivos |
 | `RADAR_PUBLIC_URL` | Origem canônica dos links de alertas; padrão `http://127.0.0.1:8765`. Com endereço local, o início registra um aviso e `/api/health` traz `alert_links_local: true` |

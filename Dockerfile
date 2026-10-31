@@ -8,6 +8,9 @@ RUN npm run build
 
 FROM python:3.12-slim-bookworm AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 RADAR_DATA_DIR=/data RADAR_NO_SEED=1
+# SQLite temporary files (statement journals of large deletes, VACUUM) go to the data volume:
+# /tmp is a 64 MB tmpfs in the Compose files.
+ENV SQLITE_TMPDIR=/data
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid 10001 radar && useradd --uid 10001 --gid 10001 --no-create-home radar \

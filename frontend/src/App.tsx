@@ -396,8 +396,9 @@ export default function App({
       },
       body: JSON.stringify(body),
     });
-    const result = await response.json();
     if (!response.ok) {
+      // A proxy or server failure may answer in plain text: the error falls back to the generic message.
+      const result = await response.json().catch(() => ({}));
       const detail = result.detail;
       throw Error(
         t(
@@ -413,7 +414,8 @@ export default function App({
         ),
       );
     }
-    return result;
+    // A success always answers JSON: anything else stays an error instead of an empty result.
+    return response.json();
   }
   /** Runs a request; an error goes to the toast, or to `onError` when a dialog shows it. */
   async function perform(action: () => Promise<unknown>, message?: string, onError?: (message: string) => void) {
