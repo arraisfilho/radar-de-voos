@@ -396,7 +396,8 @@ export default function App({
       },
       body: JSON.stringify(body),
     });
-    const result = await response.json();
+    // A proxy or server failure may answer in plain text: the error falls back to the generic message.
+    const result = await response.json().catch(() => ({}));
     if (!response.ok) {
       const detail = result.detail;
       throw Error(
