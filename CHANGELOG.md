@@ -1,5 +1,11 @@
 # Alterações
 
+## 0.32.3
+
+### Fixed
+- Excluir uma viagem com muito histórico deixou de falhar com "database or disk is full": os arquivos temporários do banco passaram a ficar no volume de dados, não no `/tmp` de 64 MB do contêiner.
+- Um erro do servidor sem resposta em JSON passou a mostrar "Não foi possível concluir a ação", em vez de "Unexpected token ... is not valid JSON".
+
 ## 0.32.2
 
 ### Changed
