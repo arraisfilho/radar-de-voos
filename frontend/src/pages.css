@@ -694,6 +694,10 @@
     grid-column: 1;
     min-width: 0;
   }
+  /* A trip with its own name: the codes go on their own line under it, not glued to its end. */
+  .trip-hero-route > .trip-hero-codes.is-secondary {
+    grid-column: 1 / -1;
+  }
   .trip-hero-codes {
     display: flex;
     white-space: nowrap;
@@ -1290,8 +1294,8 @@
     flex-basis: 0;
   }
 }
-/* 320 px screens: "Volta · 23/11 – 24/11" no longer fits beside the outbound at full size. */
-@media (max-width: 359px) {
+/* Up to 374 px: "Volta · 23/11 – 24/11" no longer fits beside the outbound at full size. */
+@media (max-width: 374px) {
   .results-legs > button {
     min-width: 0;
     padding-right: 4px;

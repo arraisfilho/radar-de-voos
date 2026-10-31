@@ -6,7 +6,8 @@
 - No iPhone, os códigos dos aeroportos no topo da viagem deixaram de aparecer cortados ("G… LI…"); só um nome longo, com vários aeroportos, ganha reticências.
 - No iPhone, a contagem de opções acima da lista de voos deixou de aparecer com uma letra por linha.
 - No celular, a soma estimada da viagem passou a ocupar uma linha própria abaixo da menor ida e da menor volta, sem espremer o texto.
-- Em telas de 320 px, o seletor de ida e volta da lista de voos passou a caber na largura do cartão.
+- Em telas de até 374 px, o seletor de ida e volta da lista de voos passou a caber na largura do cartão.
+- No celular, os códigos dos aeroportos de uma viagem com nome próprio passaram a aparecer na linha abaixo do nome, em vez de colados ao fim dele.
 
 ## 0.32.4
 
