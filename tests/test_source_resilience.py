@@ -49,29 +49,11 @@ def itinerary(price, departure=(10, 0), arrival=(13, 0)):
     return [flight, [[None, price]]]
 
 
-def flights_data(best=(), other=(), block7=AIRLINES):
-    """Groups 2 and 3 and block 7 (alliances, airlines), as in the page and the results call."""
+def script(best=(), other=(), block7=AIRLINES):
+    """The embedded flights script: groups 2 and 3 and block 7 (alliances, airlines)."""
     data = [None]*8
     data[2], data[3], data[7] = [list(best)], [list(other)], block7
-    return data
-
-
-def script(best=(), other=(), block7=AIRLINES):
-    """The embedded flights script."""
-    return "AF_initDataCallback({key: 'ds:1', hash: '2', data:"+json.dumps(flights_data(best, other, block7))+", sideChannel: {}});"
-
-
-# The first payload of the results call: one itinerary without price and no airline list.
-PARTIAL = flights_data(other=[[itinerary(400)[0], None]], block7=[None, [[['ONEWORLD', 'Oneworld']]]])
-# The source's error answer in the results call for one query (e.g. a past date).
-RESULTS_ERROR = [3, None, [['type.googleapis.com/travel.frontend.flights.ErrorResponse', [[None], 2]]]]
-
-
-def answer(*payloads, error=None):
-    """The results call's answer: a ")]}'" line, then chunks of a length (wrong on purpose) and a JSON array."""
-    chunks = [[['wrb.fr', None, payload if payload is None or isinstance(payload, str) else json.dumps(payload), None, None, error]] for payload in payloads]
-    chunks += [[['di', 51], ['af.httprm', 51, '-1', 34]], [['e', 4, None, None, 363]]]
-    return ")]}'\n\n" + ''.join('7\n%s\n' % json.dumps(chunk) for chunk in chunks)
+    return "AF_initDataCallback({key: 'ds:1', hash: '2', data:"+json.dumps(data)+", sideChannel: {}});"
 
 
 def collect_script(text):
@@ -137,57 +119,6 @@ class ClassificationTests(Isolated):
             client.return_value.get.return_value = self.response(200, text='<html>results</html>')
             self.assertEqual(collector.CheckedFetch().fetch_html(self.query()), '<html>results</html>')
             self.assertEqual(client.return_value.get.call_args.kwargs['params'], self.query().params())
-
-    def results_call(self, response, **options):
-        with patch.object(collector.primp, 'Client') as client:
-            client.return_value.post.return_value = response
-            try: return collector.collect(OPTIONS | {'adults': 2, 'children': 2} | options)
-            finally:
-                client.return_value.get.assert_not_called()
-                self.post = client.return_value.post.call_args
-
-    def test_results_call_reads_the_last_payload(self):
-        final = flights_data(best=[itinerary(520)], other=[itinerary(480, (18, 0), (21, 30))])
-        result = self.results_call(self.response(200, collector.RESULTS_URL, answer(PARTIAL, final)), currency='USD', language='en')
-        self.assertEqual((result['status'], result['skipped']), ('ok', {})); self.assertEqual(result['provider_groups'], {'2': 1, '3': 1})
-        self.assertEqual([f['price_cents'] for f in result['flights']], [48000, 52000]); self.assertEqual(result['flights'][0]['airline_codes'], ['BA'])
-        self.assertEqual((result['flights'][0]['children'], result['flights'][0]['currency']), (2, 'USD'))
-        self.assertTrue(result['flights'][0]['search_url'].startswith('https://www.google.com/travel/flights/search?tfs='))
-        self.assertEqual(self.post.args, (collector.RESULTS_URL,)); self.assertEqual(self.post.kwargs['params'], {'hl': 'en-US', 'rt': 'c'})
-        self.assertEqual(self.post.kwargs['headers'], {'x-same-domain': '1', 'x-goog-ext-259736195-jspb': '["en-US","BR","USD",1,null,[180],null,null,7,[]]'})
-        self.assertEqual(self.post.kwargs['data'], {'f.req': collector.results_request(OPTIONS | {'adults': 2, 'children': 2})})
-
-    def test_results_call_failures(self):
-        for response, kind in [(self.response(200, text=answer(None, error=RESULTS_ERROR)), 'no_results'),
-                               # Without any payload, like a page without the flights block, only this query failed.
-                               (self.response(200, text=")]}'\n\n7\n[[\"di\",51]]\n"), 'no_results'), (self.response(200, text='<html>changed</html>'), 'no_results'),
-                               (self.response(200, text='<div class="g-recaptcha"></div>'), 'blocked'), (self.response(200, 'https://www.google.com/sorry/index'), 'blocked'),
-                               (self.response(429), 'rate_limited'), (self.response(403), 'blocked'), (self.response(502), 'server'),
-                               # Never "format": a change in this call alone must not pause adults-only page queries.
-                               (self.response(200, text=answer('{broken')), 'no_results'), (self.response(200, text=answer('null')), 'no_results'),
-                               (self.response(200, text=answer([None, None])), 'no_results'),
-                               (self.response(200, text=answer(flights_data(best=[itinerary(520)], block7=None))), 'no_results'),
-                               # The partial payload last: alone, before a truncated chunk or before a null payload.
-                               (self.response(200, text=answer(PARTIAL)), 'no_results'),
-                               (self.response(200, text=answer(PARTIAL)+'7\n[["wrb.fr",null,"[null,null,[[[[\\"LA'), 'no_results'),
-                               (self.response(200, text=answer(PARTIAL, None)), 'no_results')]:
-            with self.subTest(text=response.text, status=response.status_code), self.assertRaises(collector.SourceError) as caught:
-                self.results_call(response)
-            self.assertEqual(caught.exception.kind, kind)
-        self.assertEqual(self.results_call(self.response(200, text=answer(flights_data())))['status'], 'empty')
-
-    def test_results_request_carries_party_cabin_and_bags(self):
-        for extra, party, cabin, bags in [({'adults': 2, 'children': 2}, [2, 2, 0, 0], 1, None),
-                                          ({'infants_on_lap': 1, 'cabin': 'business', 'checked_bags': 1}, [1, 0, 1, 0], 3, [0, 1]),
-                                          ({'adults': 2, 'children': 1, 'infants_in_seat': 2, 'infants_on_lap': 1, 'cabin': 'premium-economy', 'checked_bags': 2}, [2, 1, 1, 2], 2, [0, 2]),
-                                          ({'infants_in_seat': 1, 'cabin': 'first'}, [1, 0, 0, 1], 4, None)]:
-            with self.subTest(extra=extra):
-                outer = json.loads(collector.results_request(OPTIONS | extra))
-                self.assertIsNone(outer[0]); search = json.loads(outer[1])[1]
-                # One-way (2), cabin, passengers as [adults, children, on lap, in seat], bags.
-                self.assertEqual((search[2], search[5], search[6], search[10]), (2, cabin, party, bags))
-                leg = search[13]; self.assertEqual(len(leg), 1)
-                self.assertEqual((leg[0][0], leg[0][1], leg[0][6]), ([[['LHR', 0]]], [[['JFK', 0]]], '2090-11-05'))
 
     def test_page_markers_query_errors_and_format_errors(self):
         options = {'origin': 'LHR', 'destination': 'JFK', 'date': '2090-11-05', 'cabin': 'economy', 'adults': 1}

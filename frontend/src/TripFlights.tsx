@@ -19,7 +19,7 @@ import { RefreshButton } from "./RefreshButton";
 import { FlightRow } from "./FlightRow";
 import { t } from "./i18n";
 import { formatDate, formatDuration, formatMoney, formatRelative } from "./format";
-import { partyLabel } from "./passengers";
+import { estimateNote, partyLabel } from "./passengers";
 import { plural } from "./plural";
 import { legDates } from "./tripSummary";
 import { ChannelSummary } from "./AlertChannels";
@@ -267,8 +267,14 @@ export function TripFlights({
             )}
         </div>
       </section>
+      {estimateNote(saved) && (
+        <p className="trip-note">
+          <Info size={16} aria-hidden="true" />
+          {estimateNote(saved)}
+        </p>
+      )}
       {bestOut && bestIn && bestOut.destination !== bestIn.origin && (
-        <p className="airport-note">
+        <p className="trip-note">
           <Info size={16} aria-hidden="true" />
           {t("Aeroportos diferentes na ida e na volta: chegada em {0} e saída de {1}. Traslado não incluído.", [
             bestOut.destination,

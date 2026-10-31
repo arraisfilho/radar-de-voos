@@ -1016,7 +1016,8 @@
   background: var(--surface-tint);
   color: var(--action);
 }
-.airport-note {
+/* Notes under the trip summary: an estimated fare, different airports. */
+.trip-note {
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -1025,7 +1026,7 @@
   font-size: 13px;
   line-height: 18px;
 }
-.airport-note > svg {
+.trip-note > svg {
   flex-shrink: 0;
   margin-top: 1px;
 }

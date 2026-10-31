@@ -5,9 +5,9 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from .offer_links import valid_target
 
 LABELS={
- 'pt':dict(target='Meta atingida',lower_price='Preço caiu',outbound='IDA',inbound='VOLTA',direct='Direto',stop='escala',stops='escalas',saving='Economia',before='De',now='por',view='Ver passagem',adult='adulto',adults='adultos',passenger='passageiro',passengers='passageiros',scope='preços por trecho',bags='Bagagem a confirmar.',opportunities='Novas oportunidades',notice='Confira disponibilidade e condições antes de comprar.',reminder='Ainda dentro da meta',seen='visto às {0}',manage='Pausar ou editar a viagem'),
- 'en':dict(target='Target reached',lower_price='Price drop',outbound='OUTBOUND',inbound='RETURN',direct='Nonstop',stop='stop',stops='stops',saving='Save',before='Was',now='now',view='View flight',adult='adult',adults='adults',passenger='passenger',passengers='passengers',scope='prices per leg',bags='Check baggage allowance.',opportunities='New opportunities',notice='Check availability and conditions before booking.',reminder='Still within target',seen='seen at {0}',manage='Pause or edit this trip'),
- 'es':dict(target='Objetivo alcanzado',lower_price='Bajó el precio',outbound='IDA',inbound='VUELTA',direct='Directo',stop='escala',stops='escalas',saving='Ahorro',before='Antes',now='ahora',view='Ver vuelo',adult='adulto',adults='adultos',passenger='pasajero',passengers='pasajeros',scope='precios por trayecto',bags='Equipaje por confirmar.',opportunities='Nuevas oportunidades',notice='Confirma disponibilidad y condiciones antes de comprar.',reminder='Sigue dentro del objetivo',seen='visto a las {0}',manage='Pausar o editar el viaje')}
+ 'pt':dict(target='Meta atingida',lower_price='Preço caiu',outbound='IDA',inbound='VOLTA',direct='Direto',stop='escala',stops='escalas',saving='Economia',before='De',now='por',view='Ver passagem',adult='adulto',adults='adultos',passenger='passageiro',passengers='passageiros',scope='preços por trecho',bags='Bagagem a confirmar.',opportunities='Novas oportunidades',notice='Confira disponibilidade e condições antes de comprar.',reminder='Ainda dentro da meta',estimate='Preço estimado para {0}.',seen='visto às {0}',manage='Pausar ou editar a viagem'),
+ 'en':dict(target='Target reached',lower_price='Price drop',outbound='OUTBOUND',inbound='RETURN',direct='Nonstop',stop='stop',stops='stops',saving='Save',before='Was',now='now',view='View flight',adult='adult',adults='adults',passenger='passenger',passengers='passengers',scope='prices per leg',bags='Check baggage allowance.',opportunities='New opportunities',notice='Check availability and conditions before booking.',reminder='Still within target',estimate='Estimated price for {0}.',seen='seen at {0}',manage='Pause or edit this trip'),
+ 'es':dict(target='Objetivo alcanzado',lower_price='Bajó el precio',outbound='IDA',inbound='VUELTA',direct='Directo',stop='escala',stops='escalas',saving='Ahorro',before='Antes',now='ahora',view='Ver vuelo',adult='adulto',adults='adultos',passenger='pasajero',passengers='pasajeros',scope='precios por trayecto',bags='Equipaje por confirmar.',opportunities='Nuevas oportunidades',notice='Confirma disponibilidad y condiciones antes de comprar.',reminder='Sigue dentro del objetivo',estimate='Precio estimado para {0}.',seen='visto a las {0}',manage='Pausar o editar el viaje')}
 
 
 def clean(value):
@@ -40,7 +40,7 @@ def render(events,language='pt',channel='text',links=None,name='',page='',zone='
     clock=seen_at(events,zone)
     about=' · '.join(filter(None,[clean(name),clock and l['seen'].format(clock)]))
     text=[('🎯 ' if kinds<={'target','reminder'} else '💰 ')+bold(title)]+([about] if about else [])
-    cards=[];footers=[]
+    cards=[];footers=[];estimates=[]
     for index,(direction,event) in enumerate(events):
         f=event['flight'];currency=f.get('currency','BRL')
         start=datetime.fromisoformat(f['departure']);end=datetime.fromisoformat(f['arrival'])
@@ -66,11 +66,15 @@ def render(events,language='pt',channel='text',links=None,name='',page='',zone='
         party=f"{count} {l['passenger'] if count==1 else l['passengers']}" if extra else f"{count} {l['adult'] if count==1 else l['adults']}"
         footer=party+' · '+l['scope']
         if footer not in footers:footers.append(footer)
+        # The source prices adults only: children and infants in seat were queried as adults, infants on lap left out.
+        basis=count-f.get('infants_on_lap',0)
+        estimate=l['estimate'].format(f"{basis} {l['adult'] if basis==1 else l['adults']}")
+        if extra and estimate not in estimates:estimates.append(estimate)
         old=f'<del style="color:#526176;font-size:14px">{escape(money(previous,currency,language))}</del> ' if discount else ''
         button=(f'<a href="{escape(link,quote=True)}" style="display:inline-block;background:#365d86;color:#fff;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:600">{escape(l["view"])}</a>') if link else ''
         cards.append(f'<section style="border:1px solid #d4dce6;border-radius:10px;padding:20px;margin:16px 0"><h2 style="margin:0 0 10px;font-size:18px">{escape(route)}</h2><p>{escape(date)}</p><p style="color:#526176">{escape(details)}</p><p>{old}<strong style="font-size:26px;color:#28583f">{escape(current)}</strong></p>'+ (f'<p>{escape(saving)}</p>' if saving else '')+button+'</section>')
-    text.extend(['',*footers,l['bags']])
+    text.extend(['',*footers,*estimates,l['bags']])
     if page:text.append(l['manage']+': '+page)
     manage=f'<br><a href="{escape(page,quote=True)}" style="color:#365d86">{escape(l["manage"])}</a>' if page else ''
-    html=f'<!doctype html><html lang="{language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f3f6f9;font:16px/1.5 Arial,sans-serif;color:#243044"><main style="max-width:600px;margin:auto;padding:24px"><h1 style="font-size:24px">{escape(title)}</h1>'+(f'<p style="margin:-8px 0 0;color:#526176">{escape(about)}</p>' if about else '')+''.join(cards)+f'<p style="font-size:14px;color:#526176">{escape(" · ".join(footers))}<br>{escape(l["bags"])}<br>{escape(l["notice"])}{manage}</p></main></body></html>'
+    html=f'<!doctype html><html lang="{language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f3f6f9;font:16px/1.5 Arial,sans-serif;color:#243044"><main style="max-width:600px;margin:auto;padding:24px"><h1 style="font-size:24px">{escape(title)}</h1>'+(f'<p style="margin:-8px 0 0;color:#526176">{escape(about)}</p>' if about else '')+''.join(cards)+f'<p style="font-size:14px;color:#526176">{escape(" · ".join(footers))}<br>{"".join(escape(e)+"<br>" for e in estimates)}{escape(l["bags"])}<br>{escape(l["notice"])}{manage}</p></main></body></html>'
     return '\n'.join(text),html

@@ -20,6 +20,12 @@ reset({...base,destinations:[]});submit();assert.equal(states[1],0);assert.ok(st
 for(const key of ['children','infants_in_seat','infants_on_lap'])assert.equal(canPreview(base,{...base,[key]:1}),false,`${key} must require a fresh query`);
 assert.equal(canPreview(base,{...base,name:'Another name'}),true);
 const {partyLabel}=load('passengers.ts');assert.equal(partyLabel({...base,adults:2,children:1}),'3 passageiros');assert.equal(partyLabel(base),'1 adulto');
+const {estimateNote,estimateLabel,estimatedFare}=load('passengers.ts');assert.equal(estimatedFare(base),false);assert.equal(estimateNote(base),'','Adults only: an exact price');
+assert.equal(estimateNote({...base,adults:2,children:2}),'Preço estimado: crianças contadas como adultos. O valor final pode ser menor.');
+assert.equal(estimateNote({...base,infants_in_seat:1}),'Preço estimado: bebês com assento contados como adultos. O valor final pode ser menor.');
+assert.equal(estimateNote({...base,adults:2,children:1,infants_in_seat:1,infants_on_lap:1}),'Preço estimado: crianças e bebês com assento contados como adultos; bebês no colo não incluídos no preço. O valor final pode ser diferente.');
+assert.equal(estimateNote({...base,infants_on_lap:1}),'Preço estimado: bebês no colo não incluídos no preço. O valor final pode ser maior.','Lap infants are named only when there are any');
+assert.equal(estimateLabel({...base,adults:2,children:1,infants_in_seat:1,infants_on_lap:1}),'Preço estimado para 4 adultos.');assert.equal(estimateLabel({...base,infants_on_lap:1}),'Preço estimado para 1 adulto.');
 console.log('Search journey: outbound to return, stale defaults, one-way, generated/custom names, passenger validation and preview isolation passed.');
 
 reset({...base,name:"Saved trip",notify_email:true});render({alertsOnly:true,general:false,emailRecipients:["fixture@example.org"]}).props.onSubmit({preventDefault(){}});assert.equal(saved.notify_email,true);assert.equal(saved.name,"Saved trip");assert.equal(states[1],0);

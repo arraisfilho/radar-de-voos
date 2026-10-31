@@ -3007,6 +3007,46 @@
     "en": "Under 2",
     "es": "Menores de 2 años"
   },
+  "Preço estimado para {0}.": {
+    "en": "Estimated price for {0}.",
+    "es": "Precio estimado para {0}."
+  },
+  "crianças contadas como adultos": {
+    "en": "children counted as adults",
+    "es": "niños contados como adultos"
+  },
+  "bebês com assento contados como adultos": {
+    "en": "infants with a seat counted as adults",
+    "es": "bebés con asiento contados como adultos"
+  },
+  "crianças e bebês com assento contados como adultos": {
+    "en": "children and infants with a seat counted as adults",
+    "es": "niños y bebés con asiento contados como adultos"
+  },
+  "Preço estimado: {0}. O valor final pode ser menor.": {
+    "en": "Estimated price: {0}. The final price may be lower.",
+    "es": "Precio estimado: {0}. El precio final puede ser menor."
+  },
+  "Preço estimado: {0}; bebês no colo não incluídos no preço. O valor final pode ser diferente.": {
+    "en": "Estimated price: {0}; lap infants not included. The final price may differ.",
+    "es": "Precio estimado: {0}; bebés en el regazo no incluidos. El precio final puede variar."
+  },
+  "Preço estimado: bebês no colo não incluídos no preço. O valor final pode ser maior.": {
+    "en": "Estimated price: lap infants not included. The final price may be higher.",
+    "es": "Precio estimado: bebés en el regazo no incluidos. El precio final puede ser mayor."
+  },
+  "Preço estimado para {0}, por trecho.": {
+    "en": "Estimated price for {0}, per leg.",
+    "es": "Precio estimado para {0}, por trayecto."
+  },
+  "Preço estimado para {0} · por trecho": {
+    "en": "Estimated price for {0} · per leg",
+    "es": "Precio estimado para {0} · por trayecto"
+  },
+  "Estimativa para {0} · soma do menor preço de cada trecho": {
+    "en": "Estimate for {0} · sum of the lowest fare on each leg",
+    "es": "Estimación para {0} · suma de la tarifa más baja de cada tramo"
+  },
   "Máximo de nove passageiros. Cada bebê no colo precisa de um adulto.": {
     "en": "Maximum of nine passengers. Each lap infant needs one adult.",
     "es": "Máximo de nueve pasajeros. Cada bebé en el regazo necesita un adulto."

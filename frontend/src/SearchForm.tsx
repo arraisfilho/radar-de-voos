@@ -1,4 +1,4 @@
-import { partyLabel, validParty } from "./passengers";
+import { estimatedFare, estimateNote, estimateParty, partyLabel, validParty } from "./passengers";
 import { suggestedName, nextTripAction, impossibleReturns } from "./searchJourney";
 import { t } from "./i18n";
 import { Fragment, lazy, Suspense, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
@@ -1119,7 +1119,9 @@ export function SearchForm({
         </div>
         <p className="field-help" id={ids.values + "-help"}>
           {t("Valores em {0}. Altere a moeda na etapa Viagem.", [currency])}{" "}
-          {t("Preço total para {0}, por trecho.", [partyLabel(config)])}
+          {estimatedFare(config)
+            ? t("Preço estimado para {0}, por trecho.", [estimateParty(config)])
+            : t("Preço total para {0}, por trecho.", [partyLabel(config)])}
         </p>
         {lowest && (lowest.outbound != null || lowest.inbound != null) && (
           <p className="field-help lowest-now" id={ids.values + "-now"}>
@@ -1469,6 +1471,7 @@ export function SearchForm({
             </div>
             <p className="list-section-footer">
               {t("Máximo de nove passageiros. Cada bebê no colo precisa de um adulto.")}
+              {estimateNote(config) && " " + estimateNote(config)}
             </p>
             {partyError && <FieldError id={errorId + "-party"}>{partyError}</FieldError>}
           </section>
