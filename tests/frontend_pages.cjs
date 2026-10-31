@@ -35,6 +35,8 @@ const {TripFlights}=isolated('TripFlights.tsx'),findType=(node,type)=>{if(Array.
 const tripProps={search,config,user,flights:[],direction:'outbound',onDirection(){},visibleCount:40,onShowMore(){},previewing:false,previewCompatible:true,serverNow:10,pendingFilters:false,filters:React.createElement('form',{id:'monitor-filters'}),onConfigureAlerts(){},onShowAlerts(){},onManageContacts(){}};
 const cardBody=tree=>renderToStaticMarkup(tree).match(/<div class="quick-filters-body">(.*?)<\/div><\/details>/)[1];
 let card=TripFlights(tripProps);assert.equal(cardBody(card),'','The closed card has no form');
+assert.ok(!renderToStaticMarkup(card).includes('Preço estimado'),'Adults only: an exact price');
+assert.equal((renderToStaticMarkup(TripFlights({...tripProps,search:{...search,config:{...config,adults:2,children:2}}})).match(/<p class="trip-note">(?:<svg[\s\S]*?<\/svg>)?Preço estimado: crianças contadas como adultos\. O valor final pode ser menor\.<\/p>/g)||[]).length,1,'The trip page says once how the fare was estimated');
 assert.ok(!renderToStaticMarkup(card).includes('filters-count'),'No filter on: no count');
 assert.ok(/class="filters-count">2<span class="sr-only"> filtros ativos/.test(renderToStaticMarkup(TripFlights({...tripProps,config:{...config,outbound:{...leg,stops:[0],airlines:['LA']}}}))),'Two filters on: 2');
 findType(card,'details').props.onToggle({currentTarget:{open:true}});card=TripFlights(tripProps);assert.equal(cardBody(card),'<form id="monitor-filters"></form>','Opening the card mounts the filters');
@@ -58,6 +60,7 @@ html=render({view:'searches',searchId:search.id,editor:'edit',step:0,leg:'outbou
 html=render({view:'searches',searchId:search.id,editor:'alerts'});assert.ok(html.includes('Salvar alertas'));assert.ok(!html.includes('Escalas permitidas'));
 html=render({view:'searches',searchId:search.id,panel:'alerts'});assert.ok(html.includes('Nenhum alerta para esta viagem.'));assert.ok(!html.includes('Melhores opções'));
 html=render({view:'history',searchId:search.id});assert.ok(html.includes('Preço estável neste período'));assert.ok(!html.includes('history-direction'),'A one-direction series has no redundant direction selector');
+assert.ok(!html.includes('Preço estimado'));search.config={...config,infants_on_lap:1};try{assert.ok(render({view:'history',searchId:search.id}).includes('<p>Preço estimado: bebês no colo não incluídos no preço. O valor final pode ser maior.</p>'),'The history says the fares were estimated');}finally{search.config=config;}
 // Administration loads on demand: the first render shows the skeleton inside <main>, then the panel.
 html=render({view:'admin',section:'deliveries',deliveryId:'message-1'});assert.ok(html.includes('view-skeleton'));assert.ok(html.includes('class="sidebar"'),'The shell stays mounted while a view loads');await new Promise(resolve=>setImmediate(resolve));
 html=render({view:'admin',section:'deliveries',deliveryId:'message-1'});assert.ok(html.includes('task-page delivery-detail'));assert.ok(html.includes('Fixture body'));assert.ok(!html.includes('role="dialog"'));assert.ok(!html.slice(html.indexOf('<main'),html.indexOf('</main>')).includes('Nova viagem'));

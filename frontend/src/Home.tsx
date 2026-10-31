@@ -4,7 +4,7 @@ import { CalendarDays, ChevronRight, Minus, Plane, Plus, TrendingDown, TrendingU
 import { Button } from "./ui";
 import { t } from "./i18n";
 import { tripTitle, legDates } from "./tripSummary";
-import { partyLabel } from "./passengers";
+import { estimatedFare, partyLabel } from "./passengers";
 import { formatMoney, formatRelative } from "./format";
 import { plainClick, routePath } from "./navigation";
 import { RouteCodes, RoutePlaces } from "./RouteSummary";
@@ -189,7 +189,11 @@ function TripCard({
                     );
                   })}
                 </dl>
-                <p className="trip-card-party">{t("Para {0} · soma do menor preço de cada trecho", [partyLabel(config)])}</p>
+                <p className="trip-card-party">
+                  {estimatedFare(config)
+                    ? t("Estimativa para {0} · soma do menor preço de cada trecho", [partyLabel(config)])
+                    : t("Para {0} · soma do menor preço de cada trecho", [partyLabel(config)])}
+                </p>
               </>
             ) : (
               <>
@@ -208,7 +212,11 @@ function TripCard({
                   );
                 })}
               </dl>
-              <p className="trip-card-party">{t("Total para {0} · por trecho", [partyLabel(config)])}</p>
+              <p className="trip-card-party">
+                {estimatedFare(config)
+                  ? t("Preço estimado para {0} · por trecho", [partyLabel(config)])
+                  : t("Total para {0} · por trecho", [partyLabel(config)])}
+              </p>
               </>
             )}
           </div>

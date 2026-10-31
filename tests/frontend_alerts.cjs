@@ -22,11 +22,14 @@ html=row(reminder);assert.ok(html.includes('Ainda dentro da meta')&&!html.includ
 html=row(alert('a2',now-60,'lower_price',[{channel:'email',counts:{sent:1}}]));assert.ok(html.includes('Queda de preço'));assert.ok(!html.includes('Configurar contato'));assert.ok(html.includes('Economia de'));
 const change={...alert('c1',now-60,'lower_price'),price:120000,previous:110000,currency:'BRL',flight};
 html=renderToStaticMarkup(React.createElement(AlertRow,{item:change,observed:true}));assert.ok(html.includes('Preço subiu'));assert.ok(html.includes('Variação observada · no painel'));assert.ok(!html.includes('Ver no Google Voos'),'Observed changes are not offers');
-assert.ok(!html.includes('A opção pode ter mudado'),'Observed changes carry no offer note');
+assert.ok(!html.includes('A opção pode ter mudado'),'Observed changes carry no offer note');assert.ok(!html.includes('alert-row-note'),'Nor any note for adults only');
+html=renderToStaticMarkup(React.createElement(AlertRow,{item:{...change,flight:{...flight,adults:2,children:1,infants_on_lap:1}},observed:true}));assert.ok(html.includes('<p class="alert-row-note">Preço estimado para 3 adultos.</p>'),'An observed change of a party with children is an estimate too');
 // Sent alerts say the fare may have changed; a goal met without an earlier price says it is within the budget.
 const disclaimer='Melhor preço encontrado para suas preferências. A opção pode ter mudado.';
 html=row(alert('a3',now-60,'lower_price',[{channel:'email',counts:{sent:1}}]));assert.ok(html.includes(disclaimer));assert.ok(!html.includes('Dentro do orçamento configurado'),'A drop shows its saving instead');
 html=row({...alert('a4',now-60,'target',[{channel:'email',counts:{sent:1}}]),previous:null});assert.ok(html.includes(disclaimer));assert.match(html,/<small>Dentro da meta<\/small>/);
+const family=alert('a6',now-60,'target',[{channel:'email',counts:{sent:1}}]);family.payload.flight={...flight,adults:2,children:1,infants_on_lap:1};
+html=row(family);assert.ok(html.includes(disclaimer+' Preço estimado para 3 adultos.'),'A party with children or infants gets an estimate');assert.ok(!row(alert('a7',now-60,'target',[{channel:'email',counts:{sent:1}}])).includes('Preço estimado'));
 // A goal met never reads "Preço subiu": it says how far below the target it is.
 const risen={...alert('a5',now-60,'target',[{channel:'email',counts:{sent:1}}]),price:117100,previous:90400};risen.payload={...risen.payload,target_cents:120000};
 html=row(risen);assert.ok(!html.includes('Preço subiu'));assert.match(html,/<small>Dentro da meta \(R\$\s1\.200\) · R\$\s29 abaixo da meta<\/small>/);

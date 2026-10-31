@@ -20,7 +20,7 @@ Horários de saída seguem o aeroporto de origem; limites de chegada seguem o de
 
 ## Preços e histórico
 
-O preço representa o grupo de passageiros por trecho, na moeda selecionada. A soma dos menores preços de ida e volta é uma estimativa de bilhetes separados, não uma oferta conjunta confirmada.
+O preço representa o grupo de passageiros por trecho, na moeda selecionada. Com crianças ou bebês, é uma estimativa: crianças e bebês com assento contam como adultos e bebês no colo não são incluídos no preço, e a interface e os alertas indicam a estimativa. A soma dos menores preços de ida e volta é uma estimativa de bilhetes separados, não uma oferta conjunta confirmada.
 
 O histórico do usuário privilegia variações e gráficos distintos por direção. Coletas e diagnósticos técnicos ficam separados da apresentação principal. Resultados reaproveitados conservam o horário original.
 

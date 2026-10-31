@@ -5,7 +5,7 @@ import { clsx } from "clsx";
 import { priceAxis, visiblePricePoints } from "./priceChart";
 import { t } from "./i18n";
 import { formatDateTime, formatMoney } from "./format";
-import { partyLabel } from "./passengers";
+import { estimateNote, partyLabel } from "./passengers";
 import type { SearchRecord, Snapshot } from "./types";
 
 type Direction = "both" | "outbound" | "inbound";
@@ -249,6 +249,7 @@ export function PriceChartCard({ search }: { search: SearchRecord }) {
             {search.config.inbound ? t("Ida e volta separadas ·") : t("Somente ida ·")} {partyLabel(search.config)} ·{" "}
             {t("por trecho · fuso do dispositivo")}
           </p>
+          {estimateNote(search.config) && <p>{estimateNote(search.config)}</p>}
         </div>
         {/* CSV opens in a spreadsheet (UTF-8, ";", decimal comma); JSON keeps everything collected. */}
         <div className="history-downloads">

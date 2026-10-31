@@ -33,6 +33,18 @@ class MessageTests(unittest.TestCase):
         self.assertNotIn('tfs=',text);self.assertIn('*R$ 1.108,00*',text)
         self.assertIn('05/11/2090 · 23:40 → 06/11/2090 · 07:30',text)
 
+    def test_estimated_party_price_is_labelled_once(self):
+        # Children and infants in seat were priced as adults, infants on lap left out (backend/collector.py).
+        outbound=event();outbound['flight'].update(adults=2,children=1,infants_in_seat=1,infants_on_lap=1);inbound=copy.deepcopy(outbound)
+        for language,line in [('pt','Preço estimado para 4 adultos.'),('en','Estimated price for 4 adults.'),('es','Precio estimado para 4 adultos.')]:
+            for channel in ('text','whatsapp'):
+                text,html=alert_messages.render([('outbound',outbound),('inbound',inbound)],language,channel)
+                self.assertEqual(text.splitlines().count(line),1);self.assertEqual(html.count(line),1)
+        lap=event();lap['flight'].update(infants_on_lap=1)
+        self.assertIn('Preço estimado para 1 adulto.',alert_messages.render([('outbound',lap)])[0].splitlines())
+        text,html=alert_messages.render([('outbound',event())])
+        self.assertNotIn('estimado',text);self.assertNotIn('estimado',html)
+
     def test_comparison_only_for_genuine_savings_and_localized(self):
         e=event();e.update(previous=135000)
         for language,word in [('pt','Economia'),('en','Save'),('es','Ahorro')]:

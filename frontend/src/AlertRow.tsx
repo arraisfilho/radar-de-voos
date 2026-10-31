@@ -5,6 +5,7 @@ import { GoogleFlightsLink } from "./FlightRow";
 import { t } from "./i18n";
 import { dayKey, formatDateTime, formatDay, formatMoney, formatTime } from "./format";
 import { plainClick, routePath } from "./navigation";
+import { estimateLabel, estimatedFare } from "./passengers";
 import { priceChangeLabel } from "./pricePresentation";
 import type { Alert, Flight } from "./types";
 
@@ -67,6 +68,13 @@ export function AlertRow({
     ? routePath({ view: item.archived ? "history" : "searches", searchId: item.search_id })
     : null;
   const contact = !observed && needsContact(item);
+  // A sent alert is a snapshot: the fare may have changed since. Both kinds say when the fare is an estimate.
+  const note = [
+    !observed && t("Melhor preço encontrado para suas preferências. A opção pode ter mudado."),
+    flight && estimatedFare(flight) && estimateLabel(flight),
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
     <article className={`alert-row is-${kind}`}>
       <span className="alert-row-icon" aria-hidden="true">
@@ -85,10 +93,7 @@ export function AlertRow({
             {flight.airlines.join(" / ")} · {formatDateTime(flight.departure)}
           </p>
         )}
-        {/* A sent alert is a snapshot: the fare may have changed since. */}
-        {!observed && (
-          <p className="alert-row-note">{t("Melhor preço encontrado para suas preferências. A opção pode ter mudado.")}</p>
-        )}
+        {note && <p className="alert-row-note">{note}</p>}
       </div>
       <p className="alert-row-price">
         <strong>{formatMoney(item.price, currency)}</strong>

@@ -16,10 +16,6 @@ from selectolax.lexbor import LexborHTMLParser
 from .domain import local_instant, ADAPTER_VERSION
 
 SOURCE_URL = "https://www.google.com/travel/flights"
-# The call the results page makes for its flights; the page itself carries them only for adults.
-RESULTS_URL = "https://www.google.com/_/FlightsFrontendUi/data/travel.frontend.flights.FlightsFrontendService/GetShoppingResults"
-CABINS = {"economy": 1, "premium-economy": 2, "business": 3, "first": 4}
-COMPACT = (",", ":")
 # Safe, fixed texts per failure kind; raw provider/library messages are never returned.
 MESSAGES = {
     "rate_limited": "A fonte limitou temporariamente as consultas",
@@ -82,22 +78,6 @@ class LinkPassengers(Passengers):
         return [swap.get(code, code) for code in super().pb()]
 
 
-def results_request(options):
-    """f.req of the results call, one-way; passengers as [adults, children, on lap, in seat]."""
-    party = [options["adults"], options.get("children", 0), options.get("infants_on_lap", 0), options.get("infants_in_seat", 0)]
-    bags = options.get("checked_bags", 0)
-    leg = [[[[options["origin"], 0]]], [[[options["destination"], 0]]], None, 0, None, None, options["date"], *[None]*7, 3]
-    search = [None, None, 2, None, [], CABINS[options["cabin"]], party, None, None, None, [0, bags] if bags else None, None, None, [leg], None, None, None, 1]
-    return json.dumps([None, json.dumps([[], search, 0, 0, 0, 1], separators=COMPACT)], separators=COMPACT)
-
-
-def fetch_results(query, options):
-    # Region and the other fields as the results page sends them.
-    headers = {"x-same-domain": "1", "x-goog-ext-259736195-jspb": json.dumps([query.language, "BR", query.currency, 1, None, [180], None, None, 7, []], separators=COMPACT)}
-    response = browser().post(RESULTS_URL, params={"hl": query.language, "rt": "c"}, data={"f.req": results_request(options)}, headers=headers)
-    return checked(response)
-
-
 def classify(exc):
     """Failure kind and safe message for any exception raised by collect()."""
     if isinstance(exc, SourceError):
@@ -138,44 +118,12 @@ def page_data(html):
         raise SourceError("format") from None
 
 
-CHUNK_LENGTH = re.compile(r"\s*\d+\s*")
-
-
-def results_groups(text):
-    """top_level() of the last payload of the chunked results answer: a ")]}'" line, then
-    length and JSON array pairs.
-
-    The first payload is partial (no prices, no airline list); the last one holds the results.
-    Any failure here concerns this query only ("no_results"), never "format": an answer without
-    payload (an ErrorResponse for a past or far date, or any other body), a truncated answer
-    whose last payload is the partial one, or a payload outside the top-level structure. A
-    change in this call alone must not pause the page queries of adults-only parties.
-    """
-    decoder, payloads = json.JSONDecoder(), []
-    position = text.find("\n")
-    # The lengths are not trusted: each chunk is read to the end of its JSON array.
-    while position >= 0 and (length := CHUNK_LENGTH.match(text, position)) and length.end() < len(text):
-        try:
-            chunk, position = decoder.raw_decode(text, length.end())
-        except ValueError:
-            break
-        for entry in chunk if isinstance(chunk, list) else []:
-            if isinstance(entry, list) and len(entry) > 2 and entry[0] == "wrb.fr" and entry[2]:
-                payloads.append(entry[2])
-    if not payloads:
-        raise SourceError("blocked" if blocked_page(text) else "no_results")
-    try:
-        return top_level(json.loads(payloads[-1]))
-    except (TypeError, ValueError):  # SourceError("format") included
-        raise SourceError("no_results") from None
-
-
 def top_level(data):
     """Raw itineraries of groups 2 and 3, and airline codes, from the flights data.
 
     Only this structure is a format change ("format", source-wide): with the page data's JSON
     (page_data), the group containers and, when there are itineraries, block 7 (alliances,
-    airlines). The results call turns it into "no_results" (results_groups).
+    airlines).
     """
     groups = {}
     for index in (2, 3):
@@ -210,15 +158,16 @@ def stamp(value):
 def collect(options):
     origin, destination, date = options["origin"], options["destination"], options["date"]
     party = LinkPassengers(adults=options["adults"],children=options.get("children",0),infants_in_seat=options.get("infants_in_seat",0),infants_on_lap=options.get("infants_on_lap",0))
-    query = create_query(flights=[FlightQuery(date=date, from_airport=origin, to_airport=destination)],
-                         seat=options["cabin"], trip="one-way", passengers=party,
+    query = lambda passengers: create_query(flights=[FlightQuery(date=date, from_airport=origin, to_airport=destination)],
+                         seat=options["cabin"], trip="one-way", passengers=passengers,
                          language={"pt":"pt-BR","en":"en-US","es":"es"}.get(options.get("language","pt"),"en-US"), currency=options.get("currency", "BRL"), checked_bags=options.get("checked_bags", 0))
+    # The link keeps the real party. The results page carries prices only for adults, and the call
+    # that loads the others is refused from server networks: the fare is an estimate with children
+    # and infants in seat as adults and infants on lap left out.
+    link = query(party)
+    fetched = query(Passengers(adults=party.adults+party.children+party.infants_in_seat)) if party.children or party.infants_in_seat or party.infants_on_lap else link
     start = time.monotonic()
-    # With children or infants the page holds one itinerary without price: the results call instead.
-    if party.children or party.infants_in_seat or party.infants_on_lap:
-        groups, airline_codes = results_groups(fetch_results(query, options))
-    else:
-        groups, airline_codes = top_level(page_data(fetch_flights_html(query, fetch_integration=CheckedFetch())))
+    groups, airline_codes = top_level(page_data(fetch_flights_html(fetched, fetch_integration=CheckedFetch())))
     items, flights, skipped = [], {}, {}
     for raw in groups[2]+groups[3]:
         try:
@@ -243,7 +192,7 @@ def collect(options):
                 layovers.append(round((local_instant(following["departure"], following["origin"]) - local_instant(previous["arrival"], previous["destination"])).total_seconds()/60))
             if duration <= 0 or any(v < 0 for v in layovers) or not isinstance(item.price, (int, float)) or item.price <= 0:
                 raise ValueError("Horário ou preço inválido na fonte")
-            # The query uses the whole passenger party: do not label total as per-adult.
+            # The total of the queried party (estimated, see above): do not label it as per-adult.
             total_cents = round(item.price * 100)
             identity = json.dumps([item.airlines, segments], sort_keys=True)
             fid = hashlib.sha256(identity.encode()).hexdigest()[:20]
@@ -252,7 +201,7 @@ def collect(options):
                       "layovers": layovers, "via": [s["destination"] for s in segments[:-1]],
                       "airlines": item.airlines, "airline_codes": [airline_codes.get(a.casefold(), a) for a in item.airlines], "segments": segments,
                       "price_cents": total_cents, "currency": options.get("currency", "BRL"), "price_scope": "party_per_leg",
-                      "adults": options["adults"], "children": options.get("children",0), "infants_in_seat": options.get("infants_in_seat",0), "infants_on_lap": options.get("infants_on_lap",0), "search_url": query.url(), "baggage": "unknown", "checked_bags_requested": options.get("checked_bags", 0)}
+                      "adults": options["adults"], "children": options.get("children",0), "infants_in_seat": options.get("infants_in_seat",0), "infants_on_lap": options.get("infants_on_lap",0), "search_url": link.url(), "baggage": "unknown", "checked_bags_requested": options.get("checked_bags", 0)}
         except ITEM_ERRORS as exc:
             # An unsupported itinerary must not discard other usable fares.
             reason = "unsupported_airport" if isinstance(exc, KeyError) else "unsupported_itinerary"
